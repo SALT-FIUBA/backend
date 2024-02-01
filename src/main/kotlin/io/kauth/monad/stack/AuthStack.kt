@@ -1,0 +1,79 @@
+package io.kauth.monad.stack
+
+import io.kauth.serializer.UUIDSerializer
+import io.kauth.util.Async
+import io.kauth.util.MutableClassMap
+import io.kauth.util.not
+import io.ktor.server.application.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import java.util.*
+
+data class AuthStack<out T>(
+    override val run: (context: Context) -> Async<T>
+): Dependency<AuthStack.Companion.Context, T> {
+
+    companion object {
+
+        val <T> Dependency<Context, T>.asAuthStack: AuthStack<T> get() = AuthStack(run = run)
+
+        data class Context(
+            val ktor: Application,
+            val serialization: Json,
+            val services: MutableClassMap,
+        ): CoroutineScope by ktor
+
+        fun <T> Do(block: suspend DependencyContext<Context>.() -> T): AuthStack<T> =
+            AuthStack(run = Dependency.Do(block).run)
+    }
+
+}
+
+fun <T : Any> registerService(service: T) =
+    AuthStack.Do {
+        val services = !authStackServices
+        !services.set(service::class, service)
+        service
+    }
+
+inline fun <reified T : Any> getService() = AuthStack.Do {
+    val services = !authStackServices
+    !services.get(T::class) ?: error("Service not found")
+}
+
+val authStackServices = AuthStack.Do {
+    val context = !Dependency.read<AuthStack.Companion.Context>()
+    context.services
+}
+
+val authStackKtor = AuthStack.Do {
+    val context = !Dependency.read<AuthStack.Companion.Context>()
+    context.ktor
+}
+
+val authStackSerialization = AuthStack.Do {
+    val context = !Dependency.read<AuthStack.Companion.Context>()
+    context.serialization
+}
+
+
+fun Application.runAuthStack(stack: Dependency<AuthStack.Companion.Context, *>) {
+    val context = AuthStack.Companion.Context(
+        ktor = this,
+        serialization =
+            Json {
+                ignoreUnknownKeys = true
+                encodeDefaults = true
+                serializersModule = SerializersModule {
+                    contextual(UUID::class, UUIDSerializer)
+                }
+            },
+        services = !MutableClassMap.new
+    )
+    runBlocking(coroutineContext) {
+        !stack.run(context)
+    }
+}

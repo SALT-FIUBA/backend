@@ -1,0 +1,71 @@
+package io.kauth.service.reservation
+
+import io.kauth.abstractions.command.CommandHandler
+import io.kauth.abstractions.state.cmap
+import io.kauth.client.eventStore.*
+import io.kauth.client.eventStore.model.StreamRevision
+import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.getService
+import io.kauth.monad.stack.registerService
+import io.kauth.service.AppService
+import io.kauth.service.reservation.Reservation.asCommand
+import io.kauth.util.Async
+import io.kauth.util.not
+
+object ReservationService : AppService {
+
+    val USERS_STREAM_PREFIX = "reservation-"
+    val USER_SNAPSHOT_STREAM_PREFIX = "reservation_snapshot-"
+    val String.streamName get() = USERS_STREAM_PREFIX + this.toString()
+    val String.snapshotName get() = USER_SNAPSHOT_STREAM_PREFIX + this.toString()
+
+    data class Command(
+        val handle: (id: String) -> CommandHandler<Reservation.Command, Reservation.Output>
+    )
+
+    data class Query(
+        val readState: (id:String) -> Async<Reservation.Reservation?>
+    )
+
+    data class Interface(
+        val command: Command,
+        val query: Query
+    )
+
+    override val name: String get() = "ReservationService"
+
+    override val start =
+        AuthStack.Do {
+
+            val client = !getService<EventStoreClient>()
+
+            val stateMachine = Reservation::stateMachine
+
+            val commands = Command(
+                handle = { id ->
+                    stream<Reservation.ResourceEvent, Reservation.Reservation>(client, id.streamName, id.snapshotName)
+                        .commandHandler(Reservation::stateMachine) { it.asCommand }
+                }
+            )
+
+            val query = Query(
+                readState = { id ->
+                    stream<Reservation.ResourceEvent, Reservation.Reservation>(client, id.streamName, id.snapshotName)
+                        .computeStateResult(stateMachine.cmap {it.asCommand })
+                }
+            )
+
+            !registerService(
+                Interface(
+                    query = query,
+                    command = commands
+                )
+            )
+
+        }
+
+    //readConfig
+
+}
+
+
