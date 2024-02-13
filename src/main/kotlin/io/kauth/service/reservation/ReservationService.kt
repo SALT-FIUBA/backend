@@ -51,7 +51,7 @@ object ReservationService : AppService {
             val query = Query(
                 readState = { id ->
                     stream<Reservation.ResourceEvent, Reservation.Reservation>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(stateMachine.cmap {it.asCommand })
+                        .computeStateResult(stateMachine) { it.asCommand }
                 }
             )
 

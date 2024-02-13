@@ -12,7 +12,7 @@ object AuthProjection {
     val eventHandler = AuthStack.Do {
 
         val streamName = "\$ce-user"
-        val consumerGroup = "some-consumer-group"
+        val consumerGroup = "some-consumer-group-3"
 
         /* TODO: Event Handler
             + Se encarga de guardar en la db los eventos
@@ -27,11 +27,8 @@ object AuthProjection {
             consumerGroup
         ) { event ->
             Async {
+                //Ver que hacer aca
                 println(event)
-                //Este lee eventos tambien.. puede leer snapshot + evento actual
-                //Update db
-                //Integration messages
-                //Idempotence
             }
         }
 

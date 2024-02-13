@@ -18,12 +18,6 @@ import kotlin.time.Duration.Companion.minutes
 
 object AuthApi {
 
-    @Serializable
-    data class Tokens(
-        val access: String,
-        val refresh: String?
-    )
-
     fun register(
         id: UUID,
         email: String,
@@ -60,6 +54,8 @@ object AuthApi {
         password: String
     ) = AuthStack.Do {
 
+        val authService = !getService<AuthService.Interface>()
+
         val result = !ReservationApi.readState(email) ?: !ApiException("User does not exists")
 
         val user = !readState(UUID.fromString(result.ownerId)) ?: !ApiException("User does not exists")
@@ -71,10 +67,14 @@ object AuthApi {
 
         if(!passwordMatch) !ApiException("Invalid credentials")
 
-        Tokens(
+        val tokens = Auth.Tokens(
             access = !jwt(result.ownerId, user),
             refresh = null
         )
+
+        !authService.command.handle(UUID.fromString(result.ownerId))(Auth.Command.UserLogin(tokens))
+
+        tokens
 
     }
 

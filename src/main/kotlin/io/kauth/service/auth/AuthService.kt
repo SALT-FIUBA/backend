@@ -47,11 +47,10 @@ object AuthService : AppService {
                 }
             )
 
-            //Las queries pueden ser a la base de datos...
             val query = Query(
                 readState = { id ->
                     stream<Auth.UserEvent, Auth.User>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Auth::stateMachine.cmap {it.asCommand })
+                        .computeStateResult(Auth::stateMachine) { it.asCommand }
                 }
             )
 
@@ -66,7 +65,7 @@ object AuthService : AppService {
                 )
             )
 
-            !AuthProjection.eventHandler
+            //!AuthProjection.eventHandler
 
             !AuthRest.api
 

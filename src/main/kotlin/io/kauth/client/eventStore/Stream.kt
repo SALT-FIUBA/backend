@@ -95,11 +95,11 @@ fun <E,S> stream(
 
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
     noinline stateMachine: StateMachine<C,S,E,O>,
-    crossinline eventToCommand: (E) -> C
+    crossinline eventToCommand: (E) -> C?
 ): CommandHandler<C, O> = { command: C ->
     Async {
 
-        val (state, revision) = !computeState<E,S,O>(stateMachine.cmap { eventToCommand(it) })
+        val (state, revision) = !computeState<E,S,O,C>(stateMachine, eventToCommand)
 
         val (newState, newEvents, output) = stateMachine(command).run(state)
 
@@ -125,8 +125,9 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
     }
 }
 
-inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeState(
-    noinline stateMachine: StateMachine<E, S, E, O>
+inline fun <reified E, reified S, O, C> EventStoreStreamSnapshot<E, S>.computeState(
+    noinline stateMachine: StateMachine<C, S, E, O>,
+    crossinline eventsToCommand: (E) -> C?
 ) = Async {
 
     val snapshotResult = !snapshot.readLast()
@@ -134,7 +135,7 @@ inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeState
 
     val streamResult = !stream.read(revision = (snapshotResult?.metadata?.snapshottedStreamRevision?.toRevision?.toRawLong() ?: 0L) + 1)
 
-    val events = streamResult?.events?.map { it.value } ?: emptyList()
+    val events = streamResult?.events?.mapNotNull { eventsToCommand(it.value) } ?: emptyList()
     val (newState, _) = stateMachine.runMany(events, state)
 
     newState to ( streamResult?.lastStreamPosition?.let { ExpectedRevision.fromRawLong(it) }?.toStreamRevision )
@@ -142,10 +143,11 @@ inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeState
 }
 
 
-inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeStateResult(
-    noinline stateMachine: StateMachine<E, S, E, O>
+inline fun <reified E, reified S, O, C> EventStoreStreamSnapshot<E, S>.computeStateResult(
+    noinline stateMachine: StateMachine<C, S, E, O>,
+    crossinline eventsToCommand: (E) -> C?
 ) = Async {
-    val (fst, snd) = !computeState(stateMachine)
+    val (fst, snd) = !computeState(stateMachine, eventsToCommand)
     return@Async fst
 }
 

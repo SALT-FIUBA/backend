@@ -17,7 +17,8 @@ object Auth {
     data class User(
         val email: String,
         val credentials: Credentials,
-        val personalData: PersonalData
+        val personalData: PersonalData,
+        val loginCount: Int? = null
     ) {
         @Serializable
         data class PersonalData(
@@ -115,6 +116,9 @@ object Auth {
             val personalData: User.PersonalData
         ): Command
 
+        @Serializable
+        data class UserLogin(val tokens: Tokens): Command
+
     }
 
     //Cada comando tiene un evento asociado, son isomorficos ?
@@ -128,11 +132,20 @@ object Auth {
         ): UserEvent
 
         @Serializable
+        data class UserLoggedIn(val tokens: Tokens) : UserEvent
+
+        @Serializable
         data class PersonalDataUpdated(
             val personalData: User.PersonalData
         ): UserEvent
 
     }
+
+    @Serializable
+    data class Tokens(
+        val access: String,
+        val refresh: String?
+    )
 
     sealed interface Output
 
@@ -142,6 +155,7 @@ object Auth {
 
     val UserEvent.asCommand get() =
         when(this) {
+            is UserEvent.UserLoggedIn -> Command.UserLogin(tokens = tokens)
             is UserEvent.UserCreated -> Command.CreateUser(
                 email = user.email,
                 credentials = user.credentials,
@@ -151,6 +165,17 @@ object Auth {
                 personalData = personalData
             )
         }
+
+    fun handleUserLogin(
+        command: Command.UserLogin
+    ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
+        val state = !getState ?: !exit(Error("User does not exists"))
+        !emitEvents(UserEvent.UserLoggedIn(command.tokens))
+        !setState(
+            state.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0)
+        )
+        Success
+    }
 
     fun handleUpdatePersonalData(
         command: Command.UpdatePersonalData
@@ -182,7 +207,8 @@ object Auth {
             User(
                 email = command.email,
                 personalData = command.personalData,
-                credentials = command.credentials
+                credentials = command.credentials,
+                loginCount = 0
             )
 
         !emitEvents(
@@ -204,6 +230,7 @@ object Auth {
         !when(command) {
             is Command.CreateUser -> handleCreateUser(command)
             is Command.UpdatePersonalData -> handleUpdatePersonalData(command)
+            is Command.UserLogin -> handleUserLogin(command)
         }
     }
 

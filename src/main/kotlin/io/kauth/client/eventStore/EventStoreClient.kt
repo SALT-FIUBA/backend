@@ -152,6 +152,7 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
             CreatePersistentSubscriptionToStreamOptions
                 .get()
                 .resolveLinkTos()
+                .fromStart()
                 .namedConsumerStrategy(NamedConsumerStrategy.PINNED)
         ).await()
     } catch (e: Throwable) {
