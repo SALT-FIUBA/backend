@@ -99,15 +99,13 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
 ): CommandHandler<C, O> = { command: C ->
     Async {
 
-        //Puedo usar la revision aca ? TODO usar
         val (state, revision) = !computeState<E,S,O>(stateMachine.cmap { eventToCommand(it) })
 
         val (newState, newEvents, output) = stateMachine(command).run(state)
 
         val result = !stream.append<E>(newEvents, revision ?: StreamRevision.NoStream)
 
-        //Si esto falla y no tengo proyeccion no es bueno..
-        if (newState != null) {
+        if (newState != null && newState != state) {
             !snapshot.append(
                 Event(
                     id = UUID.randomUUID(),

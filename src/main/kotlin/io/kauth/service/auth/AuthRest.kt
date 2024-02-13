@@ -27,6 +27,12 @@ object AuthRest {
         val password: String,
     )
 
+    val ApplicationCall.jwt get() = AuthStack.Do {
+        val authHeader = request.header("Authorization") ?: ""
+        val token = "Bearer (?<token>.+)".toRegex().matchEntire(authHeader)?.groups?.get("token")?.value?.trim() ?: ""
+        !AuthApi.jwtVerify(token) ?: !ApiException("UnAuthorized")
+    }
+
     val api = AuthStack.Do {
 
         val ktor = !authStackKtor
@@ -38,41 +44,31 @@ object AuthRest {
                 post(path = "/register") {
                     val command = call.receive<RegisterRequest>()
                     val id = UUID.randomUUID()
-
                     val result = !AuthApi.register(
                         id,
                         command.email,
                         command.password,
                         command.personalData
                     )
-
                     when(result) {
                         is Auth.Success -> call.respond(HttpStatusCode.Created, id)
                         is Auth.Error -> !ApiException(result.message)
                     }
-
                 }
 
                 post(path = "/login") {
-
                     val command = call.receive<LoginRequest>()
-
                     val result = !AuthApi.login(
                         command.email,
                         command.password,
                     )
-
                     call.respond(HttpStatusCode.OK, result)
-
                 }
 
-                get(path = "/user/{id}") {
-                    val user = !AuthApi.readState(UUID.fromString(call.parameters["id"]))
-                    if(user != null) {
-                        call.respond(HttpStatusCode.OK, user)
-                    } else {
-                        call.respond(HttpStatusCode.NotFound)
-                    }
+                get(path = "/user") {
+                    val token = !call.jwt
+                    val user = !AuthApi.readState(UUID.fromString(token.payload.id)) ?: !ApiException("User not found")
+                    call.respond(HttpStatusCode.OK, user)
                 }
 
             }

@@ -41,6 +41,8 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$dateTimeVersion")
 
+    implementation("com.auth0:java-jwt:4.4.0")
+
     testImplementation(kotlin("test"))
 }
 

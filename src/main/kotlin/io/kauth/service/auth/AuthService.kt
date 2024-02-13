@@ -60,7 +60,8 @@ object AuthService : AppService {
                     query = query,
                     command = commands,
                     config = Config(
-                        hashAlgorithm = Auth.HashAlgorithm.Pbkdf2Sha256(iterations = 27500)
+                        hashAlgorithm = Auth.HashAlgorithm.Pbkdf2Sha256(iterations = 27500),
+                        secret = "supermegasecret"
                     )
                 )
             )
@@ -72,7 +73,8 @@ object AuthService : AppService {
         }
 
         data class Config(
-            val hashAlgorithm: Auth.HashAlgorithm
+            val hashAlgorithm: Auth.HashAlgorithm,
+            val secret: String,
         )
 
         //readConfig
