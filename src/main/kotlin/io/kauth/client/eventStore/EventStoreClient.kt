@@ -157,7 +157,6 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
         ).await()
     } catch (e: Throwable) {
         e.printStackTrace()
-        println(e.message)
     }
 
     //TODO parametrize buffer size
@@ -170,16 +169,20 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
                 val recordedEvent = event?.event ?: return
                 val sub = subscription ?: return
                 runBlocking {
-                    !onEvent(
-                        Event(
-                            id = recordedEvent.eventId,
-                            value = json.decodeFromString<T>(recordedEvent.eventData.decodeToString()),
-                            metadata = json.decodeFromString<EventMetadata>(recordedEvent.userMetadata.decodeToString()),
-                            streamName = recordedEvent.streamId,
-                            revision = recordedEvent.revision
+                    try {
+                        !onEvent(
+                            Event(
+                                id = recordedEvent.eventId,
+                                value = json.decodeFromString<T>(recordedEvent.eventData.decodeToString()),
+                                metadata = json.decodeFromString<EventMetadata>(recordedEvent.userMetadata.decodeToString()),
+                                streamName = recordedEvent.streamId,
+                                revision = recordedEvent.revision
+                            )
                         )
-                    )
-                    sub.ack(event)
+                        sub.ack(event)
+                    } catch (e: Throwable){
+                        sub.nack(NackAction.Skip,e.stackTraceToString(),event)
+                    }
                 }
             }
         }

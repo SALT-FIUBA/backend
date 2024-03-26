@@ -2,14 +2,18 @@ package io.kauth.monad.stack
 
 import io.kauth.serializer.UUIDSerializer
 import io.kauth.util.Async
+import io.kauth.util.LoggerLevel
 import io.kauth.util.MutableClassMap
 import io.kauth.util.not
 import io.ktor.server.application.*
+import io.ktor.util.logging.*
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
+import org.slf4j.Logger
 import java.util.*
 
 data class AuthStack<out T>(
@@ -57,6 +61,14 @@ val authStackKtor = AuthStack.Do {
 val authStackSerialization = AuthStack.Do {
     val context = !Dependency.read<AuthStack.Companion.Context>()
     context.serialization
+}
+
+val authStackMetrics = AuthStack.Do {
+    !getService<PrometheusMeterRegistry>()
+}
+
+val authStackLog = AuthStack.Do {
+    !getService<ch.qos.logback.classic.Logger>()
 }
 
 

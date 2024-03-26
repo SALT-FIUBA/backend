@@ -15,4 +15,15 @@ data class Event<V>(
     val value: V,
     //Evaluar metadata Generica ?
     val metadata: EventMetadata
-)
+) {
+
+    fun retrieveId(serviceName: String): String? {
+        return "$serviceName-(?<id>.+)"
+            .toRegex()
+            .matchEntire(streamName)
+            ?.groups
+            ?.get("id")
+            ?.value
+    }
+
+}

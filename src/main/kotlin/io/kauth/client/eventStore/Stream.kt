@@ -15,6 +15,8 @@ import java.util.*
 
 //StreamStrategy ? --> Puede o no tener snapshot
 data class EventStoreStreamSnapshot<E,S>(
+    //comanStream ?
+    //logStream ?
     val stream: EventStoreStream<E>,
     val snapshot: EventStoreStream<S>
 )
@@ -95,7 +97,7 @@ fun <E,S> stream(
 
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
     noinline stateMachine: StateMachine<C,S,E,O>,
-    crossinline eventToCommand: (E) -> C?
+    crossinline eventToCommand: (E) -> C? // Esto te lo podes ahorrar si de alguna froma persistis los commands
 ): CommandHandler<C, O> = { command: C ->
     Async {
 
@@ -136,9 +138,10 @@ inline fun <reified E, reified S, O, C> EventStoreStreamSnapshot<E, S>.computeSt
     val streamResult = !stream.read(revision = (snapshotResult?.metadata?.snapshottedStreamRevision?.toRevision?.toRawLong() ?: 0L) + 1)
 
     val events = streamResult?.events?.mapNotNull { eventsToCommand(it.value) } ?: emptyList()
+
     val (newState, _) = stateMachine.runMany(events, state)
 
-    newState to ( streamResult?.lastStreamPosition?.let { ExpectedRevision.fromRawLong(it) }?.toStreamRevision )
+    newState to (streamResult?.lastStreamPosition?.let { ExpectedRevision.fromRawLong(it) }?.toStreamRevision )
 
 }
 

@@ -16,10 +16,20 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
-import kotlin.jvm.Throws
+import io.ktor.server.routing.*
+import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
+import io.micrometer.core.instrument.binder.system.FileDescriptorMetrics
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics
+import io.micrometer.core.instrument.binder.system.UptimeMetrics
+import io.micrometer.prometheus.PrometheusConfig
+import io.micrometer.prometheus.PrometheusMeterRegistry
 
 val services: List<AppService> =
     listOf(
@@ -33,8 +43,30 @@ val installKtorPlugins =
 
         val ktor = !authStackKtor
         val serialization = !authStackSerialization
+        val metricClient = !authStackMetrics
+        val log = !authStackLog
 
         ktor.run {
+
+            //Para que prometheus polle la data, ver de definirlo en otro lado, en el metric service
+            routing {
+                get("/metrics") {
+                    call.respond(metricClient.scrape())
+                }
+            }
+
+            install(MicrometerMetrics) {
+                registry = metricClient
+                meterBinders = listOf(
+                    ClassLoaderMetrics(),
+                    JvmMemoryMetrics(),
+                    JvmGcMetrics(),
+                    ProcessorMetrics(),
+                    JvmThreadMetrics(),
+                    FileDescriptorMetrics(),
+                    UptimeMetrics()
+                )
+            }
 
             install(ContentNegotiation) { json(serialization) }
 
@@ -42,7 +74,7 @@ val installKtorPlugins =
 
                 exception<ApiException> { call, value ->
 
-                    println(value.stackTraceToString())
+                    log.error(value.stackTraceToString())
 
                     call.respond(
                         HttpStatusCode.BadRequest,
@@ -53,7 +85,7 @@ val installKtorPlugins =
 
                 exception<Throwable> { call, value ->
 
-                    println(value.stackTraceToString())
+                    log.error(value.stackTraceToString())
 
                     call.respond(
                         HttpStatusCode.InternalServerError,
@@ -82,7 +114,13 @@ fun Application.kauthApp() {
                 !eventStoreClientPersistenceSubsNew("esdb://localhost:2113?tls=false")
             )
 
-            !setLogbackLevel(LoggerLevel.warn)
+            !registerService(
+                PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+            )
+
+            !setLogbackLevel(LoggerLevel.info)
+
+            !registerService(log)
 
             !installKtorPlugins
 
@@ -90,7 +128,7 @@ fun Application.kauthApp() {
                 !it.start
             }
 
-            println("OK")
+            log.info("Init app success")
 
         }
     )

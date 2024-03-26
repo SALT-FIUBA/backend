@@ -1,7 +1,6 @@
 package io.kauth.service.auth
 
 import io.kauth.abstractions.command.CommandHandler
-import io.kauth.abstractions.state.cmap
 import io.kauth.client.eventStore.*
 import io.kauth.monad.stack.AuthStack
 import io.kauth.monad.stack.getService
@@ -65,7 +64,7 @@ object AuthService : AppService {
                 )
             )
 
-            //!AuthProjection.eventHandler
+            !AuthEventHandler.eventHandler
 
             !AuthRest.api
 

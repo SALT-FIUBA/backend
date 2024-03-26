@@ -14,6 +14,14 @@ https://www.eventstore.com/blog/snapshots-in-event-sourcing
 https://www.eventstore.com/blog/snapshotting-strategies
 
 
+Metrics
+=======
+
+https://ktor.io/docs/micrometer-metrics.html#prometheus_endpoint
+https://medium.com/@math21/how-to-monitor-a-ktor-server-using-grafana-bab54a9ac0dc
+https://docs.micrometer.io/micrometer/reference/implementations/prometheus.html
+https://github.com/mathias21/KtorEasy/blob/feature/monitoring/KtorEasyGrafanaDashboard.json
+
 References
 ==========
 

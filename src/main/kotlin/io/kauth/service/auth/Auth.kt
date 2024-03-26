@@ -38,7 +38,7 @@ object Auth {
             val salt: ByteString
         )
 
-        abstract fun hashString(value: String): HashedValue
+        abstract fun hashString(value: String, salt: ByteArray? = null): HashedValue
 
         abstract fun checkValue(value: String, hashed: HashedValue): Boolean
 
@@ -48,12 +48,12 @@ object Auth {
             val iterations: Int
         ) : HashAlgorithm() {
 
-            override fun hashString(value: String): HashedValue {
+            //todo: withSalt
+            override fun hashString(value: String, salt: ByteArray?): HashedValue {
 
                 val derivedKeyLength = 64
-                val saltSize = 16
 
-                val salt = SecureRandom.getSeed(saltSize)
+                val salt = salt ?: SecureRandom.getSeed(16)
 
                 val spec = PBEKeySpec(
                     value.toCharArray(),
@@ -71,25 +71,12 @@ object Auth {
             }
 
             override fun checkValue(value: String, hashed: HashedValue): Boolean {
-                val derivedKeyLength = 64
-
-                val spec = PBEKeySpec(
-                    value.toCharArray(),//utf-8
-                    hashed.salt.byteArray,
-                    iterations,
-                    derivedKeyLength * 8
-                )
-
-                val keyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-                val secretCompare = keyFactory.generateSecret(spec).encoded
-                val passwordHash = ByteString(secretCompare)
-                return  hashed.value == passwordHash
+                return hashString(value, hashed.salt.byteArray) == hashed
             }
 
         }
 
     }
-
 
     @Serializable
     data class Credentials(
@@ -100,7 +87,7 @@ object Auth {
         val algorithm: HashAlgorithm
     )
 
-    //Commands (Inputs)
+    //Esto lo queremos logear en el eventStore ?
     @Serializable
     sealed interface Command {
 
@@ -117,12 +104,14 @@ object Auth {
         ): Command
 
         @Serializable
-        data class UserLogin(val tokens: Tokens): Command
+        data class UserLogin(
+            @Serializable(ByteStringBase64Serializer::class)
+            val passwordHash: ByteString
+        ): Command
 
     }
 
-    //Cada comando tiene un evento asociado, son isomorficos ?
-
+    //Nos dice que paso en el sistema
     @Serializable
     sealed interface UserEvent {
 
@@ -132,12 +121,16 @@ object Auth {
         ): UserEvent
 
         @Serializable
-        data class UserLoggedIn(val tokens: Tokens) : UserEvent
-
-        @Serializable
         data class PersonalDataUpdated(
             val personalData: User.PersonalData
         ): UserEvent
+
+        @Serializable
+        data class UserLoggedIn(
+            @Serializable(ByteStringBase64Serializer::class)
+            val passwordHash: ByteString,
+            val success: Boolean
+        ) : UserEvent
 
     }
 
@@ -153,9 +146,10 @@ object Auth {
 
     data class Error(val message: String) : Output
 
+    //Hay eventos que dan comandos, y otros que no..
     val UserEvent.asCommand get() =
         when(this) {
-            is UserEvent.UserLoggedIn -> Command.UserLogin(tokens = tokens)
+            is UserEvent.UserLoggedIn -> Command.UserLogin(passwordHash = passwordHash)
             is UserEvent.UserCreated -> Command.CreateUser(
                 email = user.email,
                 credentials = user.credentials,
@@ -170,10 +164,15 @@ object Auth {
         command: Command.UserLogin
     ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
         val state = !getState ?: !exit(Error("User does not exists"))
-        !emitEvents(UserEvent.UserLoggedIn(command.tokens))
-        !setState(
-            state.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0)
-        )
+
+        if(state.credentials.passwordHash != command.passwordHash) {
+            !emitEvents(UserEvent.UserLoggedIn(passwordHash = command.passwordHash, success = false))
+            !exit(Error("Invalid credentials"))
+        }
+
+        !setState(state.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0))
+        !emitEvents(UserEvent.UserLoggedIn(passwordHash = command.passwordHash, success = true))
+
         Success
     }
 
@@ -223,15 +222,12 @@ object Auth {
 
     }
 
-    //TODO: Errors
     fun stateMachine(
         command: Command
-    ) = StateMonad.Do<User?, UserEvent, Output> {
-        !when(command) {
-            is Command.CreateUser -> handleCreateUser(command)
-            is Command.UpdatePersonalData -> handleUpdatePersonalData(command)
-            is Command.UserLogin -> handleUserLogin(command)
-        }
+    ) = when (command) {
+        is Command.CreateUser -> handleCreateUser(command)
+        is Command.UpdatePersonalData -> handleUpdatePersonalData(command)
+        is Command.UserLogin -> handleUserLogin(command)
     }
 
 }

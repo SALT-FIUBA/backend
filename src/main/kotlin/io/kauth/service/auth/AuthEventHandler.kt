@@ -3,13 +3,17 @@ package io.kauth.service.auth
 import io.kauth.client.eventStore.EventStoreClientPersistenceSubs
 import io.kauth.client.eventStore.subscribeToStream
 import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
 import io.kauth.util.Async
 import io.kauth.util.not
+import java.util.UUID
 
-object AuthProjection {
+object AuthEventHandler {
 
     val eventHandler = AuthStack.Do {
+
+        val log = !authStackLog
 
         val streamName = "\$ce-user"
         val consumerGroup = "some-consumer-group-3"
@@ -21,14 +25,22 @@ object AuthProjection {
 
         val client = !getService<EventStoreClientPersistenceSubs>()
 
-        //retryForEver
+        //TODO: Falta implementar idempotencia para estos
         !client.subscribeToStream<Auth.UserEvent>(
             streamName,
             consumerGroup
         ) { event ->
             Async {
-                //Ver que hacer aca
-                println(event)
+
+                val userId = event.retrieveId("user") ?: return@Async
+
+                val userUuid = UUID.fromString(userId)
+
+                val state = !AuthApi.readState(userUuid)
+
+                log.info(event.value.toString())
+                log.info(state?.toString())
+
             }
         }
 

@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
 import io.kauth.service.auth.jwt.Jwt
 import io.kauth.service.reservation.Reservation
@@ -12,7 +13,6 @@ import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.not
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
-import kotlinx.serialization.Serializable
 import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
 
@@ -25,11 +25,17 @@ object AuthApi {
         personalData: Auth.User.PersonalData
     ) = AuthStack.Do {
 
+        val log = !authStackLog
+
+        log.info("Register user $email")
+
         val authService = !getService<AuthService.Interface>()
 
         val result = !ReservationApi.take(email, id.toString())
 
-        if(result !is Reservation.Success) !ApiException("${email} is used")
+        log.info("Reservation take result $result")
+
+        if(result !is Reservation.Success) !ApiException("$email is used")
 
         val hashAlgorithm = authService.config.hashAlgorithm
 
@@ -54,25 +60,32 @@ object AuthApi {
         password: String
     ) = AuthStack.Do {
 
+        val log = !authStackLog
+
+        log.info("Login user $email")
+
         val authService = !getService<AuthService.Interface>()
 
         val result = !ReservationApi.readState(email) ?: !ApiException("User does not exists")
 
         val user = !readState(UUID.fromString(result.ownerId)) ?: !ApiException("User does not exists")
 
-        val passwordMatch = user.credentials.algorithm.checkValue(
-            password,
-            Auth.HashAlgorithm.HashedValue(user.credentials.passwordHash, user.credentials.salt)
+        val authResult = !authService.command.handle(UUID.fromString(result.ownerId))(
+            Auth.Command.UserLogin(
+                user.credentials.algorithm.hashString(password, user.credentials.salt.byteArray).value
+            )
         )
 
-        if(!passwordMatch) !ApiException("Invalid credentials")
+        when(authResult) {
+            is Auth.Success -> Unit
+            is Auth.Error -> !ApiException(authResult.message)
+        }
 
+        //Esto lo pdoria hacer otro servicio para que quede registro de los tokens
         val tokens = Auth.Tokens(
-            access = !jwt(result.ownerId, user),
+            access = !buildJwt(result.ownerId, user),
             refresh = null
         )
-
-        !authService.command.handle(UUID.fromString(result.ownerId))(Auth.Command.UserLogin(tokens))
 
         tokens
 
@@ -88,11 +101,10 @@ object AuthApi {
         authService.config
     }
 
-    fun jwt(
+    fun buildJwt(
         id: String,
         user: Auth.User
     ) = AuthStack.Do {
-        //TODO refreshtoken
         JWT
             .create()
             .withHeader(
@@ -108,9 +120,7 @@ object AuthApi {
             .sign(!algorithm)
     }
 
-    fun jwtVerify(
-        jwt: String
-    ) = AuthStack.Do {
+    fun jwtVerify(jwt: String) = AuthStack.Do {
 
         val verifier = JWT
             .require(!algorithm)
@@ -118,8 +128,7 @@ object AuthApi {
             .build()
 
         try {
-            val jwt = verifier.verify(jwt)
-            val claims = jwt.claims
+            val claims = verifier.verify(jwt).claims
             Jwt(
                 payload = Jwt.Payload(
                     email = claims["email"]?.asString() ?: error("Invalid"),
@@ -136,6 +145,5 @@ object AuthApi {
         val authService = !getService<AuthService.Interface>()
         !authService.query.readState(id)
     }
-
 
 }

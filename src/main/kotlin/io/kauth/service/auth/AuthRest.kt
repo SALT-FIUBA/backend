@@ -4,6 +4,7 @@ import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.AuthStack
 import io.kauth.monad.stack.authStackKtor
+import io.kauth.util.HttpServer.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -26,12 +27,6 @@ object AuthRest {
         val email: String,
         val password: String,
     )
-
-    val ApplicationCall.jwt get() = AuthStack.Do {
-        val authHeader = request.header("Authorization") ?: ""
-        val token = "Bearer (?<token>.+)".toRegex().matchEntire(authHeader)?.groups?.get("token")?.value?.trim() ?: ""
-        !AuthApi.jwtVerify(token) ?: !ApiException("UnAuthorized")
-    }
 
     val api = AuthStack.Do {
 
@@ -66,7 +61,7 @@ object AuthRest {
                 }
 
                 get(path = "/user") {
-                    val token = !call.jwt
+                    val token = !call.auth
                     val user = !AuthApi.readState(UUID.fromString(token.payload.id)) ?: !ApiException("User not found")
                     call.respond(HttpStatusCode.OK, user)
                 }

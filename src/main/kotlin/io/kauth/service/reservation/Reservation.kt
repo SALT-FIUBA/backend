@@ -88,11 +88,9 @@ object Reservation {
 
     fun stateMachine(
         command: Command
-    ) = StateMonad.Do<Reservation?, ResourceEvent, Output> {
-        !when(command) {
-            is Command.Take-> handleTake(command)
-            is Command.Release -> handleRelease(command)
-        }
+    ) = when (command) {
+        is Command.Take -> handleTake(command)
+        is Command.Release -> handleRelease(command)
     }
 
 }

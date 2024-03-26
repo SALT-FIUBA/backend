@@ -19,10 +19,11 @@ application {
 }
 
 val ktorVersion = "2.3.6"
-val logbackVersion = "1.4.11"
+val logbackVersion = "1.4.14"
 val eventStoreClientVersion = "5.2.0"
 val serializationVersion = "1.6.0"
 val dateTimeVersion = "0.4.1"
+val micrometer = "1.12.2"
 
 dependencies {
 
@@ -32,6 +33,10 @@ dependencies {
     implementation("io.ktor:ktor-server-default-headers-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+
+    implementation("io.ktor:ktor-server-metrics:$ktorVersion")
+    implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+    implementation("io.micrometer:micrometer-registry-prometheus:$micrometer")
 
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
 
