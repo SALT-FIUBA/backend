@@ -1,5 +1,8 @@
 package io.kauth.service.reservation
 
+import io.kauth.abstractions.result.Fail
+import io.kauth.abstractions.result.Ok
+import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.StateMonad
 import kotlinx.serialization.Serializable
 
@@ -37,12 +40,6 @@ object Reservation {
 
     }
 
-    sealed interface Output
-
-    data object Success : Output
-
-    data class Error(val message: String) : Output
-
     val ResourceEvent.asCommand get() =
         when(this) {
             is ResourceEvent.ResourceReleased -> Command.Release
@@ -57,7 +54,7 @@ object Reservation {
         val state = !getState
 
         if(state != null && state.taken) {
-            !exit(Error("Resource taken"))
+            !exit(Fail("Resource taken"))
         }
 
         !emitEvents(
@@ -66,7 +63,7 @@ object Reservation {
 
         !setState(state?.copy(taken = true) ?: Reservation(taken = true, ownerId = command.ownerId))
 
-        Success
+        Ok
 
     }
 
@@ -74,7 +71,7 @@ object Reservation {
         command: Command.Release
     ) =  StateMonad.Do<Reservation?, ResourceEvent,Output> { exit ->
 
-        val state = !getState ?: !exit(Error("No resource exists"))
+        val state = !getState ?: !exit(Fail("No resource exists"))
 
         !emitEvents(
             ResourceEvent.ResourceReleased
@@ -82,7 +79,7 @@ object Reservation {
 
         !setState(state.copy(taken = false))
 
-        Success
+        Ok
 
     }
 

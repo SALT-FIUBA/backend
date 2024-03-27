@@ -1,0 +1,57 @@
+package io.kauth.service.device
+
+import io.kauth.exception.ApiException
+import io.kauth.exception.not
+import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.authStackKtor
+import io.kauth.service.auth.AuthApi.auth
+import io.kauth.service.organism.OrganismApi
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
+import java.util.*
+
+object DeviceApiRest {
+
+    @Serializable
+    data class CreateRequest(
+        val organismId: String,
+        val seriesNumber: String,
+        val ports: List<String>
+    )
+
+    val api = AuthStack.Do {
+
+        val ktor = !authStackKtor
+
+        ktor.routing {
+
+            route("device")  {
+
+                post(path = "/create") {
+                    !call.auth
+                    val command = call.receive<CreateRequest>()
+                    val result = !DeviceApi.create(
+                        command.organismId,
+                        command.seriesNumber,
+                        command.ports
+                    )
+                    call.respond(HttpStatusCode.Created, result)
+                }
+
+                get("{id}") {
+                    !call.auth
+                    val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                    val device = !DeviceApi.readState(UUID.fromString(id)) ?: !ApiException("Organism not found")
+                    call.respond(HttpStatusCode.OK, device)
+                }
+
+            }
+
+        }
+
+    }
+}

@@ -1,17 +1,14 @@
 package io.kauth.service.auth
 
-import io.kauth.exception.ApiException
-import io.kauth.exception.not
 import io.kauth.monad.stack.AuthStack
 import io.kauth.monad.stack.authStackKtor
-import io.kauth.util.HttpServer.auth
+import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
-import java.util.*
 
 object AuthRest {
 
@@ -38,17 +35,12 @@ object AuthRest {
 
                 post(path = "/register") {
                     val command = call.receive<RegisterRequest>()
-                    val id = UUID.randomUUID()
                     val result = !AuthApi.register(
-                        id,
                         command.email,
                         command.password,
                         command.personalData
                     )
-                    when(result) {
-                        is Auth.Success -> call.respond(HttpStatusCode.Created, id)
-                        is Auth.Error -> !ApiException(result.message)
-                    }
+                    call.respond(HttpStatusCode.Created, result)
                 }
 
                 post(path = "/login") {
@@ -61,8 +53,8 @@ object AuthRest {
                 }
 
                 get(path = "/user") {
-                    val token = !call.auth
-                    val user = !AuthApi.readState(UUID.fromString(token.payload.id)) ?: !ApiException("User not found")
+                    !call.auth
+                    val user = !AuthApi.readStateFromSession
                     call.respond(HttpStatusCode.OK, user)
                 }
 

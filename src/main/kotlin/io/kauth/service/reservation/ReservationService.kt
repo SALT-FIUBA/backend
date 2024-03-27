@@ -1,6 +1,7 @@
 package io.kauth.service.reservation
 
 import io.kauth.abstractions.command.CommandHandler
+import io.kauth.abstractions.result.Output
 import io.kauth.abstractions.state.cmap
 import io.kauth.client.eventStore.*
 import io.kauth.client.eventStore.model.StreamRevision
@@ -20,7 +21,7 @@ object ReservationService : AppService {
     val String.snapshotName get() = USER_SNAPSHOT_STREAM_PREFIX + this.toString()
 
     data class Command(
-        val handle: (id: String) -> CommandHandler<Reservation.Command, Reservation.Output>
+        val handle: (id: String) -> CommandHandler<Reservation.Command, Output>
     )
 
     data class Query(

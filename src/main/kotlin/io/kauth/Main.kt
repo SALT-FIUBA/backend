@@ -6,6 +6,8 @@ import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
 import io.kauth.service.AppService
 import io.kauth.service.auth.AuthService
+import io.kauth.service.device.DeviceService
+import io.kauth.service.organism.OrganismService
 import io.kauth.service.ping.PingService
 import io.kauth.service.reservation.ReservationService
 import io.kauth.util.LoggerLevel
@@ -35,7 +37,9 @@ val services: List<AppService> =
     listOf(
         ReservationService,
         AuthService,
-        PingService
+        PingService,
+        OrganismService,
+        DeviceService
     )
 
 val installKtorPlugins =
@@ -75,6 +79,7 @@ val installKtorPlugins =
                 exception<ApiException> { call, value ->
 
                     log.error(value.stackTraceToString())
+                    //send metrics
 
                     call.respond(
                         HttpStatusCode.BadRequest,
@@ -86,6 +91,7 @@ val installKtorPlugins =
                 exception<Throwable> { call, value ->
 
                     log.error(value.stackTraceToString())
+                    //send metrics
 
                     call.respond(
                         HttpStatusCode.InternalServerError,

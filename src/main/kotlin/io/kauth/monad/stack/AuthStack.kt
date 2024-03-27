@@ -1,6 +1,7 @@
 package io.kauth.monad.stack
 
 import io.kauth.serializer.UUIDSerializer
+import io.kauth.service.auth.jwt.Jwt
 import io.kauth.util.Async
 import io.kauth.util.LoggerLevel
 import io.kauth.util.MutableClassMap
@@ -45,7 +46,7 @@ fun <T : Any> registerService(service: T) =
 
 inline fun <reified T : Any> getService() = AuthStack.Do {
     val services = !authStackServices
-    !services.get(T::class) ?: error("Service not found")
+    !services.get(T::class) ?: error("[${T::class}] Service not found")
 }
 
 val authStackServices = AuthStack.Do {
@@ -69,6 +70,10 @@ val authStackMetrics = AuthStack.Do {
 
 val authStackLog = AuthStack.Do {
     !getService<ch.qos.logback.classic.Logger>()
+}
+
+val authStackJwt = AuthStack.Do {
+    !getService<Jwt>()
 }
 
 

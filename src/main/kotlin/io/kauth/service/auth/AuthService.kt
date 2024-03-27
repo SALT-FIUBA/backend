@@ -8,6 +8,7 @@ import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
 import io.kauth.service.auth.Auth.asCommand
 import io.kauth.util.Async
+import io.kauth.abstractions.result.Output
 import java.util.*
 
 
@@ -19,7 +20,7 @@ object AuthService : AppService {
     val UUID.snapshotName get() = USER_SNAPSHOT_STREAM_PREFIX + this.toString()
 
     data class Command(
-        val handle: (id: UUID) -> CommandHandler<Auth.Command, Auth.Output>
+        val handle: (id: UUID) -> CommandHandler<Auth.Command, Output>
     )
 
     data class Query(
