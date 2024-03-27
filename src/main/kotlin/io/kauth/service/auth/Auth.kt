@@ -16,9 +16,13 @@ object Auth {
 
     @Serializable
     enum class Role {
-        admin,
         supervisor,
         operators
+    }
+
+    @Serializable
+    enum class InternalRole {
+        admin
     }
 
     @Serializable
@@ -104,7 +108,8 @@ object Auth {
         data class CreateUser(
             val email: String,
             val credentials: Credentials,
-            val personalData: User.PersonalData
+            val personalData: User.PersonalData,
+            val roles: List<String> = emptyList()
         ): Command
 
         @Serializable

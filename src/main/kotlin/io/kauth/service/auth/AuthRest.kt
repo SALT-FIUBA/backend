@@ -16,7 +16,8 @@ object AuthRest {
     data class RegisterRequest(
         val email: String,
         val password: String,
-        val personalData: Auth.User.PersonalData
+        val personalData: Auth.User.PersonalData,
+        val role: Auth.Role
     )
 
     @Serializable
@@ -33,12 +34,29 @@ object AuthRest {
 
             route("auth")  {
 
+                route("internal") {
+
+                    post(path = "/register/admin") {
+                        //Do not expose this endpoint
+                        val command = call.receive<RegisterRequest>()
+                        val result = !AuthApi.register(
+                            command.email,
+                            command.password,
+                            command.personalData,
+                            listOf(Auth.InternalRole.admin.name)
+                        )
+                        call.respond(HttpStatusCode.Created, result)
+                    }
+
+                }
+
                 post(path = "/register") {
                     val command = call.receive<RegisterRequest>()
                     val result = !AuthApi.register(
                         command.email,
                         command.password,
-                        command.personalData
+                        command.personalData,
+                        listOf(command.role.name)
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }

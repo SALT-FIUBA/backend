@@ -9,5 +9,6 @@ data class Jwt(
     data class Payload(
         val id: String,
         val email: String,
+        val roles: List<String>
     )
 }

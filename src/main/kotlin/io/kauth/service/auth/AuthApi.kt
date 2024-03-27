@@ -22,7 +22,8 @@ object AuthApi {
     fun register(
         email: String,
         password: String,
-        personalData: Auth.User.PersonalData
+        personalData: Auth.User.PersonalData,
+        roles: List<String>
     ) = AuthStack.Do {
 
         val log = !authStackLog
@@ -46,7 +47,8 @@ object AuthApi {
                         salt = hashedValue.salt,
                         algorithm = hashAlgorithm
                     ),
-                    personalData
+                    roles = roles,
+                    personalData = personalData
                 )
             )
 
@@ -111,6 +113,7 @@ object AuthApi {
             .withIssuer("salt")
             .withClaim("email", user.email)
             .withClaim("id", id)
+            .withClaim("roles", user.roles)
             .withExpiresAt((Clock.System.now() + 35.minutes).toJavaInstant())
             .sign(!algorithm)
     }
@@ -143,8 +146,9 @@ object AuthApi {
 
             Jwt(
                 payload = Jwt.Payload(
-                    email = claims["email"]?.asString() ?: error("Invalid"),
-                    id = claims["id"]?.asString() ?: error("Invalid")
+                    email = claims["email"]?.asString() ?: error("Invalid jwt, no email"),
+                    id = claims["id"]?.asString() ?: error("Invalid jwt, no id"),
+                    roles = claims["roles"]?.asList(String::class.java) ?: emptyList()
                 )
             )
 
