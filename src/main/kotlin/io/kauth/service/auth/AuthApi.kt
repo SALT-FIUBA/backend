@@ -32,7 +32,7 @@ object AuthApi {
 
         val authService = !getService<AuthService.Interface>()
 
-        val id = !ReservationApi.takeIfNotTaken(email) { UUID.randomUUID().toString() }
+        val id = !ReservationApi.takeIfNotTaken("user-${email}") { UUID.randomUUID().toString() }
 
         val hashAlgorithm = authService.config.hashAlgorithm
         val hashedValue = hashAlgorithm.hashString(password)
