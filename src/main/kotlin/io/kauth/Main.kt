@@ -7,6 +7,7 @@ import io.kauth.monad.stack.*
 import io.kauth.service.AppService
 import io.kauth.service.auth.AuthService
 import io.kauth.service.device.DeviceService
+import io.kauth.service.mqtt.MqttConnector
 import io.kauth.service.organism.OrganismService
 import io.kauth.service.ping.PingService
 import io.kauth.service.reservation.ReservationService
@@ -32,6 +33,7 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.serialization.json.Json
 
 val services: List<AppService> =
     listOf(
@@ -39,7 +41,8 @@ val services: List<AppService> =
         AuthService,
         PingService,
         OrganismService,
-        DeviceService
+        DeviceService,
+        MqttConnector
     )
 
 val installKtorPlugins =
@@ -110,6 +113,14 @@ val installKtorPlugins =
 fun Application.kauthApp() {
     runAuthStack(
         Dependency.Do {
+
+            !registerService(
+                Json::class,
+                Json {
+                    prettyPrint = true
+                    ignoreUnknownKeys = true
+                }
+            )
 
             //Setup clients
             !registerService(

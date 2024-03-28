@@ -16,6 +16,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import org.slf4j.Logger
 import java.util.*
+import kotlin.reflect.KClass
 
 data class AuthStack<out T>(
     override val run: (context: Context) -> Async<T>
@@ -44,6 +45,14 @@ fun <T : Any> registerService(service: T) =
         service
     }
 
+fun <T : Any> registerService(key: KClass<T>, service: T) =
+    AuthStack.Do {
+        val services = !authStackServices
+        !services.set(key, service)
+        service
+    }
+
+
 inline fun <reified T : Any> getService() = AuthStack.Do {
     val services = !authStackServices
     !services.get(T::class) ?: error("[${T::class}] Service not found")
@@ -70,6 +79,12 @@ val authStackMetrics = AuthStack.Do {
 
 val authStackLog = AuthStack.Do {
     !getService<ch.qos.logback.classic.Logger>()
+}
+
+val authStackJson = AuthStack.Do {
+    val services = !authStackServices
+    println(services)
+    !getService<Json>()
 }
 
 val authStackJwt = AuthStack.Do {

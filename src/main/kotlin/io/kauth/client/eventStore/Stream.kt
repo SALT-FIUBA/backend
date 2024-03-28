@@ -90,11 +90,14 @@ fun <E,S> stream(
     streamName: String,
     snapshotName: String
 ) = EventStoreStreamSnapshot<E,S>(
-    stream = EventStoreStream(client, streamName),
-    snapshot = EventStoreStream(client, snapshotName)
+    stream = stream(client, streamName),
+    snapshot = stream(client, snapshotName)
 )
 
-
+fun <E> stream(
+    client: EventStoreClient,
+    streamName: String,
+) = EventStoreStream<E>(client, streamName)
 
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
     noinline stateMachine: StateMachine<C,S,E,O>,

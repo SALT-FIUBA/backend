@@ -42,3 +42,5 @@ https://www.zilverline.com/blog/simple-event-sourcing-users-authentication-autho
 https://discuss.eventstore.com/t/how-to-deal-with-unicity-constraints-over-repository/1900/4
 
 https://www.zilverline.com/blog/simple-event-sourcing-users-authentication-authorization-part-6
+
+Mosquitto Broker  --------------> https://github.com/sukesh-ak/setup-mosquitto-with-docker?tab=readme-ov-file

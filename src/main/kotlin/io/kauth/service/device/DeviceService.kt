@@ -1,5 +1,6 @@
 package io.kauth.service.device
 
+import MQTTClient
 import io.kauth.abstractions.command.CommandHandler
 import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.commandHandler
@@ -12,6 +13,8 @@ import io.kauth.service.AppService
 import io.kauth.service.device.Device.asCommand
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
+import kotlinx.coroutines.launch
+import mqtt.MQTTVersion
 import java.util.*
 
 object DeviceService : AppService {

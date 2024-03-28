@@ -24,6 +24,7 @@ val eventStoreClientVersion = "5.2.0"
 val serializationVersion = "1.6.0"
 val dateTimeVersion = "0.4.1"
 val micrometer = "1.12.2"
+val mqttClient = "0.4.6"
 
 dependencies {
 
@@ -47,6 +48,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$dateTimeVersion")
 
     implementation("com.auth0:java-jwt:4.4.0")
+
+    implementation("io.github.davidepianca98:kmqtt-common-jvm:$mqttClient")
+    implementation("io.github.davidepianca98:kmqtt-client-jvm:$mqttClient")
 
     testImplementation(kotlin("test"))
 }

@@ -40,3 +40,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+mqtt/data
+mqtt/log
+monitoring/grafana
