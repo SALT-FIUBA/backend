@@ -82,8 +82,6 @@ val authStackLog = AuthStack.Do {
 }
 
 val authStackJson = AuthStack.Do {
-    val services = !authStackServices
-    println(services)
     !getService<Json>()
 }
 

@@ -28,7 +28,8 @@ object MqttConnector: AppService {
 
     @Serializable
     data class MqttConnectorData(
-        val data: JsonElement
+        val data: JsonElement,
+        val packetId: UInt?
     )
 
     data class Interface(
@@ -76,7 +77,7 @@ object MqttConnector: AppService {
                 if(data != null) {
                     //TODO ver que hacer con la revision en este caso...
                     // Si corro este servicio de manera concurrente se me duplicarian los mensajes
-                    !stream<MqttConnectorData>(client, "mqtt-connector-event-${topicName}").append(MqttConnectorData(data), StreamRevision.AnyRevision).io
+                    !stream<MqttConnectorData>(client, "mqtt-connector-event-${topicName}").append(MqttConnectorData(data, it.packetId), StreamRevision.AnyRevision).io
                 }
             }
 
@@ -87,6 +88,8 @@ object MqttConnector: AppService {
                     mqtt.step()
                 }
             }
+
+            mqtt.subscribe(listOf(Subscription("test/topic", SubscriptionOptions(Qos.EXACTLY_ONCE))))
 
             !registerService(
                 Interface(
