@@ -7,24 +7,20 @@ import io.kauth.client.eventStore.model.StreamRevision
 import io.kauth.client.eventStore.stream
 import io.kauth.monad.stack.*
 import io.kauth.service.AppService
-import io.kauth.service.auth.Auth
 import io.kauth.util.Async
 import io.kauth.util.IO
 import io.kauth.util.io
 import io.kauth.util.not
 import kotlinx.coroutines.*
-import kotlinx.coroutines.selects.whileSelect
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
 import mqtt.MQTTVersion
 import mqtt.Subscription
 import mqtt.packets.Qos
 import mqtt.packets.mqttv5.ReasonCode
 import mqtt.packets.mqttv5.SubscriptionOptions
-import kotlin.time.Duration.Companion.seconds
 
-object MqttConnector: AppService {
+object MqttConnectorService: AppService {
 
     @Serializable
     data class MqttConnectorData(
