@@ -22,6 +22,10 @@ https://medium.com/@math21/how-to-monitor-a-ktor-server-using-grafana-bab54a9ac0
 https://docs.micrometer.io/micrometer/reference/implementations/prometheus.html
 https://github.com/mathias21/KtorEasy/blob/feature/monitoring/KtorEasyGrafanaDashboard.json
 
+Mqtt integration
+================
+[Arquitectura](https://excalidraw.com/#room=3a9874700d8b76e32c61,l_QWfLG-qK3TJQ-p5h42Sg)
+
 References
 ==========
 
