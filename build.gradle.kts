@@ -25,6 +25,7 @@ val serializationVersion = "1.6.0"
 val dateTimeVersion = "0.4.1"
 val micrometer = "1.12.2"
 val mqttClient = "0.4.6"
+val exposedVersion = "0.49.0"
 
 dependencies {
 
@@ -51,6 +52,12 @@ dependencies {
 
     implementation("io.github.davidepianca98:kmqtt-common-jvm:$mqttClient")
     implementation("io.github.davidepianca98:kmqtt-client-jvm:$mqttClient")
+
+    /*
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+     */
 
     testImplementation(kotlin("test"))
 }

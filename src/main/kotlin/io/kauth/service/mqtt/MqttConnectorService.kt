@@ -65,6 +65,7 @@ object MqttConnectorService: AppService {
             ) { it ->
                 //TODO: Ver que ganaritas tenemos aca
                 //Exactly once? idempotencia? Mensajes repetidos?
+                //it.qos -> If qos at least once then inxob pattern
                 val topicName = it.topicName.replace("/","-")
                 val data = it.payload
                     ?.toByteArray()

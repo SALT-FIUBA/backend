@@ -67,7 +67,7 @@ object AuthApi {
 
         val authService = !getService<AuthService.Interface>()
 
-        val result = !ReservationApi.readState(email) ?: !ApiException("User does not exists")
+        val result = !ReservationApi.readState("user-$email") ?: !ApiException("User does not exists")
 
         val user = !readState(UUID.fromString(result.ownerId)) ?: !ApiException("User does not exists")
 
