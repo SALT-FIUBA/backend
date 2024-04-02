@@ -33,8 +33,6 @@ object AuthService : AppService {
         val config: Config
     )
 
-    override val name: String get() = "AuthService"
-
     override val start =
         AuthStack.Do {
 

@@ -1,4 +1,4 @@
-version: "3.4"
+version: "3.9"
 
 services:
   eventstore.db:
@@ -52,6 +52,17 @@ services:
       - ./mqtt/data:/mosquitto/data:rw
       - ./mqtt/log:/mosquitto/log:rw
     restart: unless-stopped
+
+  postgres:
+    image: postgres:14-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_USER=salt
+      - POSTGRES_DB=salt
 
 volumes:
   eventstore-volume-data:

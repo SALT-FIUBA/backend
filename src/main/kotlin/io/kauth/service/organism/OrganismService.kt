@@ -36,8 +36,6 @@ object OrganismService : AppService {
         val query: Query,
     )
 
-    override val name: String get() = "OrganismService"
-
     override val start =
         AuthStack.Do {
 

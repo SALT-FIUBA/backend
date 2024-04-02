@@ -33,8 +33,6 @@ object ReservationService : AppService {
         val query: Query
     )
 
-    override val name: String get() = "ReservationService"
-
     override val start =
         AuthStack.Do {
 

@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     application
     kotlin("jvm") version "1.9.20"
@@ -26,6 +28,7 @@ val dateTimeVersion = "0.4.1"
 val micrometer = "1.12.2"
 val mqttClient = "0.4.6"
 val exposedVersion = "0.49.0"
+val hikaricpVersion = "5.0.1"
 
 dependencies {
 
@@ -53,11 +56,15 @@ dependencies {
     implementation("io.github.davidepianca98:kmqtt-common-jvm:$mqttClient")
     implementation("io.github.davidepianca98:kmqtt-client-jvm:$mqttClient")
 
-    /*
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
-     */
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
+
+    implementation("com.zaxxer:HikariCP:$hikaricpVersion")
+    //implementation("org.jooq:jooq:3.19.6")
+    implementation("org.postgresql:postgresql:42.7.0")
 
     testImplementation(kotlin("test"))
 }
@@ -66,6 +73,16 @@ tasks.test {
     useJUnitPlatform()
 }
 
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(19))
+    }
+}
+
 kotlin {
-    jvmToolchain(8)
+    //jvmToolchain(8)
+    compilerOptions {
+        //jvmTarget.set(JvmTarget.JVM_17)fdddd
+        freeCompilerArgs.add("-Xcontext-receivers")
+    }
 }

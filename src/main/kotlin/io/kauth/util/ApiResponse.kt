@@ -4,9 +4,9 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
-sealed interface ApiResponse {
+sealed interface ApiResponse<out T>{
     @Serializable
-    data class Success<out T>(val value: T) : ApiResponse
+    data class Success<out T>(val value: T) : ApiResponse<T>
     @Serializable
-    data class Error(val message: String) : ApiResponse
+    data class Error(val message: String) : ApiResponse<Nothing>
 }

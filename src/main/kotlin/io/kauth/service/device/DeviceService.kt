@@ -37,8 +37,6 @@ object DeviceService : AppService {
         val query: Query,
     )
 
-    override val name: String get() = "DeviceService"
-
     override val start =
         AuthStack.Do {
 

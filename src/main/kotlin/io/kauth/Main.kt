@@ -7,6 +7,7 @@ import io.kauth.monad.stack.*
 import io.kauth.service.AppService
 import io.kauth.service.auth.AuthService
 import io.kauth.service.device.DeviceService
+import io.kauth.service.inputPattern.InputPatternService
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.organism.OrganismService
 import io.kauth.service.ping.PingService
@@ -37,6 +38,7 @@ import kotlinx.serialization.json.Json
 
 val services: List<AppService> =
     listOf(
+        InputPatternService,
         ReservationService,
         AuthService,
         PingService,
