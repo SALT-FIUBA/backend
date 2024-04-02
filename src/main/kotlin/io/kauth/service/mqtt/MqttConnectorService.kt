@@ -7,15 +7,13 @@ import io.kauth.client.eventStore.model.StreamRevision
 import io.kauth.client.eventStore.stream
 import io.kauth.monad.stack.*
 import io.kauth.service.AppService
-import io.kauth.service.inputPattern.InputPatternService
+import io.kauth.service.inboxPattern.InboxPatternService
 import io.kauth.util.Async
 import io.kauth.util.IO
 import io.kauth.util.io
 import io.kauth.util.not
-import io.ktor.util.reflect.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import mqtt.MQTTVersion
 import mqtt.Subscription
@@ -52,7 +50,7 @@ object MqttConnectorService: AppService {
 
             val log = !authStackLog
             val json = !authStackJson
-            val inputPatterService = !getService<InputPatternService.Interface>()
+            val inputPatterService = !getService<InboxPatternService.Interface>()
             val client = !getService<EventStoreClient>()
 
             //Clients configs

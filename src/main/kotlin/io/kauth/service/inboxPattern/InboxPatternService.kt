@@ -1,4 +1,4 @@
-package io.kauth.service.inputPattern
+package io.kauth.service.inboxPattern
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -14,7 +14,7 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 
-object InputPatternService: AppService {
+object InboxPatternService: AppService {
 
     object InputPattern : Table() {
         val id: Column<String> = text("sequence_id")
