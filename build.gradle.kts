@@ -73,14 +73,16 @@ tasks.test {
     useJUnitPlatform()
 }
 
+/*
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(19))
+        languageVersion.set(JavaLanguageVersion.of(17))
     }
 }
+ */
 
 kotlin {
-    //jvmToolchain(8)
+    jvmToolchain(8)
     compilerOptions {
         //jvmTarget.set(JvmTarget.JVM_17)fdddd
         freeCompilerArgs.add("-Xcontext-receivers")
