@@ -4,7 +4,6 @@ import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
 import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
-import io.kauth.service.AppService
 import io.kauth.service.auth.AuthService
 import io.kauth.service.device.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
