@@ -161,7 +161,8 @@ object Auth {
             is UserEvent.UserCreated -> Command.CreateUser(
                 email = user.email,
                 credentials = user.credentials,
-                personalData = user.personalData
+                personalData = user.personalData,
+                roles = user.roles
             )
             is UserEvent.PersonalDataUpdated -> Command.UpdatePersonalData(
                 personalData = personalData
@@ -215,7 +216,8 @@ object Auth {
                 email = command.email,
                 personalData = command.personalData,
                 credentials = command.credentials,
-                loginCount = 0
+                loginCount = 0,
+                roles = command.roles
             )
 
         !emitEvents(

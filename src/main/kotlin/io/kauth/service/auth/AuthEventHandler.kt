@@ -25,7 +25,6 @@ object AuthEventHandler {
 
         val client = !getService<EventStoreClientPersistenceSubs>()
 
-        //TODO: Falta implementar idempotencia para estos
         !client.subscribeToStream<Auth.UserEvent>(
             streamName,
             consumerGroup
@@ -38,6 +37,7 @@ object AuthEventHandler {
 
                 val state = !AuthApi.readState(userUuid)
 
+                log.info(event.id.toString()) //esto te da idempotence
                 log.info(event.value.toString())
                 log.info(state?.toString())
 
