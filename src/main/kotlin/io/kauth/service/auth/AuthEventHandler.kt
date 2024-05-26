@@ -25,25 +25,26 @@ object AuthEventHandler {
 
         val client = !getService<EventStoreClientPersistenceSubs>()
 
-        !client.subscribeToStream<Auth.UserEvent>(
-            streamName,
-            consumerGroup
-        ) { event ->
-            Async {
+        with(log) {
+            !client.subscribeToStream<Auth.UserEvent>(
+                streamName,
+                consumerGroup
+            ) { event ->
+                Async {
 
-                val userId = event.retrieveId("user") ?: return@Async
+                    val userId = event.retrieveId("user") ?: return@Async
 
-                val userUuid = UUID.fromString(userId)
+                    val userUuid = UUID.fromString(userId)
 
-                val state = !AuthApi.readState(userUuid)
+                    val state = !AuthApi.readState(userUuid)
 
-                log.info(event.id.toString()) //esto te da idempotence
-                log.info(event.value.toString())
-                log.info(state?.toString())
+                    log.info(event.id.toString()) //esto te da idempotence
+                    log.info(event.value.toString())
+                    log.info(state?.toString())
 
+                }
             }
         }
-
     }
 
 }

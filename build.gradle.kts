@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     application
-    kotlin("jvm") version "1.9.20"
+    kotlin("jvm") version "2.0.0"
     kotlin("plugin.serialization") version "1.9.0"
 }
 
@@ -72,14 +72,6 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
-
-/*
-java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-    }
-}
- */
 
 kotlin {
     jvmToolchain(8)

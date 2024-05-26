@@ -1,5 +1,6 @@
 package io.kauth.client.eventStore
 
+import ch.qos.logback.classic.Logger
 import com.eventstore.dbclient.*
 import io.kauth.client.eventStore.model.*
 import io.kauth.client.eventStore.model.ReadResult
@@ -139,6 +140,8 @@ inline fun <reified T> EventStoreClient.appendToStream(
     )
 }
 
+//TODO: Esto no mantiene el orden por lo que entiendo, hay que usar el otro type de subscription
+context(Logger)
 inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
     stream: String,
     consumerGroup: String,
@@ -156,7 +159,7 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
                 .namedConsumerStrategy(NamedConsumerStrategy.PINNED)
         ).await()
     } catch (e: Throwable) {
-        e.printStackTrace()
+        error(e.message)
     }
 
     //TODO parametrize buffer size

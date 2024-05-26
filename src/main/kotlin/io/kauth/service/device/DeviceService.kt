@@ -63,6 +63,8 @@ object DeviceService : AppService {
                 )
             )
 
+            !DeviceEventHandler.eventHandler
+
             !DeviceApiRest.api
 
         }
