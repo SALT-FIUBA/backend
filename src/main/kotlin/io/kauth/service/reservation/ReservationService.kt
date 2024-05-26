@@ -2,16 +2,13 @@ package io.kauth.service.reservation
 
 import io.kauth.abstractions.command.CommandHandler
 import io.kauth.abstractions.result.Output
-import io.kauth.abstractions.state.cmap
 import io.kauth.client.eventStore.*
-import io.kauth.client.eventStore.model.StreamRevision
 import io.kauth.monad.stack.AuthStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
 import io.kauth.service.reservation.Reservation.asCommand
 import io.kauth.util.Async
-import io.kauth.util.not
 
 object ReservationService : AppService {
 

@@ -11,6 +11,7 @@ import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.organism.OrganismService
 import io.kauth.service.ping.PingService
 import io.kauth.service.reservation.ReservationService
+import io.kauth.service.runServices
 import io.kauth.util.LoggerLevel
 import io.kauth.util.not
 import io.kauth.util.setLogbackLevel
@@ -35,8 +36,8 @@ import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
 
-val services: List<AppService> =
-    listOf(
+val runServices get() =
+    runServices(
         ReservationService,
         AuthService,
         PingService,
@@ -141,9 +142,7 @@ fun Application.kauthApp() {
 
             !installKtorPlugins
 
-            services.forEach {
-                !it.start
-            }
+            !runServices
 
             log.info("Init app success")
 
