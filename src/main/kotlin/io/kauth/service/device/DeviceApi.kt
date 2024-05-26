@@ -27,11 +27,11 @@ object DeviceApi {
 
         log.info("Create device $seriesNumber")
 
-        val service = !getService<DeviceService.Interface>()
-
         !OrganismApi.readState(UUID.fromString(organismId)) ?: !ApiException("Organism does not exists")
 
         val deviceId = !ReservationApi.takeIfNotTaken("device-${seriesNumber}") { UUID.randomUUID().toString() }
+
+        val service = !getService<DeviceService.Interface>()
 
         !service.command
             .handle(UUID.fromString(deviceId))

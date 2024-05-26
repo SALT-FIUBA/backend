@@ -4,7 +4,6 @@ import com.eventstore.dbclient.ExpectedRevision
 import com.eventstore.dbclient.WriteResult
 import io.kauth.abstractions.command.CommandHandler
 import io.kauth.abstractions.state.StateMachine
-import io.kauth.abstractions.state.cmap
 import io.kauth.abstractions.state.runMany
 import io.kauth.client.eventStore.model.*
 import io.kauth.client.eventStore.model.toStreamRevision
@@ -31,8 +30,9 @@ data class EventStoreStream<E>(
 @JvmName("appendData")
 inline fun <reified E> EventStoreStream<E>.append(
     data: E,
-    revision: StreamRevision = StreamRevision.AnyRevision
-) = append(listOf(data), revision)
+    revision: StreamRevision = StreamRevision.AnyRevision,
+    idempotenceId: (E) -> UUID = { UUID.randomUUID() }
+) = append(listOf(data), revision, idempotenceId)
 
 @JvmName("appendEvent")
 inline fun <reified E>  EventStoreStream<E>.append(
@@ -43,10 +43,11 @@ inline fun <reified E>  EventStoreStream<E>.append(
 @JvmName("appendList")
 inline fun <reified E>  EventStoreStream<E>.append(
     data: List<E>,
-    revision: StreamRevision = StreamRevision.AnyRevision
+    revision: StreamRevision = StreamRevision.AnyRevision,
+    idempotenceId: (E) -> UUID = { UUID.randomUUID() }
 ) = append(
     data.map { Event(
-        id = UUID.randomUUID(),
+        id = idempotenceId(it),
         value = it,
         metadata = EventMetadata(Clock.System.now()),
         streamName = this.name,

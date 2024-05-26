@@ -1,5 +1,7 @@
 package io.kauth.monad.state
 
+import kotlin.experimental.ExperimentalTypeInference
+
 /*
 StateMonad
     - S: State
@@ -44,8 +46,9 @@ data class StateMonad<S, out E, out T>(
         fun <S> get(): StateMonad<S, Nothing, S> =
             StateMonad { state -> Triple(state, emptyList(), state) }
 
+        @OptIn(ExperimentalTypeInference::class)
         fun <S, E, T> Do(
-             body: StateMonadContext<S, E>.(exit: (value: T) -> StateMonad<S, E, Nothing>) -> T
+            @BuilderInference body: StateMonadContext<S, E>.(exit: (value: T) -> StateMonad<S, E, Nothing>) -> T
         ): StateMonad<S, E, T> =
             StateMonad { initial ->
 

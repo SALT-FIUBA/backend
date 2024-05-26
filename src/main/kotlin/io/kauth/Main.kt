@@ -38,7 +38,6 @@ import kotlinx.serialization.json.Json
 
 val services: List<AppService> =
     listOf(
-        InboxPatternService,
         ReservationService,
         AuthService,
         PingService,
