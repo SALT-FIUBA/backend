@@ -6,18 +6,25 @@ import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
 import io.kauth.util.IO
 import io.kauth.util.not
+import java.util.*
 
 
 object ReservationApi {
 
     fun take(id: String, ownerId: String) = AppStack.Do {
         val service = !getService<ReservationService.Interface>()
-        !service.command.handle(id).throwOnFailureHandler(Reservation.Command.Take(ownerId = ownerId))
+        !service.command.handle(id).throwOnFailureHandler(
+            Reservation.Command.Take(ownerId = ownerId),
+            UUID.randomUUID()
+        )
     }
 
     fun release(id: String) = AppStack.Do {
         val service = !getService<ReservationService.Interface>()
-        !service.command.handle(id).throwOnFailureHandler(Reservation.Command.Release)
+        !service.command.handle(id).throwOnFailureHandler(
+            Reservation.Command.Release,
+            UUID.randomUUID()
+        )
     }
 
     fun readState(id: String) = AppStack.Do {

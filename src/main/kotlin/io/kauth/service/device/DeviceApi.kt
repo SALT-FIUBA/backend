@@ -39,7 +39,8 @@ object DeviceApi {
                     ports = ports,
                     createdBy = jwt.payload.id,
                     createdAt = Clock.System.now()
-                )
+                ),
+                UUID.randomUUID()
             )
 
         deviceId

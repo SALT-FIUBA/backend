@@ -3,9 +3,13 @@ package io.kauth.abstractions.result
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
+import kotlinx.serialization.Serializable
 
+@Serializable
 sealed interface Result<out T, out E>
+@Serializable
 data class Success<T>(val data: T) : Result<T, Nothing>
+@Serializable
 data class Failure<E>(val message: E) : Result<Nothing, E>
 
 val <T, E> Result<T, E>.throwOnFailure

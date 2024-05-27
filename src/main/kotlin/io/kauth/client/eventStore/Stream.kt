@@ -100,10 +100,11 @@ fun <E> stream(
     streamName: String,
 ) = EventStoreStream<E>(client, streamName)
 
+//TODO a esto le falta idempotence opcional
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
     noinline stateMachine: StateMachine<C,S,E,O>,
     crossinline eventToCommand: (E) -> C? // Esto te lo podes ahorrar si de alguna froma persistis los commands
-): CommandHandler<C, O> = { command: C ->
+): CommandHandler<C, O> = { command: C, eventId: UUID ->
     AppStack.Do {
 
         val (state, revision) = !computeState<E,S,O,C>(stateMachine, eventToCommand)
@@ -115,7 +116,7 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
         if (newState != null && newState != state) {
             !snapshot.append(
                 Event(
-                    id = UUID.randomUUID(),
+                    id = eventId,
                     value = newState,
                     metadata = EventMetadata(
                         timestamp = Clock.System.now(),
