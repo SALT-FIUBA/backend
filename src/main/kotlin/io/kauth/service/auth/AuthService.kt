@@ -2,13 +2,13 @@ package io.kauth.service.auth
 
 import io.kauth.abstractions.command.CommandHandler
 import io.kauth.client.eventStore.*
-import io.kauth.monad.stack.AuthStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
 import io.kauth.service.auth.Auth.asCommand
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
+import io.kauth.monad.stack.AppStack
 import java.util.*
 
 
@@ -34,7 +34,7 @@ object AuthService : AppService {
     )
 
     override val start =
-        AuthStack.Do {
+        AppStack.Do {
 
             val client = !getService<EventStoreClient>()
 

@@ -1,11 +1,11 @@
 package io.kauth.service.ping
 
-import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.AppStack
 
 
 object Api {
 
-    val ping = AuthStack.Do {
+    val ping = AppStack.Do {
         "pong"
     }
 

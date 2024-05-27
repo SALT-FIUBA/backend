@@ -24,7 +24,7 @@ object AuthApi {
         password: String,
         personalData: Auth.User.PersonalData,
         roles: List<String>
-    ) = AuthStack.Do {
+    ) = AppStack.Do {
 
         val log = !authStackLog
 
@@ -59,7 +59,7 @@ object AuthApi {
     fun login(
         email: String,
         password: String
-    ) = AuthStack.Do {
+    ) = AppStack.Do {
 
         val log = !authStackLog
 
@@ -88,12 +88,12 @@ object AuthApi {
 
     }
 
-    val algorithm: AuthStack<Algorithm?> = AuthStack.Do {
+    val algorithm = AppStack.Do {
         val config = !config
         Algorithm.HMAC256(config.secret)
     }
 
-    val config: AuthStack<AuthService.Config> = AuthStack.Do {
+    val config = AppStack.Do {
         val authService = !getService<AuthService.Interface>()
         authService.config
     }
@@ -101,7 +101,7 @@ object AuthApi {
     fun buildJwt(
         id: String,
         user: Auth.User
-    ) = AuthStack.Do {
+    ) = AppStack.Do {
         JWT
             .create()
             .withHeader(
@@ -118,7 +118,7 @@ object AuthApi {
             .sign(!algorithm)
     }
 
-    val ApplicationCall.auth get() = AuthStack.Do {
+    val ApplicationCall.auth get() = AppStack.Do {
 
         val authHeader = request.header("Authorization") ?: ""
 
@@ -134,7 +134,7 @@ object AuthApi {
 
     }
 
-    fun jwtVerify(jwt: String) = AuthStack.Do {
+    fun jwtVerify(jwt: String) = AppStack.Do {
 
         val verifier = JWT
             .require(!algorithm)
@@ -158,12 +158,12 @@ object AuthApi {
 
     }
 
-    val readStateFromSession get() = AuthStack.Do {
+    val readStateFromSession get() = AppStack.Do {
         val jwt = !authStackJwt
         !readState(UUID.fromString(jwt.payload.id)) ?: !ApiException("User not found")
     }
 
-    fun readState(id: UUID) = AuthStack.Do {
+    fun readState(id: UUID) = AppStack.Do {
         val authService = !getService<AuthService.Interface>()
         !authService.query.readState(id)
     }

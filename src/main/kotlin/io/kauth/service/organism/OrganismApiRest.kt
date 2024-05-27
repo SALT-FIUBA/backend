@@ -2,8 +2,7 @@ package io.kauth.service.organism
 
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
-import io.kauth.monad.stack.AuthStack
-import io.kauth.monad.stack.authStackKtor
+import io.kauth.monad.stack.AppStack
 import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -22,9 +21,7 @@ object OrganismApiRest {
         val description: String
     )
 
-    val api = AuthStack.Do {
-
-        val ktor = !authStackKtor
+    val api = AppStack.Do {
 
         ktor.routing {
 

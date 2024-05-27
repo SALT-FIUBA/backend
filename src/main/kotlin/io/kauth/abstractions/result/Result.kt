@@ -2,14 +2,14 @@ package io.kauth.abstractions.result
 
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
-import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.AppStack
 
 sealed interface Result<out T, out E>
 data class Success<T>(val data: T) : Result<T, Nothing>
 data class Failure<E>(val message: E) : Result<Nothing, E>
 
 val <T, E> Result<T, E>.throwOnFailure
-    get(): AuthStack<T> = AuthStack.Do {
+    get(): AppStack<T> = AppStack.Do {
         when (this@throwOnFailure) {
             is Success<T> -> data
             is Failure<E> -> {

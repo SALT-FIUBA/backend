@@ -7,7 +7,7 @@ import io.kauth.abstractions.state.StateMachine
 import io.kauth.abstractions.state.runMany
 import io.kauth.client.eventStore.model.*
 import io.kauth.client.eventStore.model.toStreamRevision
-import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.AppStack
 import io.kauth.util.Async
 import io.kauth.util.not
 import kotlinx.datetime.Clock
@@ -104,7 +104,7 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
     noinline stateMachine: StateMachine<C,S,E,O>,
     crossinline eventToCommand: (E) -> C? // Esto te lo podes ahorrar si de alguna froma persistis los commands
 ): CommandHandler<C, O> = { command: C ->
-    AuthStack.Do {
+    AppStack.Do {
 
         val (state, revision) = !computeState<E,S,O,C>(stateMachine, eventToCommand)
 

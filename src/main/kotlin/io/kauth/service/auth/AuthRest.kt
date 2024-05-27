@@ -1,7 +1,6 @@
 package io.kauth.service.auth
 
-import io.kauth.monad.stack.AuthStack
-import io.kauth.monad.stack.authStackKtor
+import io.kauth.monad.stack.AppStack
 import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -26,9 +25,7 @@ object AuthRest {
         val password: String,
     )
 
-    val api = AuthStack.Do {
-
-        val ktor = !authStackKtor
+    val api = AppStack.Do {
 
         ktor.routing {
 

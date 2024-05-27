@@ -2,7 +2,7 @@ package io.kauth.service.auth
 
 import io.kauth.client.eventStore.EventStoreClientPersistenceSubs
 import io.kauth.client.eventStore.subscribeToStream
-import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
 import io.kauth.util.Async
@@ -11,7 +11,7 @@ import java.util.UUID
 
 object AuthEventHandler {
 
-    val eventHandler = AuthStack.Do {
+    val eventHandler = AppStack.Do {
 
         val log = !authStackLog
 

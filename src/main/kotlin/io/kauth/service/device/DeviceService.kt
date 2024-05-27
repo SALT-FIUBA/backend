@@ -1,20 +1,17 @@
 package io.kauth.service.device
 
-import MQTTClient
 import io.kauth.abstractions.command.CommandHandler
 import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.commandHandler
 import io.kauth.client.eventStore.computeStateResult
 import io.kauth.client.eventStore.stream
-import io.kauth.monad.stack.AuthStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
 import io.kauth.service.device.Device.asCommand
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
-import kotlinx.coroutines.launch
-import mqtt.MQTTVersion
+import io.kauth.monad.stack.AppStack
 import java.util.*
 
 object DeviceService : AppService {
@@ -38,7 +35,7 @@ object DeviceService : AppService {
     )
 
     override val start =
-        AuthStack.Do {
+         AppStack.Do {
 
             val client = !getService<EventStoreClient>()
 

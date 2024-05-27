@@ -46,10 +46,8 @@ val runServices get() =
     )
 
 val installKtorPlugins =
-    AuthStack.Do {
+    AppStack.Do {
 
-        val ktor = !authStackKtor
-        val serialization = !authStackSerialization
         val metricClient = !authStackMetrics
         val log = !authStackLog
 
@@ -111,8 +109,8 @@ val installKtorPlugins =
     }
 
 fun Application.kauthApp() {
-    runAuthStack(
-        Dependency.Do {
+    runAppStack(
+        AppStack.Do {
 
             !registerService(
                 Json::class,

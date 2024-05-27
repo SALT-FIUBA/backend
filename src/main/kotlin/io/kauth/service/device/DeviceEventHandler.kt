@@ -2,7 +2,7 @@ package io.kauth.service.device
 
 import io.kauth.client.eventStore.EventStoreClientPersistenceSubs
 import io.kauth.client.eventStore.subscribeToStream
-import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
 import io.kauth.service.mqtt.MqttConnectorService
@@ -14,7 +14,7 @@ object DeviceEventHandler {
     //TODO: Colgarse EN ORDEN! de los eventosMqtt y setear el esttado actual
     //mqtt-device-data-mac o algo asi
 
-    val eventHandler = AuthStack.Do {
+    val eventHandler = AppStack.Do {
 
         val log = !authStackLog
 

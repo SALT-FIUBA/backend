@@ -2,10 +2,8 @@ package io.kauth.service.device
 
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
-import io.kauth.monad.stack.AuthStack
-import io.kauth.monad.stack.authStackKtor
+import io.kauth.monad.stack.AppStack
 import io.kauth.service.auth.AuthApi.auth
-import io.kauth.service.organism.OrganismApi
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -23,9 +21,7 @@ object DeviceApiRest {
         val ports: List<String>
     )
 
-    val api = AuthStack.Do {
-
-        val ktor = !authStackKtor
+    val api = AppStack.Do {
 
         ktor.routing {
 

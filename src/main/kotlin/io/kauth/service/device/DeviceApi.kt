@@ -1,14 +1,11 @@
 package io.kauth.service.device
 
 import io.kauth.abstractions.command.throwOnFailureHandler
-import io.kauth.monad.stack.AuthStack
-import io.kauth.monad.stack.authStackLog
-import io.kauth.monad.stack.getService
 import io.kauth.util.not
 import io.kauth.abstractions.result.throwOnFailure
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
-import io.kauth.monad.stack.authStackJwt
+import io.kauth.monad.stack.*
 import io.kauth.service.organism.OrganismApi
 import io.kauth.service.reservation.ReservationApi
 import kotlinx.datetime.Clock
@@ -20,7 +17,7 @@ object DeviceApi {
         organismId: String,
         seriesNumber: String,
         ports: List<String>,
-    ) = AuthStack.Do {
+    ) = AppStack.Do {
 
         val jwt = !authStackJwt
         val log = !authStackLog
@@ -49,7 +46,7 @@ object DeviceApi {
 
     }
 
-    fun readState(id: UUID) = AuthStack.Do {
+    fun readState(id: UUID) = AppStack.Do {
         val authService = !getService<DeviceService.Interface>()
         !authService.query.readState(id)
     }

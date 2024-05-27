@@ -6,12 +6,11 @@ import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.commandHandler
 import io.kauth.client.eventStore.computeStateResult
 import io.kauth.client.eventStore.stream
-import io.kauth.monad.stack.AuthStack
+import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
 import io.kauth.service.organism.Organism.asCommand
-import io.kauth.service.reservation.Reservation
 import io.kauth.util.Async
 import java.util.*
 
@@ -37,7 +36,7 @@ object OrganismService : AppService {
     )
 
     override val start =
-        AuthStack.Do {
+        AppStack.Do {
 
             val client = !getService<EventStoreClient>()
 

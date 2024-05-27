@@ -36,10 +36,7 @@ object MqttConnectorService : AppService {
         val disconnect: Async<Unit>
     )
 
-    val getConfig = AuthStack.Do {
-
-        val ktor = !authStackKtor
-
+    val getConfig = AppStack.Do {
         Config(
             brokerAddress = "localhost",
             brokerPort = 1883,
@@ -47,7 +44,6 @@ object MqttConnectorService : AppService {
             username = "mati",
             password = "1234".toByteArray().toUByteArray()
         )
-
     }
 
     data class Config(
@@ -59,7 +55,7 @@ object MqttConnectorService : AppService {
     )
 
     override val start =
-        AuthStack.Do {
+        AppStack.Do {
 
             val log = !authStackLog
             val json = !authStackJson
