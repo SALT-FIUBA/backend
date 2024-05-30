@@ -39,7 +39,6 @@ object OrganismApi {
                     createdBy = jwt.payload.id,
                     createdAt = Clock.System.now()
                 ),
-                UUID.randomUUID()
             )
 
         id

@@ -1,5 +1,6 @@
 package io.kauth.service.publisher
 
+import io.kauth.abstractions.result.AppResult
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
@@ -10,8 +11,11 @@ import kotlinx.serialization.json.JsonElement
 object Publisher {
 
     @Serializable
-    enum class Channel {
-        MQTT
+    sealed class Channel {
+        @Serializable
+        data class Mqtt(
+            val topic: String
+        ) : Channel()
     }
 
     @Serializable
@@ -26,7 +30,7 @@ object Publisher {
 
         @Serializable
         data class PublishResult(
-            val result: String
+            val result: AppResult<String>
         ): Command
 
     }
@@ -44,14 +48,14 @@ object Publisher {
 
         @Serializable
         data class PublishResult(
-            val result: String
+            val result: AppResult<String>
         ): Event
 
     }
 
     val Event.asCommand get() =
         when(this) {
-            is Event.PublishResult-> Command.PublishResult(result)
+            is Event.PublishResult -> Command.PublishResult(result)
             is Event.Publish -> Command.Publish(channel, resource, data)
         }
 
@@ -60,7 +64,7 @@ object Publisher {
         val data: JsonElement,
         val resource: String,
         val channel: Channel,
-        val result: String?
+        val result: AppResult<String>?
     )
 
     fun handleSetStatus(

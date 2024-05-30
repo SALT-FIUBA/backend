@@ -15,7 +15,6 @@ object ReservationApi {
         val service = !getService<ReservationService.Interface>()
         !service.command.handle(id).throwOnFailureHandler(
             Reservation.Command.Take(ownerId = ownerId),
-            UUID.randomUUID()
         )
     }
 
@@ -23,7 +22,6 @@ object ReservationApi {
         val service = !getService<ReservationService.Interface>()
         !service.command.handle(id).throwOnFailureHandler(
             Reservation.Command.Release,
-            UUID.randomUUID()
         )
     }
 

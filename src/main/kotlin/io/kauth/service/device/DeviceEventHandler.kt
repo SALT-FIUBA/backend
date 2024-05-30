@@ -8,6 +8,7 @@ import io.kauth.monad.stack.getService
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.util.Async
 import io.kauth.util.not
+import kotlinx.serialization.json.JsonElement
 
 object DeviceEventHandler {
 
@@ -28,19 +29,15 @@ object DeviceEventHandler {
 
         val client = !getService<EventStoreClientPersistenceSubs>()
 
-        with(log) {
-            !client.subscribeToStream<MqttConnectorService.MqttConnectorData>(streamName, consumerGroup) { event ->
-                Async {
-
-                    //Decode data
-                    //Retrieve deviceId
-                    //readState
-                    //updateStatus
-
-                    log.info(event.id.toString()) //esto te da idempotence
-                    log.info(event.value.toString())
-
-                }
+        //LECTURA DE MENSAJES QUE LLEGAN DESDE EL BROKER, EJ SET STATUS
+        !client.subscribeToStream<MqttConnectorService.MqttData<JsonElement>>(streamName, consumerGroup) { event ->
+            Async {
+                //Decode data
+                //Retrieve deviceId
+                //readState
+                //updateStatus
+                log.info(event.id.toString()) //esto te da idempotence
+                log.info(event.value.toString())
             }
         }
 

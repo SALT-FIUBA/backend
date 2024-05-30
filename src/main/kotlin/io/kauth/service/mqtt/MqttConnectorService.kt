@@ -6,19 +6,20 @@ import io.kauth.client.eventStore.append
 import io.kauth.client.eventStore.model.StreamRevision
 import io.kauth.client.eventStore.stream
 import io.kauth.monad.stack.*
+import io.kauth.serializer.UUIDSerializer
 import io.kauth.service.AppService
 import io.kauth.util.Async
 import io.kauth.util.IO
 import io.kauth.util.io
 import io.kauth.util.not
 import kotlinx.coroutines.*
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import mqtt.MQTTVersion
 import mqtt.Subscription
 import mqtt.packets.Qos
-import mqtt.packets.mqttv5.MQTT5Properties
 import mqtt.packets.mqttv5.ReasonCode
 import mqtt.packets.mqttv5.SubscriptionOptions
 import java.util.*
@@ -26,18 +27,11 @@ import java.util.*
 object MqttConnectorService : AppService {
 
     @Serializable
-    data class MqttConnectorData(
-        val data: JsonElement,
-        val packetId: UInt?
-    ) {
-        val sequenceId
-            get() =
-                try {
-                    data.jsonObject["sequenceId"]?.jsonPrimitive?.contentOrNull
-                } catch (e: Throwable) {
-                    null
-                }
-    }
+    data class MqttData<out T>(
+        val data: T,
+        @Serializable(with = UUIDSerializer::class)
+        val idempotence: UUID
+    )
 
     data class MqttRequester(
         val serializable: Json,
@@ -45,14 +39,16 @@ object MqttConnectorService : AppService {
     ) {
 
         @OptIn(ExperimentalUnsignedTypes::class)
-        inline fun <reified T> publish(topic: String, data: T): Async<Unit> = Async {
-            val payload = serializable.encodeToString(data).toByteArray().toUByteArray()
-            mqtt.publish(
-                qos = Qos.AT_LEAST_ONCE,
-                payload = payload,
-                retain = false,
-                topic = topic
-            )
+        inline fun <reified T> publish(topic: String, data: T, idempotence: UUID): Async<Unit> = Async {
+            val payload = serializable.encodeToString(MqttData(data, idempotence)).toByteArray().toUByteArray()
+            withContext(Dispatchers.IO) {
+                mqtt.publish(
+                    qos = Qos.AT_LEAST_ONCE,
+                    payload = payload,
+                    retain = false,
+                    topic = topic
+                )
+            }
             Unit
         }
 
@@ -102,29 +98,24 @@ object MqttConnectorService : AppService {
             ) { message ->
 
                 try {
-
                     val topicName = message.topicName.replace("/", "-")
                     val data = message.payload
                         ?.toByteArray()
                         ?.decodeToString()
-                        ?.let { value -> json.decodeFromString<JsonElement>(value) }
+                        ?.let { value -> json.decodeFromString<MqttData<JsonElement>>(value) }
 
                     if (data != null) {
-                        val mqttData = MqttConnectorData(data, message.packetId)
-                        !stream<MqttConnectorData>(client, "mqtt-connector-event-${topicName}")
+                        !stream<MqttData<JsonElement>>(client, "mqtt-connector-event-${topicName}")
                             .append(
-                                mqttData,
+                                data,
                                 StreamRevision.AnyRevision
-                            ) { mqttConnectorData ->
-                                mqttConnectorData.sequenceId?.let { UUID.fromString(it) } ?: UUID.randomUUID()
-                            }
+                            ) { it.idempotence }
                             .io
                     }
 
                 } catch (e: Throwable) {
                     log.error("MQTT subscription loop error", e)
                 }
-
 
             }
 

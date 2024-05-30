@@ -8,18 +8,21 @@ import io.kauth.abstractions.state.StateMachineHandler
 import io.kauth.abstractions.state.StateMachinieHandler
 import io.kauth.abstractions.state.buildStateMachine
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 object Device {
 
     @Serializable
     data class State(
-        val organismId: String,
+        @Contextual
+        val organismId: UUID,
         val seriesNumber: String,
         val ports: List<String>,
         val status: String?,
         val createdBy: String,
-        val createdAt: Instant
+        val createdAt: Instant,
     )
 
     @Serializable
@@ -27,7 +30,8 @@ object Device {
 
         @Serializable
         data class Create(
-            val organismId: String,
+            @Contextual
+            val organismId: UUID,
             val seriesNumber: String,
             val ports: List<String>,
             val createdBy: String,

@@ -15,10 +15,8 @@ import java.util.*
 
 //StreamStrategy ? --> Puede o no tener snapshot
 data class EventStoreStreamSnapshot<E,S>(
-    //comanStream ?
-    //logStream ?
     val stream: EventStoreStream<E>,
-    val snapshot: EventStoreStream<S>
+    val snapshot: EventStoreStream<S>?
 )
 
 //Este stream guarda eventos de tipo E
@@ -89,10 +87,10 @@ inline fun <reified E> EventStoreStream<E>.readLast() = Async {
 fun <E,S> stream(
     client: EventStoreClient,
     streamName: String,
-    snapshotName: String
+    snapshotName: String? = null
 ) = EventStoreStreamSnapshot<E,S>(
     stream = stream(client, streamName),
-    snapshot = stream(client, snapshotName)
+    snapshot = if(snapshotName != null) stream(client, snapshotName) else null
 )
 
 fun <E> stream(
@@ -100,32 +98,38 @@ fun <E> stream(
     streamName: String,
 ) = EventStoreStream<E>(client, streamName)
 
-//TODO a esto le falta idempotence opcional
-inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
+
+inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandlerIdempotent(
     noinline stateMachine: StateMachine<C,S,E,O>,
+    crossinline idempotenceId: (E) -> UUID,
     crossinline eventToCommand: (E) -> C? // Esto te lo podes ahorrar si de alguna froma persistis los commands
-): CommandHandler<C, O> = { command: C, eventId: UUID ->
+): CommandHandler<C, O> = { command: C ->
     AppStack.Do {
 
         val (state, revision) = !computeState<E,S,O,C>(stateMachine, eventToCommand)
 
+        println(state)
+        println(revision)
+
         val (newState, newEvents, output) = stateMachine(command).run(state)
 
-        val result = !stream.append<E>(newEvents, revision ?: StreamRevision.NoStream)
+        val result = !stream.append<E>(newEvents, revision ?: StreamRevision.NoStream, idempotenceId)
 
-        if (newState != null && newState != state) {
-            !snapshot.append(
-                Event(
-                    id = eventId,
-                    value = newState,
-                    metadata = EventMetadata(
-                        timestamp = Clock.System.now(),
-                        snapshottedStreamRevision = result.nextExpectedRevision.toStreamRevision
+        if(snapshot != null) {
+            if (newState != null && newState != state) {
+                !snapshot.append(
+                    Event(
+                        id = UUID.randomUUID(),
+                        value = newState,
+                        metadata = EventMetadata(
+                            timestamp = Clock.System.now(),
+                            snapshottedStreamRevision = result.nextExpectedRevision.toStreamRevision
+                        ),
+                        streamName = snapshot.name,
+                        revision = StreamRevision.AnyRevision.toRevision.toRawLong()
                     ),
-                    streamName = snapshot.name,
-                    revision = StreamRevision.AnyRevision.toRevision.toRawLong()
-                ),
-            )
+                )
+            }
         }
 
         output
@@ -133,15 +137,23 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
     }
 }
 
+inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
+    noinline stateMachine: StateMachine<C,S,E,O>,
+    crossinline eventToCommand: (E) -> C? // Esto te lo podes ahorrar si de alguna froma persistis los commands
+): CommandHandler<C, O> = commandHandlerIdempotent(stateMachine, {UUID.randomUUID()}, eventToCommand)
+
 inline fun <reified E, reified S, O, C> EventStoreStreamSnapshot<E, S>.computeState(
     noinline stateMachine: StateMachine<C, S, E, O>,
     crossinline eventsToCommand: (E) -> C?
 ) = Async {
 
-    val snapshotResult = !snapshot.readLast()
+    val snapshotResult = if(snapshot != null) !snapshot.readLast() else null
     val state = snapshotResult?.value
+    val snapshotRevision = snapshotResult?.metadata?.snapshottedStreamRevision?.toRevision?.toRawLong()
 
-    val streamResult = !stream.read(revision = (snapshotResult?.metadata?.snapshottedStreamRevision?.toRevision?.toRawLong() ?: 0L) + 1)
+    val streamResult = !stream.read(
+        revision = if(snapshotRevision != null) snapshotRevision + 1L else 0L
+    )
 
     val events = streamResult?.events?.mapNotNull { eventsToCommand(it.value) } ?: emptyList()
 

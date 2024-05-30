@@ -9,6 +9,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.*
 
@@ -16,9 +17,20 @@ object DeviceApiRest {
 
     @Serializable
     data class CreateRequest(
-        val organismId: String,
+        @Contextual
+        val organismId: UUID,
         val seriesNumber: String,
         val ports: List<String>
+    )
+
+    @Serializable
+    data class MqttCommandRequest(
+        @Contextual
+        val deviceId: UUID,
+        @Contextual
+        val messageId: UUID,
+        val message: String,
+        val topic: String
     )
 
     val api = AppStack.Do {
@@ -34,6 +46,18 @@ object DeviceApiRest {
                         command.organismId,
                         command.seriesNumber,
                         command.ports
+                    )
+                    call.respond(HttpStatusCode.Created, result)
+                }
+
+                post(path = "/command") {
+                    !call.auth
+                    val command = call.receive<MqttCommandRequest>()
+                    val result = !DeviceApi.sendCommand(
+                        command.deviceId,
+                        command.messageId,
+                        command.message,
+                        command.topic
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }

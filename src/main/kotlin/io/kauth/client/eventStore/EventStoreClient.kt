@@ -17,36 +17,33 @@ import java.util.*
 import java.util.concurrent.ExecutionException
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.log
 import kotlin.reflect.jvm.jvmName
 
 data class EventStoreClient(
     val client: EventStoreDBClient,
-    val json: Json = Json {
-        prettyPrint = true
-        ignoreUnknownKeys = true
-    }
+    val json: Json
 )
 
 data class EventStoreClientPersistenceSubs(
     val client: EventStoreDBPersistentSubscriptionsClient,
-    val json: Json = Json {
-        prettyPrint = true
-        ignoreUnknownKeys = true
-    },
+    val json: Json
 )
 
 fun eventStoreClientNew(
-    conectionString: String
+    conectionString: String,
+    json: Json
 ) = IO {
     val config = EventStoreDBConnectionString.parseOrThrow(conectionString)
-    EventStoreClient(EventStoreDBClient.create(config))
+    EventStoreClient(EventStoreDBClient.create(config), json)
 }
 
 fun eventStoreClientPersistenceSubsNew(
-    conectionString: String
+    conectionString: String,
+    json: Json
 ) = IO {
     val config = EventStoreDBConnectionString.parseOrThrow(conectionString)
-    EventStoreClientPersistenceSubs(EventStoreDBPersistentSubscriptionsClient.create(config))
+    EventStoreClientPersistenceSubs(EventStoreDBPersistentSubscriptionsClient.create(config), json)
 }
 
 inline fun <reified T> EventStoreClient.readFromStream(
@@ -73,7 +70,6 @@ inline fun <reified T> EventStoreClient.readFromStream(
     } catch (e: StreamNotFoundException) {
         return@Async null
     }
-
 
     ReadResult(
         events = response.events.map {
@@ -141,7 +137,6 @@ inline fun <reified T> EventStoreClient.appendToStream(
 }
 
 //TODO: Esto no mantiene el orden por lo que entiendo, hay que usar el otro type de subscription
-context(Logger)
 inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
     stream: String,
     consumerGroup: String,
@@ -159,7 +154,7 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
                 .namedConsumerStrategy(NamedConsumerStrategy.PINNED)
         ).await()
     } catch (e: Throwable) {
-        error(e.message)
+        println(e.message)
     }
 
     //TODO parametrize buffer size
@@ -203,6 +198,7 @@ inline fun <reified T> EventStoreClient.appendToStream(
 
     val options = AppendToStreamOptions.get()
         .expectedRevision(revision.toRevision);
+
 
     val eventData = dataList.map { data ->
         EventData

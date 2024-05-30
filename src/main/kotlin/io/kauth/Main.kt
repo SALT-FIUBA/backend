@@ -1,5 +1,6 @@
 package io.kauth
 
+import ch.qos.logback.classic.Logger
 import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
 import io.kauth.exception.ApiException
@@ -129,12 +130,28 @@ object UnitSerializer : KSerializer<Unit> {
     }
 }
 
+data class AppLogger(
+    val other: io.ktor.util.logging.Logger
+) : io.ktor.util.logging.Logger by other {
+
+    val DEBUG: StackTraceElement
+        get() {
+            val throwable = Throwable()
+            val current = throwable.stackTrace[2]
+            return current
+        }
+
+    override fun info(p0: String?) {
+        other.info("[${DEBUG.className}] ${p0}")
+    }
+
+}
+
 fun Application.kauthApp() {
     runAppStack(
         AppStack.Do {
 
-            !registerService(
-                Json::class,
+            val json =
                 Json {
                     prettyPrint = true
                     ignoreUnknownKeys = true
@@ -144,15 +161,19 @@ fun Application.kauthApp() {
                         contextual(UnitSerializer)
                     }
                 }
+
+            !registerService(
+                Json::class,
+                json
             )
 
             //Setup clients
             !registerService(
-                !eventStoreClientNew("esdb://localhost:2113?tls=false")
+                !eventStoreClientNew("esdb://localhost:2113?tls=false", json)
             )
 
             !registerService(
-                !eventStoreClientPersistenceSubsNew("esdb://localhost:2113?tls=false")
+                !eventStoreClientPersistenceSubsNew("esdb://localhost:2113?tls=false", json)
             )
 
             !registerService(
@@ -161,7 +182,7 @@ fun Application.kauthApp() {
 
             !setLogbackLevel(LoggerLevel.info)
 
-            !registerService(log)
+            !registerService(AppLogger(log))
 
             !installKtorPlugins
 

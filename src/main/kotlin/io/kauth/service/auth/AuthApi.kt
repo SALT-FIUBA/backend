@@ -50,7 +50,6 @@ object AuthApi {
                     roles = roles,
                     personalData = personalData
                 ),
-                UUID.randomUUID()
             )
 
         id
@@ -78,7 +77,6 @@ object AuthApi {
                 Auth.Command.UserLogin(
                     user.credentials.algorithm.hashString(password, user.credentials.salt.byteArray).value
                 ),
-                UUID.randomUUID()
             )
 
         val tokens = Auth.Tokens(

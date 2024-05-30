@@ -1,5 +1,6 @@
 package io.kauth.monad.stack
 
+import io.kauth.AppLogger
 import io.kauth.serializer.UUIDSerializer
 import io.kauth.service.auth.jwt.Jwt
 import io.kauth.util.Async
@@ -57,7 +58,7 @@ val authStackMetrics = AppStack.Do {
 }
 
 val authStackLog = AppStack.Do {
-    !getService<ch.qos.logback.classic.Logger>()
+    !getService<AppLogger>()
 }
 
 val authStackJson = AppStack.Do {
@@ -80,24 +81,6 @@ fun Application.runAppStack(stack: AppStack<*>) {
                 contextual(UUID::class, UUIDSerializer)
             }
         },
-        services = !MutableClassMap.new
-    )
-    runBlocking(coroutineContext) {
-        !stack.run(context)
-    }
-}
-
-fun Application.runAuthStack(stack: Dependency<AppContext, *>) {
-    val context = AppContext(
-        ktor = this,
-        serialization =
-            Json {
-                ignoreUnknownKeys = true
-                encodeDefaults = true
-                serializersModule = SerializersModule {
-                    contextual(UUID::class, UUIDSerializer)
-                }
-            },
         services = !MutableClassMap.new
     )
     runBlocking(coroutineContext) {

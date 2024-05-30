@@ -2,19 +2,36 @@ package io.kauth.service.device
 
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.util.not
-import io.kauth.abstractions.result.throwOnFailure
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
+import io.kauth.service.device.DeviceService.streamName
 import io.kauth.service.organism.OrganismApi
+import io.kauth.service.publisher.Publisher
+import io.kauth.service.publisher.PublisherApi
 import io.kauth.service.reservation.ReservationApi
 import kotlinx.datetime.Clock
 import java.util.*
 
 object DeviceApi {
 
+    fun sendCommand(
+        deviceId: UUID,
+        messageId: UUID,
+        message: String,
+        topic: String
+    ) = AppStack.Do {
+        !PublisherApi.publish(
+            messageId = messageId,
+            message = message,
+            resource = deviceId.streamName,
+            channel = Publisher.Channel.Mqtt(topic)
+        )
+        messageId
+    }
+
     fun create(
-        organismId: String,
+        organismId: UUID,
         seriesNumber: String,
         ports: List<String>,
     ) = AppStack.Do {
@@ -24,7 +41,7 @@ object DeviceApi {
 
         log.info("Create device $seriesNumber")
 
-        !OrganismApi.readState(UUID.fromString(organismId)) ?: !ApiException("Organism does not exists")
+        !OrganismApi.readState(organismId) ?: !ApiException("Organism does not exists")
 
         val deviceId = !ReservationApi.takeIfNotTaken("device-${seriesNumber}") { UUID.randomUUID().toString() }
 
@@ -40,7 +57,6 @@ object DeviceApi {
                     createdBy = jwt.payload.id,
                     createdAt = Clock.System.now()
                 ),
-                UUID.randomUUID()
             )
 
         deviceId

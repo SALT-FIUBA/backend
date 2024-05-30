@@ -12,6 +12,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import java.util.*
@@ -20,6 +21,8 @@ object PublisherApiRest {
 
     @Serializable
     data class PublishRequest(
+        @Contextual
+        val messageId: UUID,
         val data: JsonElement,
         val resource: String,
         val channel: Publisher.Channel
@@ -34,6 +37,7 @@ object PublisherApiRest {
                 post(path = "/publish") {
                     val command = call.receive<PublishRequest>()
                     val result = !PublisherApi.publish(
+                        command.messageId,
                         command.data,
                         command.resource,
                         command.channel

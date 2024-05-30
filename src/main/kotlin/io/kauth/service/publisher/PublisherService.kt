@@ -18,9 +18,7 @@ import java.util.*
 object PublisherService : AppService {
 
     val STREAM_PREFIX = "publisher-"
-    val SNAPSHOT_STREAM_PREFIX = "publisher_snapshot-"
     val UUID.streamName get() = STREAM_PREFIX + this.toString()
-    val UUID.snapshotName get() = SNAPSHOT_STREAM_PREFIX + this.toString()
 
     data class Command(
         val handle: (id: UUID) -> CommandHandler<Publisher.Command, Output>
@@ -42,14 +40,14 @@ object PublisherService : AppService {
 
             val commands = Command(
                 handle = { id ->
-                    stream<Publisher.Event, Publisher.State>(client, id.streamName, id.snapshotName)
+                    stream<Publisher.Event, Publisher.State>(client, id.streamName)
                         .commandHandler(Publisher::stateMachine) { it.asCommand }
                 }
             )
 
             val query = Query(
                 readState = { id ->
-                    stream<Publisher.Event,Publisher.State>(client, id.streamName, id.snapshotName)
+                    stream<Publisher.Event,Publisher.State>(client, id.streamName)
                         .computeStateResult(Publisher::stateMachine) { it.asCommand }
                 }
             )
