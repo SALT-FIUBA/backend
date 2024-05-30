@@ -108,9 +108,6 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
 
         val (state, revision) = !computeState<E,S,O,C>(stateMachine, eventToCommand)
 
-        println(state)
-        println(revision)
-
         val (newState, newEvents, output) = stateMachine(command).run(state)
 
         val result = !stream.append<E>(newEvents, revision ?: StreamRevision.NoStream, idempotenceId)

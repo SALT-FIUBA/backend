@@ -21,6 +21,7 @@ object PublisherEventHandler {
         val log = !authStackLog
 
         val streamName = "\$ce-publisher"
+        //Esto tiene que ser parametrizable? como escala si levanto 3 veces esto x ej?
         val consumerGroup = "publisher-event-consumer"
 
         val client = !getService<EventStoreClientPersistenceSubs>()
