@@ -5,6 +5,7 @@ import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
 import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
+import io.kauth.serializer.UnitSerializer
 import io.kauth.service.auth.AuthService
 import io.kauth.service.device.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
@@ -13,6 +14,7 @@ import io.kauth.service.ping.PingService
 import io.kauth.service.publisher.PublisherService
 import io.kauth.service.reservation.ReservationService
 import io.kauth.service.runServices
+import io.kauth.util.AppLogger
 import io.kauth.util.LoggerLevel
 import io.kauth.util.not
 import io.kauth.util.setLogbackLevel
@@ -119,34 +121,6 @@ val installKtorPlugins =
 
     }
 
-object UnitSerializer : KSerializer<Unit> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("unit serializer mati", PrimitiveKind.STRING)
-    override fun deserialize(decoder: Decoder): Unit {
-        val value = decoder.decodeString()
-        if(value != "unit") error("No unit")
-    }
-    override fun serialize(encoder: kotlinx.serialization.encoding.Encoder, value: Unit) {
-        encoder.encodeString("unit")
-    }
-}
-
-data class AppLogger(
-    val other: io.ktor.util.logging.Logger
-) : io.ktor.util.logging.Logger by other {
-
-    val DEBUG: StackTraceElement
-        get() {
-            val throwable = Throwable()
-            val current = throwable.stackTrace[2]
-            return current
-        }
-
-    override fun info(p0: String?) {
-        other.info("[${DEBUG.className}] ${p0}")
-    }
-
-}
-
 fun Application.kauthApp() {
     runAppStack(
         AppStack.Do {
@@ -155,9 +129,7 @@ fun Application.kauthApp() {
                 Json {
                     prettyPrint = true
                     ignoreUnknownKeys = true
-
                     serializersModule = SerializersModule {
-                        //register a serializer for the Unit type
                         contextual(UnitSerializer)
                     }
                 }

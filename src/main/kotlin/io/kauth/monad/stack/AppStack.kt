@@ -1,8 +1,11 @@
 package io.kauth.monad.stack
 
-import io.kauth.AppLogger
+import io.kauth.client.eventStore.EventStoreClientPersistenceSubs
+import io.kauth.client.eventStore.model.Event
+import io.kauth.client.eventStore.subscribeToStream
 import io.kauth.serializer.UUIDSerializer
 import io.kauth.service.auth.jwt.Jwt
+import io.kauth.util.AppLogger
 import io.kauth.util.Async
 import io.kauth.util.MutableClassMap
 import io.kauth.util.not
@@ -11,6 +14,9 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 import kotlin.reflect.KClass
 
@@ -69,8 +75,28 @@ val authStackJwt = AppStack.Do {
     !getService<Jwt>()
 }
 
+inline fun <reified T> appStackEventHandler(
+    streamName: String,
+    consumerGroup: String,
+    crossinline onEvent: (Event<T>) -> AppStack<Unit>
+) = AppStack.Do {
+    val client = !getService<EventStoreClientPersistenceSubs>()
+    !client.subscribeToStream<T>(streamName, consumerGroup) { event ->
+        Async {
+            !onEvent(event)
+        }
+    }
+}
 
 fun Application.runAppStack(stack: AppStack<*>) {
+
+    val db = Database.connect(
+        url = "jdbc:postgresql://localhost:5432/salt",
+        driver = "org.postgresql.Driver",
+        user = "salt",
+        password = "1234"
+    )
+
     val context = AppContext(
         ktor = this,
         serialization =
@@ -81,7 +107,8 @@ fun Application.runAppStack(stack: AppStack<*>) {
                 contextual(UUID::class, UUIDSerializer)
             }
         },
-        services = !MutableClassMap.new
+        services = !MutableClassMap.new,
+        db = db
     )
     runBlocking(coroutineContext) {
         !stack.run(context)

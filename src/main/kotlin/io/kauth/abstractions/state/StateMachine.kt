@@ -1,17 +1,13 @@
 package io.kauth.abstractions.state
 
-import io.kauth.abstractions.result.Failure
-import io.kauth.abstractions.result.Ok
 import io.kauth.monad.state.StateMonad
 import io.kauth.monad.state.StateMonad.Companion.StateMonadContext
-import io.kauth.service.device.Device.Event
-import io.kauth.service.device.Device.State
 import kotlin.experimental.ExperimentalTypeInference
 
 typealias StateMachine<C,S,E,O> = (command: C) -> StateMonad<S?, E, O>
 
 fun <C,S,E,O> StateMachine<C,S,E,O>.runMany(commands: List<C>, initial: S?) =
-    commands.foldRight(Pair(initial, emptyList<E>())) { command, prev ->
+    commands.fold(Pair(initial, emptyList<E>())) { prev, command ->
         val (newState, events) = this(command).run(prev.first)
         newState to (prev.second + events)
     }

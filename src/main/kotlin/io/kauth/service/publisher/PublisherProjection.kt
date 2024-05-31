@@ -1,0 +1,52 @@
+package io.kauth.service.publisher
+
+import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.appStackEventHandler
+import kotlinx.serialization.encodeToString
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.transactions.transaction
+import java.util.*
+import io.kauth.service.publisher.Publisher.Channel.Mqtt
+import io.kauth.service.publisher.Publisher.Event
+import org.jetbrains.exposed.sql.upsert
+
+object PublisherProjection {
+
+    object Publisher: Table() {
+        val id = text("id").uniqueIndex()
+        val data = text("message")
+        val resource = text("resource")
+        val channel = text("channel")
+        val mqttTopic = text("mqtt_topic").nullable()
+        val resultSuccess = text("result_success").nullable()
+        val resultError = text("result_error").nullable()
+    }
+
+    val sqlEventHandler = appStackEventHandler<Event>(
+        streamName = "\$ce-publisher",
+        consumerGroup = "publisher-sql-projection"
+    ) { event ->
+        AppStack.Do {
+
+            val publishId = UUID.fromString(event.retrieveId("publisher"))
+            val state = !PublisherApi.readState(publishId) ?: return@Do
+
+            transaction(db) {
+                Publisher.upsert() {
+                    it[id] = publishId.toString()
+                    it[data] = serialization.encodeToString(state.data)
+                    it[resource] = state.resource
+                    it[channel] = when(state.channel) {
+                        is Mqtt -> "mqtt"
+                    }
+                    it[mqttTopic] = (state.channel as Mqtt?)?.topic
+                    it[resultSuccess] = state.result?.data
+                    it[resultError] = state.result?.error
+                }
+            }
+
+        }
+    }
+
+}

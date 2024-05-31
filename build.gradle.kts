@@ -27,7 +27,7 @@ val serializationVersion = "1.6.0"
 val dateTimeVersion = "0.4.1"
 val micrometer = "1.12.2"
 val mqttClient = "0.4.6"
-val exposedVersion = "0.49.0"
+val exposedVersion = "0.50.1"
 val hikaricpVersion = "5.0.1"
 
 dependencies {

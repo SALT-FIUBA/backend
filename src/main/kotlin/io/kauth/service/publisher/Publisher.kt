@@ -74,6 +74,9 @@ object Publisher {
         if(state == null) {
             !exit(Failure("Message does not exists"))
         }
+        if(state.result != null) {
+            !exit(Failure("Already finished"))
+        }
         !setState(state.copy(result = command.result))
         !emitEvents(Event.PublishResult(command.result))
         Ok
@@ -94,6 +97,7 @@ object Publisher {
                 result = null
             )
         !setState(data)
+        //Solo emito 1 evneto en EvenSourcing, los eventos son el estado....
         !emitEvents(Event.Publish(command.data, command.resource, command.channel))
         Ok
     }

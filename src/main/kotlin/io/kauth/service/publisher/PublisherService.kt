@@ -12,6 +12,8 @@ import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
 import io.kauth.service.publisher.Publisher.asCommand
 import io.kauth.util.Async
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
 
@@ -61,7 +63,13 @@ object PublisherService : AppService {
 
             !PublisherApiRest.api
 
-            !PublisherEventHandler.eventHandler
+            !PublisherEventHandler.mqttEventHandler
+
+            !PublisherProjection.sqlEventHandler
+
+            transaction(db) {
+                SchemaUtils.create(PublisherProjection.Publisher)
+            }
 
         }
 }
