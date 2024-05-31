@@ -2,6 +2,7 @@ package io.kauth.service.publisher
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackEventHandler
+import io.kauth.monad.stack.appStackSqlProjector
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.insert
@@ -23,15 +24,14 @@ object PublisherProjection {
         val resultError = text("result_error").nullable()
     }
 
-    val sqlEventHandler = appStackEventHandler<Event>(
+    val sqlEventHandler = appStackSqlProjector<Event>(
         streamName = "\$ce-publisher",
-        consumerGroup = "publisher-sql-projection"
+        consumerGroup = "publisher-sql-projection",
+        tables = listOf(Publisher)
     ) { event ->
         AppStack.Do {
-
             val publishId = UUID.fromString(event.retrieveId("publisher"))
             val state = !PublisherApi.readState(publishId) ?: return@Do
-
             transaction(db) {
                 Publisher.upsert() {
                     it[id] = publishId.toString()

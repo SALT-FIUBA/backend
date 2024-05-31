@@ -67,9 +67,5 @@ object PublisherService : AppService {
 
             !PublisherProjection.sqlEventHandler
 
-            transaction(db) {
-                SchemaUtils.create(PublisherProjection.Publisher)
-            }
-
         }
 }

@@ -36,7 +36,7 @@ object DeviceService : AppService {
     )
 
     override val start =
-         AppStack.Do {
+        AppStack.Do {
 
             val client = !getService<EventStoreClient>()
 
@@ -62,6 +62,7 @@ object DeviceService : AppService {
             )
 
             !DeviceEventHandler.eventHandler
+            !DeviceProjection.sqlEventHandler
 
             !DeviceApiRest.api
 

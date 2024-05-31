@@ -3,13 +3,13 @@ package io.kauth.service.device
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
+import io.kauth.serializer.UUIDSerializer
 import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.*
 
@@ -17,7 +17,7 @@ object DeviceApiRest {
 
     @Serializable
     data class CreateRequest(
-        @Contextual
+        @Serializable(UUIDSerializer::class)
         val organismId: UUID,
         val seriesNumber: String,
         val ports: List<String>
@@ -25,9 +25,9 @@ object DeviceApiRest {
 
     @Serializable
     data class MqttCommandRequest(
-        @Contextual
+        @Serializable(UUIDSerializer::class)
         val deviceId: UUID,
-        @Contextual
+        @Serializable(UUIDSerializer::class)
         val messageId: UUID,
         val message: String,
         val topic: String

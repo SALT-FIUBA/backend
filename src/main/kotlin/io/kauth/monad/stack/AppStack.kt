@@ -16,6 +16,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 import kotlin.reflect.KClass
@@ -73,6 +74,20 @@ val authStackJson = AppStack.Do {
 
 val authStackJwt = AppStack.Do {
     !getService<Jwt>()
+}
+
+inline fun <reified T> appStackSqlProjector(
+    streamName: String,
+    consumerGroup: String,
+    tables: List<Table>,
+    crossinline onEvent: (Event<T>) -> AppStack<Unit>
+) = AppStack.Do {
+    transaction(db) {
+        tables.forEach {
+            SchemaUtils.create(it)
+        }
+    }
+    !appStackEventHandler<T>(streamName, consumerGroup, onEvent)
 }
 
 inline fun <reified T> appStackEventHandler(

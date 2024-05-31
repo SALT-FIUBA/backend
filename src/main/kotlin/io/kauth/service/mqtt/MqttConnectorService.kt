@@ -141,6 +141,8 @@ object MqttConnectorService : AppService {
                 ),
             )
 
+            !MqttProjection.sqlEventHandler
+
             !registerService(
                 Interface(
                     mqtt = MqttRequester(serialization, mqtt),

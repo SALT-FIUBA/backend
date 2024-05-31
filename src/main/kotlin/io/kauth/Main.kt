@@ -5,6 +5,7 @@ import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
 import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
+import io.kauth.serializer.UUIDSerializer
 import io.kauth.serializer.UnitSerializer
 import io.kauth.service.auth.AuthService
 import io.kauth.service.device.DeviceService
@@ -130,6 +131,7 @@ fun Application.kauthApp() {
                     prettyPrint = true
                     ignoreUnknownKeys = true
                     serializersModule = SerializersModule {
+                        contextual(UUIDSerializer)
                         contextual(UnitSerializer)
                     }
                 }
