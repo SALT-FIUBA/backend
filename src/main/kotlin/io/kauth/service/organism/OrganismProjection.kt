@@ -1,6 +1,7 @@
 package io.kauth.service.organism
 
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
@@ -33,7 +34,7 @@ object OrganismProjection {
             val entity = UUID.fromString(event.retrieveId("organism"))
             val state = !OrganismApi.readState(entity) ?: return@Do
 
-            transaction(db) {
+            !appStackDbQuery {
                 OrganismTable.upsert() {
                     it[id] = entity.toString()
                     it[tag] = state.tag

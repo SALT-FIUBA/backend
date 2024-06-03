@@ -12,8 +12,6 @@ import java.util.*
 
 object PublisherEventHandler {
 
-
-
     val mqttEventHandler = appStackEventHandler<Publisher.Event>(
         streamName = "\$ce-publisher",
         consumerGroup = "publisher-event-consumer",

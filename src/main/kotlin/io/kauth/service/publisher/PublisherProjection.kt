@@ -1,12 +1,10 @@
 package io.kauth.service.publisher
 
 import io.kauth.monad.stack.AppStack
-import io.kauth.monad.stack.appStackEventHandler
+import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 import io.kauth.service.publisher.Publisher.Channel.Mqtt
 import io.kauth.service.publisher.Publisher.Event
@@ -32,7 +30,7 @@ object PublisherProjection {
         AppStack.Do {
             val publishId = UUID.fromString(event.retrieveId("publisher"))
             val state = !PublisherApi.readState(publishId) ?: return@Do
-            transaction(db) {
+            !appStackDbQuery {
                 Publisher.upsert() {
                     it[id] = publishId.toString()
                     it[data] = serialization.encodeToString(state.data)

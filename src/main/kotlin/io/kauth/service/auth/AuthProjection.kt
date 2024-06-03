@@ -1,6 +1,7 @@
 package io.kauth.service.auth
 
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -28,7 +29,7 @@ object AuthProjection {
             val userId = UUID.fromString(event.retrieveId("user"))
             val state = !AuthApi.readState(userId) ?: return@Do
 
-            transaction(db) {
+            !appStackDbQuery {
                 User.upsert() {
                     it[id] = userId.toString()
                     it[firstname] = state.personalData.firstName

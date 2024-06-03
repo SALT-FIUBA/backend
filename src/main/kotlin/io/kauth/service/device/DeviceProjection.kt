@@ -1,6 +1,7 @@
 package io.kauth.service.device
 
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
@@ -32,7 +33,7 @@ object DeviceProjection {
         AppStack.Do {
             val entity = UUID.fromString(event.retrieveId("device"))
             val state = !DeviceApi.readState(entity) ?: return@Do
-            transaction(db) {
+            !appStackDbQuery {
                 DeviceTable.upsert() {
                     it[id] = entity.toString()
                     it[organismId] = state.organismId.toString()

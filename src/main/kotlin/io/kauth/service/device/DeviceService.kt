@@ -61,7 +61,7 @@ object DeviceService : AppService {
                 )
             )
 
-            !DeviceEventHandler.eventHandler
+            //!DeviceEventHandler.eventHandler
             !DeviceProjection.sqlEventHandler
 
             !DeviceApiRest.api

@@ -11,6 +11,7 @@ import io.kauth.util.toAsync
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
 import kotlinx.datetime.Clock
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.*
@@ -178,6 +179,9 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
                             )
                         )
                         sub.ack(event)
+                    } catch (e: SerializationException) {
+                        println("[Serialization error: ${retryCount} ${subscription.subscriptionId}] ${e.message} ${e.localizedMessage}")
+                        sub.nack(NackAction.Skip, e.stackTraceToString(), event)
                     } catch (e: Throwable) {
                         println("[EVENT HANDLER ERROR: ${retryCount} ${subscription.subscriptionId}] ${e.message} ${e.localizedMessage}")
                         sub.nack(NackAction.Retry, e.stackTraceToString(), event)

@@ -30,6 +30,7 @@ object DeviceEventHandler {
         val client = !getService<EventStoreClientPersistenceSubs>()
 
         //LECTURA DE MENSAJES QUE LLEGAN DESDE EL BROKER, EJ SET STATUS
+        //Aca hay q suscribirse a mqtt-connector-event-salt-data o el topic que sea
         !client.subscribeToStream<MqttConnectorService.MqttData<JsonElement>>(streamName, consumerGroup) { event ->
             Async {
                 //Decode data

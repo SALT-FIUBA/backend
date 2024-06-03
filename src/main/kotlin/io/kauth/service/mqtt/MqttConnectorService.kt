@@ -127,7 +127,6 @@ object MqttConnectorService : AppService {
                 }
             }
 
-
             mqtt.subscribe(
                 subscriptions = listOf(
                     Subscription(
@@ -155,5 +154,4 @@ object MqttConnectorService : AppService {
             )
 
         }
-
 }

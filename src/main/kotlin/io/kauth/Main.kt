@@ -126,28 +126,13 @@ fun Application.kauthApp() {
     runAppStack(
         AppStack.Do {
 
-            val json =
-                Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    serializersModule = SerializersModule {
-                        contextual(UUIDSerializer)
-                        contextual(UnitSerializer)
-                    }
-                }
-
-            !registerService(
-                Json::class,
-                json
-            )
-
             //Setup clients
             !registerService(
-                !eventStoreClientNew("esdb://localhost:2113?tls=false", json)
+                !eventStoreClientNew("esdb://localhost:2113?tls=false", serialization)
             )
 
             !registerService(
-                !eventStoreClientPersistenceSubsNew("esdb://localhost:2113?tls=false", json)
+                !eventStoreClientPersistenceSubsNew("esdb://localhost:2113?tls=false", serialization)
             )
 
             !registerService(

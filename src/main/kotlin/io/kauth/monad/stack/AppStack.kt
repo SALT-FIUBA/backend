@@ -4,6 +4,8 @@ import io.kauth.client.eventStore.EventStoreClientPersistenceSubs
 import io.kauth.client.eventStore.model.Event
 import io.kauth.client.eventStore.subscribeToStream
 import io.kauth.serializer.UUIDSerializer
+import io.kauth.serializer.UnitSerializer
+import io.kauth.service.auth.AuthService
 import io.kauth.service.auth.jwt.Jwt
 import io.kauth.util.AppLogger
 import io.kauth.util.Async
@@ -11,12 +13,15 @@ import io.kauth.util.MutableClassMap
 import io.kauth.util.not
 import io.ktor.server.application.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.contextual
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 import kotlin.reflect.KClass
@@ -69,12 +74,17 @@ val authStackLog = AppStack.Do {
 }
 
 val authStackJson = AppStack.Do {
-    !getService<Json>()
+    serialization
 }
 
 val authStackJwt = AppStack.Do {
     !getService<Jwt>()
 }
+
+fun <T> appStackDbQuery(block: Async<T>): AppStack<T> =
+    AppStack.Do {
+        newSuspendedTransaction(Dispatchers.IO, db = db) { !block }
+    }
 
 inline fun <reified T> appStackSqlProjector(
     streamName: String,
@@ -82,7 +92,7 @@ inline fun <reified T> appStackSqlProjector(
     tables: List<Table>,
     crossinline onEvent: (Event<T>) -> AppStack<Unit>
 ) = AppStack.Do {
-    transaction(db) {
+    !appStackDbQuery {
         tables.forEach {
             SchemaUtils.create(it)
         }
@@ -114,18 +124,20 @@ fun Application.runAppStack(stack: AppStack<*>) {
 
     val context = AppContext(
         ktor = this,
-        serialization =
-        Json {
+        serialization = Json {
+            prettyPrint = true
             ignoreUnknownKeys = true
-            encodeDefaults = true
             serializersModule = SerializersModule {
-                contextual(UUID::class, UUIDSerializer)
+                contextual(UUIDSerializer)
+                contextual(UnitSerializer)
             }
         },
         services = !MutableClassMap.new,
         db = db
     )
+
     runBlocking(coroutineContext) {
         !stack.run(context)
     }
+
 }

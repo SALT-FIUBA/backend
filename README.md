@@ -53,3 +53,76 @@ https://discuss.eventstore.com/t/how-to-deal-with-unicity-constraints-over-repos
 https://www.zilverline.com/blog/simple-event-sourcing-users-authentication-authorization-part-6
 
 Mosquitto Broker  --------------> https://github.com/sukesh-ak/setup-mosquitto-with-docker?tab=readme-ov-file
+
+
+SalT
+====
+
+Stauts (Birth, LastWill) -> ONLINE | OFFLINE
+
+Commando -> https://github.com/nahueespinosa/salt-firmware/blob/master/salt/parser/saltCmd/saltCmd.h#L90
+
+
+Estado -> https://github.com/nahueespinosa/salt-firmware/blob/master/salt/logic/logic.h#L128
+
+type SaltConfg = {
+    velCtOn: Double?
+    velCtOff: Double?
+    velFeOn: Double?
+    velFeHold: Double?
+    timeBlinkEnable Boolean?
+    timeBlinkDisable: Boolen?
+    blinkPeriod Boolean?
+}
+
+type SaltCmd = 
+    SALT_CMD_ORDER_STOP      |
+    SALT_CMD_ORDER_DRIFT     |
+    SALT_CMD_ORDER_ISOLATED  |
+    SALT_CMD_ORDER_AUTOMATIC |
+    SALT_CMD_ORDER_COUNT     |
+    SALT_CMD_ORDER_NULL    
+
+type SaltCmd = {
+   cmd: SaltCmd?
+   config: SaltConfig?
+}
+
+type SaltState = {
+    config: SaltConfig
+    currentCommand: SaltCmd
+    speed: {
+        source: string
+        value: Double
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
