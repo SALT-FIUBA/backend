@@ -1,6 +1,8 @@
 package io.kauth.service.mqtt
 
 import MQTTClient
+import io.kauth.abstractions.state.Var
+import io.kauth.abstractions.state.varNew
 import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.append
 import io.kauth.client.eventStore.model.StreamRevision
@@ -8,21 +10,24 @@ import io.kauth.client.eventStore.stream
 import io.kauth.monad.stack.*
 import io.kauth.serializer.UUIDSerializer
 import io.kauth.service.AppService
+import io.kauth.service.mqtt.subscription.SubscriptionApi
+import io.kauth.service.mqtt.subscription.SubscriptionService
 import io.kauth.util.Async
 import io.kauth.util.IO
 import io.kauth.util.io
 import io.kauth.util.not
 import kotlinx.coroutines.*
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import mqtt.MQTTVersion
 import mqtt.Subscription
 import mqtt.packets.Qos
+import mqtt.packets.mqtt.MQTTPublish
 import mqtt.packets.mqttv5.ReasonCode
 import mqtt.packets.mqttv5.SubscriptionOptions
 import java.util.*
+import io.kauth.service.mqtt.subscription.Subscription.SubsData
 
 object MqttConnectorService : AppService {
 
@@ -33,31 +38,13 @@ object MqttConnectorService : AppService {
         val idempotence: UUID
     )
 
-    data class MqttRequester(
-        val serializable: Json,
-        val mqtt: MQTTClient
-    ) {
-
-        @OptIn(ExperimentalUnsignedTypes::class)
-        inline fun <reified T> publish(topic: String, data: T, idempotence: UUID): Async<Unit> = Async {
-            val payload = serializable.encodeToString(MqttData(data, idempotence)).toByteArray().toUByteArray()
-            withContext(Dispatchers.IO) {
-                mqtt.publish(
-                    qos = Qos.AT_LEAST_ONCE,
-                    payload = payload,
-                    retain = false,
-                    topic = topic
-                )
-            }
-            Unit
-        }
-
+    enum class StatusEvent {
+        OFFLINE,
+        ONLINE
     }
 
     data class Interface(
         val mqtt: MqttRequester,
-        val subscribe: (subscriptions: List<Subscription>) -> IO<Unit>,
-        val disconnect: Async<Unit>
     )
 
     val getConfig = AppStack.Do {
@@ -78,6 +65,23 @@ object MqttConnectorService : AppService {
         val password: UByteArray
     )
 
+    @OptIn(ExperimentalUnsignedTypes::class)
+    fun mqttClientNew(
+        config: Config,
+        json: Json,
+        onPublish: (messaeg: MQTTPublish) -> Async<Unit>
+    ) = Async {
+        MQTTClient(
+            MQTTVersion.MQTT5,
+            config.brokerAddress,
+            config.brokerPort,
+            null,
+            clientId = config.clientId,
+            userName = config.username,
+            password = config.password,
+        ) { message -> !onPublish(message).io }
+    }
+
     override val start =
         AppStack.Do {
 
@@ -86,72 +90,52 @@ object MqttConnectorService : AppService {
             val config = !getConfig
             val client = !getService<EventStoreClient>()
 
-            //Clients configs
-            val mqtt = MQTTClient(
-                MQTTVersion.MQTT5,
-                config.brokerAddress,
-                config.brokerPort,
-                null,
-                clientId = config.clientId,
-                userName = config.username,
-                password = config.password
-            ) { message ->
-
-                try {
-                    val topicName = message.topicName.replace("/", "-")
-                    val data = message.payload
-                        ?.toByteArray()
-                        ?.decodeToString()
-                        ?.let { value -> json.decodeFromString<MqttData<JsonElement>>(value) }
-
-                    if (data != null) {
-                        !stream<MqttData<JsonElement>>(client, "mqtt-connector-event-${topicName}")
-                            .append(
-                                data,
-                                StreamRevision.AnyRevision
-                            ) { it.idempotence }
-                            .io
+            //Retry for ever?
+            val mqtt = !mqttRequesterNew(
+                mqttClientNew(config, json) { message ->
+                    Async {
+                        try {
+                            val topicName = message.topicName.replace("/", "-")
+                            val data = message.payload
+                                ?.toByteArray()
+                                ?.decodeToString()
+                                ?.let { value -> json.decodeFromString<MqttData<JsonElement>>(value) }
+                            if (data != null) {
+                                !stream<MqttData<JsonElement>>(client, "mqtt-${topicName}")
+                                    .append(data, StreamRevision.AnyRevision) { it.idempotence }
+                            }
+                        } catch (e: Throwable) {
+                            log.error("MQTT subscription loop error", e)
+                        }
                     }
-
-                } catch (e: Throwable) {
-                    log.error("MQTT subscription loop error", e)
-                }
-
-            }
-
-            log.info("Mqtt client connected: ${mqtt.connackReceived}")
-
-            val job = launch(Dispatchers.IO) {
-                while (isActive && mqtt.running) {
-                    mqtt.step()
-                }
-            }
-
-            mqtt.subscribe(
-                subscriptions = listOf(
-                    Subscription(
-                        topicFilter = "salt/command/#",
-                        options = SubscriptionOptions(qos = Qos.AT_LEAST_ONCE)
-                    ),
-                    Subscription(
-                        topicFilter = "salt/data/#",
-                        options = SubscriptionOptions(qos = Qos.AT_LEAST_ONCE)
-                    ),
-                ),
+                },
+                json,
+                ctx
             )
+
+            !mqtt.connect()
 
             !MqttProjection.sqlEventHandler
 
             !registerService(
                 Interface(
-                    mqtt = MqttRequester(serialization, mqtt),
-                    subscribe = { subs -> IO { mqtt.subscribe(subs) } },
-                    disconnect = Async {
-                        mqtt.disconnect(ReasonCode.SUCCESS)
-                        job.cancelAndJoin()
-                    }
+                    mqtt = mqtt,
                 )
             )
+
+            !SubscriptionService.start
+
+            try {
+                !SubscriptionApi.subscribe(listOf(SubsData(topic = "discovery/+/config", resource = "MqttService"))) // -> For discovery
+            } catch (e: Throwable) {
+                log.error("Error subscribing to discovery topic", e)
+            }
+
+            try {
+                !SubscriptionApi.subscribeToTopics()
+            } catch (e: Throwable) {
+                log.error("Subscription error", e)
+            }
 
         }
 }

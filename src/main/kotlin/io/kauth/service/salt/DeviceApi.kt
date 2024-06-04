@@ -1,11 +1,11 @@
-package io.kauth.service.device
+package io.kauth.service.salt
 
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.util.not
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
-import io.kauth.service.device.DeviceService.streamName
+import io.kauth.service.salt.DeviceService.streamName
 import io.kauth.service.organism.OrganismApi
 import io.kauth.service.publisher.Publisher
 import io.kauth.service.publisher.PublisherApi
@@ -34,6 +34,7 @@ object DeviceApi {
         organismId: UUID,
         seriesNumber: String,
         ports: List<String>,
+        topics: Device.Topics
     ) = AppStack.Do {
 
         val jwt = !authStackJwt
@@ -55,7 +56,8 @@ object DeviceApi {
                     seriesNumber = seriesNumber,
                     ports = ports,
                     createdBy = jwt.payload.id,
-                    createdAt = Clock.System.now()
+                    createdAt = Clock.System.now(),
+                    topics = topics
                 ),
             )
 

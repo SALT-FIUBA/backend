@@ -1,4 +1,4 @@
-package io.kauth.service.device
+package io.kauth.service.salt
 
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
@@ -20,7 +20,8 @@ object DeviceApiRest {
         @Serializable(UUIDSerializer::class)
         val organismId: UUID,
         val seriesNumber: String,
-        val ports: List<String>
+        val ports: List<String>,
+        val topics: Device.Topics
     )
 
     @Serializable
@@ -45,7 +46,8 @@ object DeviceApiRest {
                     val result = !DeviceApi.create(
                         command.organismId,
                         command.seriesNumber,
-                        command.ports
+                        command.ports,
+                        command.topics
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }

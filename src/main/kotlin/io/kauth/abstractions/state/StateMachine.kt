@@ -4,7 +4,10 @@ import io.kauth.monad.state.StateMonad
 import io.kauth.monad.state.StateMonad.Companion.StateMonadContext
 import kotlin.experimental.ExperimentalTypeInference
 
+
 typealias StateMachine<C,S,E,O> = (command: C) -> StateMonad<S?, E, O>
+
+typealias EventStoreStateMachine<S,E,O> = StateMachine<E,S,E,O>
 
 fun <C,S,E,O> StateMachine<C,S,E,O>.runMany(commands: List<C>, initial: S?) =
     commands.fold(Pair(initial, emptyList<E>())) { prev, command ->

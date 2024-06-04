@@ -1,4 +1,4 @@
-package io.kauth.service.device
+package io.kauth.service.salt
 
 import io.kauth.monad.state.StateMonad
 import io.kauth.abstractions.result.Failure
@@ -14,6 +14,48 @@ import java.util.UUID
 
 object Device {
 
+    object Mqtt {
+        @Serializable
+        data class SaltConfig(
+            val velCtOn: Double?,
+            val velCtOff: Double?,
+            val velFeOn: Double?,
+            val velFeHold: Double?,
+            val timeBlinkEnable: Boolean?,
+            val timeBlinkDisable: Boolean?,
+            val blinkPeriod: Boolean?
+        )
+
+        @Serializable
+        enum class SaltAction {
+            SALT_CMD_ORDER_STOP,
+            SALT_CMD_ORDER_DRIFT,
+            SALT_CMD_ORDER_ISOLATED,
+            SALT_CMD_ORDER_AUTOMATIC,
+            SALT_CMD_ORDER_COUNT
+        }
+
+        @Serializable
+        data class SaltCmd(
+            val action: SaltAction?,
+            val config: SaltConfig?
+        )
+
+        @Serializable
+        data class SaltState(
+            val config: SaltConfig,
+            val currentAction: SaltAction,
+            val speed: Double
+        )
+    }
+
+    @Serializable
+    data class Topics(
+        val state: String,
+        val command: String,
+        val status: String
+    )
+
     @Serializable
     data class State(
         @Contextual
@@ -23,6 +65,7 @@ object Device {
         val status: String?,
         val createdBy: String,
         val createdAt: Instant,
+        val topics: Topics? = null
     )
 
     @Serializable
@@ -35,7 +78,8 @@ object Device {
             val seriesNumber: String,
             val ports: List<String>,
             val createdBy: String,
-            val createdAt: Instant
+            val createdAt: Instant,
+            val topics: Topics? = null
         ): Command
 
         @Serializable
@@ -67,7 +111,8 @@ object Device {
                 seriesNumber = device.seriesNumber,
                 ports = device.ports,
                 createdBy = device.createdBy,
-                createdAt = device.createdAt
+                createdAt = device.createdAt,
+                topics = device.topics
             )
             is Event.StatusSet -> Command.SetStatus(
                 status = status
@@ -110,7 +155,8 @@ object Device {
                         ports = command.ports,
                         status = null,
                         createdBy = command.createdBy,
-                        createdAt = command.createdAt
+                        createdAt = command.createdAt,
+                        topics = command.topics
                     )
 
                 !setState(data)

@@ -1,14 +1,10 @@
-package io.kauth.service.device
+package io.kauth.service.salt
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
-import kotlinx.datetime.Instant
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import java.util.*
 

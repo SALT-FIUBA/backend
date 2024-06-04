@@ -1,0 +1,68 @@
+package io.kauth.service.mqtt.subscription
+
+import io.kauth.abstractions.command.CommandHandler
+import io.kauth.abstractions.result.Output
+import io.kauth.client.eventStore.EventStoreClient
+import io.kauth.client.eventStore.commandHandler
+import io.kauth.client.eventStore.computeStateResult
+import io.kauth.client.eventStore.stream
+import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.getService
+import io.kauth.monad.stack.registerService
+import io.kauth.service.AppService
+import io.kauth.util.Async
+
+object SubscriptionService : AppService {
+
+    val STREAM_NAME = "subscription"
+    val STREAM_PREFIX = "$STREAM_NAME-"
+    val SNAPSHOT_STREAM_PREFIX = "subscription_snapshot-"
+    val streamName get() = STREAM_PREFIX + "unit"
+    val snapshotName get() = SNAPSHOT_STREAM_PREFIX + "unit"
+
+    data class Command(
+        val handle: () -> CommandHandler<Subscription.Event, Output>
+    )
+
+    data class Query(
+        val readState: () -> Async<Subscription.State?>
+    )
+
+    data class Interface(
+        val command: Command,
+        val query: Query,
+    )
+
+    override val start =
+        AppStack.Do {
+
+            val client = !getService<EventStoreClient>()
+
+            val commands = Command(
+                handle = {
+                    stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
+                        .commandHandler(Subscription::stateMachine) { it }
+                }
+            )
+
+            val query = Query(
+                readState = {
+                    stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
+                        .computeStateResult(Subscription::stateMachine) { it }
+                }
+            )
+
+            !registerService(
+                Interface(
+                    query = query,
+                    command = commands,
+                )
+            )
+
+            !SubscriptionEventHandler.subscriptionHandler
+
+            !SubscriptionProjection.sqlEventHandler
+
+        }
+
+}

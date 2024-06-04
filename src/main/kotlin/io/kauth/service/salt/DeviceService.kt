@@ -1,4 +1,4 @@
-package io.kauth.service.device
+package io.kauth.service.salt
 
 import io.kauth.abstractions.command.CommandHandler
 import io.kauth.client.eventStore.EventStoreClient
@@ -8,7 +8,7 @@ import io.kauth.client.eventStore.stream
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
-import io.kauth.service.device.Device.asCommand
+import io.kauth.service.salt.Device.asCommand
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.stack.AppStack
@@ -61,8 +61,9 @@ object DeviceService : AppService {
                 )
             )
 
-            //!DeviceEventHandler.eventHandler
             !DeviceProjection.sqlEventHandler
+
+            !DeviceEventHandler.deviceTopicSubscriptionHandler
 
             !DeviceApiRest.api
 

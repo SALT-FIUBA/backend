@@ -1,14 +1,11 @@
 package io.kauth
 
-import ch.qos.logback.classic.Logger
 import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
 import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
-import io.kauth.serializer.UUIDSerializer
-import io.kauth.serializer.UnitSerializer
 import io.kauth.service.auth.AuthService
-import io.kauth.service.device.DeviceService
+import io.kauth.service.salt.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.organism.OrganismService
 import io.kauth.service.ping.PingService
@@ -29,7 +26,6 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.*
 import io.micrometer.core.instrument.binder.jvm.ClassLoaderMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmGcMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
@@ -39,14 +35,6 @@ import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.core.instrument.binder.system.UptimeMetrics
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.contextual
 
 val runServices get() =
     runServices(

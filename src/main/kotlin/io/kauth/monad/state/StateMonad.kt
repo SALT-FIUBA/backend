@@ -2,6 +2,7 @@ package io.kauth.monad.state
 
 import kotlin.experimental.ExperimentalTypeInference
 
+
 /*
 StateMonad
     - S: State
