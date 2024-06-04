@@ -19,14 +19,17 @@ object DeviceApi {
         deviceId: UUID,
         messageId: UUID,
         message: String,
-        topic: String
     ) = AppStack.Do {
+
+        val state = !readState(deviceId) ?: return@Do
+
         !PublisherApi.publish(
             messageId = messageId,
             message = message,
             resource = deviceId.streamName,
-            channel = Publisher.Channel.Mqtt(topic)
+            channel = Publisher.Channel.Mqtt(state.topics?.command ?: error("No command topic"))
         )
+
         messageId
     }
 

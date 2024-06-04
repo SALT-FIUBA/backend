@@ -31,7 +31,6 @@ object DeviceApiRest {
         @Serializable(UUIDSerializer::class)
         val messageId: UUID,
         val message: String,
-        val topic: String
     )
 
     val api = AppStack.Do {
@@ -59,7 +58,6 @@ object DeviceApiRest {
                         command.deviceId,
                         command.messageId,
                         command.message,
-                        command.topic
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }
