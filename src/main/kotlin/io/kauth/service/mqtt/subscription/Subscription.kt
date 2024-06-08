@@ -9,8 +9,8 @@ import mqtt.Subscription
 import mqtt.packets.Qos
 import mqtt.packets.mqttv5.SubscriptionOptions
 
-//TODO esto tambien te sirve de RELACION TOPIC-RESOURCE
-//PENSAR BIEN COMO HACER PARA OBTENER TODOS
+//TIENE SENTIDO MANTENER ESTO ?
+//No puedo computar el estado de la lista te topics a travez del stream ce?
 object Subscription {
 
     @Serializable
@@ -19,9 +19,6 @@ object Subscription {
         val resource: String
     )
 
-    //TODO pensar si esta bien tener una lista o mejor tener
-    //el nombre del topic en la key
-    //Aca neceisto un resource ? created by ? etc
     @Serializable
     data class State(
         val data: List<SubsData>
@@ -60,13 +57,19 @@ object Subscription {
         Ok
     }
 
+    fun handleRemove(
+        command: Event.Remove
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        val state = !getState ?: !exit(Failure("No topics to remove"))
+        !setState(state.copy(data = state.data.filter { it.topic != command.topic }))
+        !emitEvents(command)
+        Ok
+    }
+
     fun handleSubscribe(
         command: Event.Subscribe
     ) = StateMonad.Do<State?, Event, Output> { exit ->
-        val state = !getState ?: State(emptyList())
-        if (state.data.isEmpty()) {
-            !exit(Failure("No topics to subscribe"))
-        }
+        !getState ?: !exit(Failure("No topics to subscribe"))
         !emitEvents(command)
         Ok
     }
@@ -76,7 +79,7 @@ object Subscription {
     ) = when (command) {
         is Event.Add -> handleAdd(command)
         is Event.Subscribe -> handleSubscribe(command)
-        else -> TODO("Not implemented")
+        is Event.Remove -> handleRemove(command)
     }
 
 }

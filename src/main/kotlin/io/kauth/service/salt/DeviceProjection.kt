@@ -19,6 +19,9 @@ object DeviceProjection {
         val status = text("status").nullable()
         val createdBy = text("created_by")
         val createdAt = timestamp("created_at")
+        val command_topic = text("command_topic").nullable()
+        val status_topic = text("status_topic").nullable()
+        val state_topic = text("state_topic").nullable()
     }
 
     val sqlEventHandler = appStackSqlProjector<Device.Event>(
@@ -38,6 +41,9 @@ object DeviceProjection {
                     it[status] = state.status
                     it[createdBy] = state.createdBy
                     it[createdAt] = state.createdAt
+                    it[command_topic] = state.topics?.command
+                    it[status_topic] = state.topics?.status
+                    it[state_topic] = state.topics?.state
                 }
             }
         }

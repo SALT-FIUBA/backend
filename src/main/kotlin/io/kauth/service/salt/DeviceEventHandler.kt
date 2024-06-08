@@ -2,8 +2,8 @@ package io.kauth.service.salt
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackEventHandler
+import io.kauth.monad.stack.sequential
 import io.kauth.service.mqtt.MqttConnectorService
-import io.kauth.service.mqtt.subscription.Subscription
 import io.kauth.service.mqtt.subscription.SubscriptionApi
 
 object DeviceEventHandler {
@@ -19,7 +19,12 @@ object DeviceEventHandler {
 
             val subscriptionData = !SubscriptionApi.readState(topic) ?: return@Do
 
+            //que pasa si no existe el device ? lo podemos mandar al servicio de discovery
+            //necesitamos un servicio de discovery cq apriori no sabemos el organism del device
+            //un administardor deberia asignarle uno y asi crearlo...
+
             //subscriptionData.resource --> Aca deberiamos tener el device-id
+
             //setear el SaltState
 
         }
@@ -33,10 +38,9 @@ object DeviceEventHandler {
             when(event.value) {
                 is Device.Event.Created -> {
                     val data = event.value.device.topics
-                    !SubscriptionApi.subscribe(
-                        listOfNotNull(data?.status, data?.command, data?.state)
-                            .map { Subscription.SubsData(topic = it, resource = event.streamName) }
-                    )
+                    !listOfNotNull(data?.status, data?.command, data?.state)
+                        .map { SubscriptionApi.subscribeToTopic(it, event.streamName) }
+                        .sequential()
                 }
                 else -> {}
             }

@@ -1,8 +1,6 @@
 package io.kauth.service.mqtt
 
 import MQTTClient
-import io.kauth.abstractions.state.Var
-import io.kauth.abstractions.state.varNew
 import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.append
 import io.kauth.client.eventStore.model.StreamRevision
@@ -13,21 +11,13 @@ import io.kauth.service.AppService
 import io.kauth.service.mqtt.subscription.SubscriptionApi
 import io.kauth.service.mqtt.subscription.SubscriptionService
 import io.kauth.util.Async
-import io.kauth.util.IO
 import io.kauth.util.io
 import io.kauth.util.not
-import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
 import mqtt.MQTTVersion
-import mqtt.Subscription
-import mqtt.packets.Qos
 import mqtt.packets.mqtt.MQTTPublish
-import mqtt.packets.mqttv5.ReasonCode
-import mqtt.packets.mqttv5.SubscriptionOptions
 import java.util.*
-import io.kauth.service.mqtt.subscription.Subscription.SubsData
 
 object MqttConnectorService : AppService {
 
@@ -47,6 +37,7 @@ object MqttConnectorService : AppService {
         val mqtt: MqttRequester,
     )
 
+    @OptIn(ExperimentalUnsignedTypes::class)
     val getConfig = AppStack.Do {
         Config(
             brokerAddress = "localhost",
@@ -82,6 +73,7 @@ object MqttConnectorService : AppService {
         ) { message -> !onPublish(message).io }
     }
 
+    @OptIn(ExperimentalUnsignedTypes::class)
     override val start =
         AppStack.Do {
 
@@ -123,18 +115,23 @@ object MqttConnectorService : AppService {
                 )
             )
 
+            !MqttConnectorApiRest.api
+
             !SubscriptionService.start
 
             try {
-                !SubscriptionApi.subscribe(listOf(SubsData(topic = "discovery/+/config", resource = "MqttService"))) // -> For discovery
+                val subscription = !SubscriptionApi.readState("discovery/+/config")
+                if(subscription == null) {
+                    !SubscriptionApi.subscribeToTopic(topic = "discovery/+/config", resource = "MqttService") // -> For discovery
+                }
             } catch (e: Throwable) {
-                log.error("Error subscribing to discovery topic", e)
+                log.debug("Error subscribing to discovery topic", e)
             }
 
             try {
-                !SubscriptionApi.subscribeToTopics()
+                !SubscriptionApi.subscribeToAllTopics()
             } catch (e: Throwable) {
-                log.error("Subscription error", e)
+                log.debug("Subscription error", e)
             }
 
         }

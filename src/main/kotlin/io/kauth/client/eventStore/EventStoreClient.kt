@@ -180,7 +180,7 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
                         )
                         sub.ack(event)
                     } catch (e: SerializationException) {
-                        println("[Serialization error: ${retryCount} ${subscription.subscriptionId}] ${e.message} ${e.localizedMessage}")
+                        println("[Serialization error: ${retryCount} ${subscription.subscriptionId} ${recordedEvent.eventId}] ${e.message} ${e.localizedMessage}")
                         sub.nack(NackAction.Skip, e.stackTraceToString(), event)
                     } catch (e: Throwable) {
                         println("[EVENT HANDLER ERROR: ${retryCount} ${subscription.subscriptionId}] ${e.message} ${e.localizedMessage}")

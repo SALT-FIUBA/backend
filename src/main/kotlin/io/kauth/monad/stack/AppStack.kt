@@ -14,6 +14,7 @@ import io.kauth.util.not
 import io.ktor.server.application.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
@@ -22,8 +23,6 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
-import java.util.*
 import kotlin.reflect.KClass
 
 data class AppStack<T>(
@@ -47,6 +46,17 @@ data class AppStack<T>(
     }
 }
 
+fun <T> List<AppStack<T>>.sequential(): AppStack<List<T>> =
+    AppStack.Do {
+        this@sequential.map { !it }
+    }
+
+fun <T> List<AppStack<T>>.parallel(): AppStack<List<T>> =
+    AppStack.Do {
+        this@parallel
+            .map { async { !it } }
+            .map { it.await() }
+    }
 
 fun <T : Any> registerService(service: T) =
     AppStack.Do {

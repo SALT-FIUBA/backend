@@ -14,18 +14,26 @@ import io.kauth.util.Async
 
 object SubscriptionService : AppService {
 
+    //LIST OF TOPICS
     val STREAM_NAME = "subscription"
     val STREAM_PREFIX = "$STREAM_NAME-"
     val SNAPSHOT_STREAM_PREFIX = "subscription_snapshot-"
     val streamName get() = STREAM_PREFIX + "unit"
     val snapshotName get() = SNAPSHOT_STREAM_PREFIX + "unit"
 
+    //INDIVIDUAL TOPIC
+    val TOPIC_STREAM_NAME = "subscription_topic"
+    val TOPIC_STREAM_PREFIX = "$TOPIC_STREAM_NAME-"
+    val String.topicStreamName get() = TOPIC_STREAM_PREFIX + this
+
     data class Command(
-        val handle: () -> CommandHandler<Subscription.Event, Output>
+        val handle: () -> CommandHandler<Subscription.Event, Output>,
+        val handleTopic: (topic: String) -> CommandHandler<SubscriptionTopic.Event, Output>
     )
 
     data class Query(
-        val readState: () -> Async<Subscription.State?>
+        val readState: () -> Async<Subscription.State?>,
+        val readStateTopic: (topic: String) -> Async<SubscriptionTopic.State?>
     )
 
     data class Interface(
@@ -42,6 +50,10 @@ object SubscriptionService : AppService {
                 handle = {
                     stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
                         .commandHandler(Subscription::stateMachine) { it }
+                },
+                handleTopic = { id ->
+                    stream<SubscriptionTopic.Event, SubscriptionTopic.State>(client, id.topicStreamName)
+                        .commandHandler(SubscriptionTopic::stateMachine) { it }
                 }
             )
 
@@ -49,6 +61,10 @@ object SubscriptionService : AppService {
                 readState = {
                     stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
                         .computeStateResult(Subscription::stateMachine) { it }
+                },
+                readStateTopic = { id ->
+                    stream<SubscriptionTopic.Event, SubscriptionTopic.State>(client, id.topicStreamName)
+                        .computeStateResult(SubscriptionTopic::stateMachine) { it }
                 }
             )
 
@@ -61,7 +77,11 @@ object SubscriptionService : AppService {
 
             !SubscriptionEventHandler.subscriptionHandler
 
+            !SubscriptionEventHandler.topicListSubscription
+
             !SubscriptionProjection.sqlEventHandler
+
+            !SubscriptionApiRest.api
 
         }
 

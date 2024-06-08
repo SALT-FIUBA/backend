@@ -2,11 +2,18 @@ package io.kauth.service.mqtt.subscription
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
+import io.kauth.monad.stack.appStackEventHandler
 import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.service.mqtt.subscription.SubscriptionService.STREAM_NAME
+import io.kauth.service.mqtt.subscription.SubscriptionService.TOPIC_STREAM_NAME
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.deleteWhere
+import org.jetbrains.exposed.sql.json.json
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.upsert
-import java.util.*
 
 
 object SubscriptionProjection {
@@ -15,31 +22,35 @@ object SubscriptionProjection {
         val topic = text("topic").uniqueIndex()
         val resource = text("resource")
         val createdAt = timestamp("created_at")
+        val lastSubscriberAt = timestamp("last_subscribed_at").nullable()
     }
 
-    val sqlEventHandler = appStackSqlProjector<Subscription.Event>(
-        streamName = "\$ce-${SubscriptionService.STREAM_NAME}",
-        consumerGroup = "subscription-sql-projection-consumer",
+    val sqlEventHandler = appStackSqlProjector<SubscriptionTopic.Event>(
+        streamName = "\$ce-${TOPIC_STREAM_NAME}",
+        consumerGroup = "subscription-topic-sql-projection-consumer",
         tables = listOf(MqttSubscriptions)
     ) { event ->
         AppStack.Do {
-            when(event.value) {
-                is Subscription.Event.Add -> {
-                    !appStackDbQuery {
-                        event.value.data.forEach { data ->
-                            MqttSubscriptions.upsert() {
-                                it[topic] = data.topic
-                                it[createdAt] = event.metadata.timestamp
-                                it[resource] = data.resource
-                            }
-                        }
+            !appStackDbQuery {
+                val mqttTopic = event.retrieveId(TOPIC_STREAM_NAME) ?: return@appStackDbQuery
+                val state = !SubscriptionApi.readState(mqttTopic)
+
+                if(state == null) {
+                    MqttSubscriptions.deleteWhere() {
+                        topic.eq(mqttTopic)
+                    }
+                } else {
+                    MqttSubscriptions.upsert() {
+                        it[topic] = mqttTopic
+                        //TODO@Mati: CreatedAt
+                        it[createdAt] = state.createdAt ?: event.metadata.timestamp
+                        it[resource] = state.resource
+                        it[lastSubscriberAt] = state.lastSubscribedAt
                     }
                 }
-                else -> {
 
-                }
+
             }
-
         }
     }
 

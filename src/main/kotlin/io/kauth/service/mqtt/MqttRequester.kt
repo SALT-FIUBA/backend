@@ -7,6 +7,8 @@ import io.kauth.service.mqtt.MqttConnectorService.MqttData
 import io.kauth.util.Async
 import io.kauth.util.not
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import mqtt.Subscription
@@ -33,9 +35,13 @@ data class MqttRequester(
     val coroutineScope: CoroutineScope
 ): CoroutineScope by coroutineScope {
 
+    val mutex = Mutex()
     val job: Var<Job?> = !varNew<Job?>(null)
     val mqtt: Var<MQTTClient?> = !varNew<MQTTClient?>(null)
     private val subscriptions: Var<List<Subscription>> = !varNew<List<Subscription>>(emptyList())
+
+    val getSubscriptions get() =
+        subscriptions.get
 
     fun connect() = Async {
         !mqtt.set(!initMqtt)
@@ -67,15 +73,30 @@ data class MqttRequester(
     }
 
     fun subscribe(subs: List<Subscription>) = Async {
-        val client = mqtt.get() ?: error("Not connected")
-        val actualSubs = !subscriptions.get
-        val filteredSubs = subs.filter { it !in actualSubs }
-        if (filteredSubs.isEmpty()) {
-            println("ERROR: subscribe empty")
-            return@Async
+        mutex.withLock {
+            val client = mqtt.get() ?: error("Not connected")
+            val actualSubs = !subscriptions.get
+            val filteredSubs = subs.filter { it !in actualSubs }
+            if (filteredSubs.isEmpty()) {
+                return@Async emptyList()
+            }
+            !subscriptions.set(!subscriptions.get + filteredSubs)
+            client.subscribe(filteredSubs)
+            filteredSubs.map { it.topicFilter }
         }
-        !subscriptions.set(!subscriptions.get + filteredSubs)
-        client.subscribe(filteredSubs)
+    }
+
+    fun unsubscribe(subs: List<String>) = Async {
+        mutex.withLock {
+            val client = mqtt.get() ?: error("Not connected")
+            val actualSubs = (!subscriptions.get).map { it.topicFilter }
+            val filteredSubs = subs.filter { it in actualSubs }
+            if (filteredSubs.isEmpty()) {
+                return@Async
+            }
+            !subscriptions.set((!subscriptions.get).filter { it.topicFilter !in filteredSubs })
+            client.unsubscribe(filteredSubs)
+        }
     }
 
     @OptIn(ExperimentalUnsignedTypes::class)
