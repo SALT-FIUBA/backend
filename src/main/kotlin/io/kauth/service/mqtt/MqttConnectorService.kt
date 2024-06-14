@@ -1,6 +1,5 @@
 package io.kauth.service.mqtt
 
-import MQTTClient
 import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.append
 import io.kauth.client.eventStore.model.StreamRevision
@@ -11,13 +10,9 @@ import io.kauth.service.AppService
 import io.kauth.service.mqtt.subscription.SubscriptionApi
 import io.kauth.service.mqtt.subscription.SubscriptionService
 import io.kauth.util.Async
-import io.kauth.util.io
 import io.kauth.util.not
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
-import mqtt.MQTTVersion
-import mqtt.packets.mqtt.MQTTPublish
-import socket.tls.TLSClientSettings
 import java.util.*
 
 
@@ -32,14 +27,9 @@ object MqttConnectorService : AppService {
     )
 
     @Serializable
-    data class MqttMessage(
-        val message: JsonElement
+    data class MqttMessage<out T>(
+        val message: T
     )
-
-    enum class StatusEvent {
-        OFFLINE,
-        ONLINE
-    }
 
     data class Interface(
         val mqtt: MqttRequesterHiveMQ,
@@ -63,7 +53,6 @@ object MqttConnectorService : AppService {
         val password: String
     )
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     override val start =
         AppStack.Do {
 
@@ -72,7 +61,7 @@ object MqttConnectorService : AppService {
             val config = !getConfig
             val client = !getService<EventStoreClient>()
 
-            val mqtt = !mqttRequesteHiveMQNew(
+            val mqtt = !mqttRequesterHiveMQNew(
                 config.username,
                 config.password,
                 config.brokerAddress,
@@ -86,10 +75,8 @@ object MqttConnectorService : AppService {
                         val data = message.payloadAsBytes
                             .decodeToString()
                             .let { value -> json.decodeFromString<JsonElement>(value) }
-
-                        !stream<MqttMessage>(client, "mqtt-${topicName}")
+                        !stream<MqttMessage<JsonElement>>(client, "mqtt-${topicName}")
                             .append(MqttMessage(data), StreamRevision.AnyRevision)
-
                     } catch (e: Throwable) {
                         log.error("MQTT subscription loop error", e)
                     }

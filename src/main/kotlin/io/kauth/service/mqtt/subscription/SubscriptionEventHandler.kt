@@ -58,7 +58,7 @@ object SubscriptionEventHandler {
                         .sequential()
                 }
                 is Subscription.Event.Remove -> {
-                    //!mqtt.mqtt.unsubscribe(listOf(event.value.topic))
+                    !mqtt.mqtt.unsubscribe(event.value.topic)
                 }
             }
         }

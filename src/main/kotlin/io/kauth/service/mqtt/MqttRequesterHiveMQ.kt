@@ -1,6 +1,5 @@
 package io.kauth.service.mqtt
 
-import MQTTClient
 import com.hivemq.client.mqtt.MqttClient
 import com.hivemq.client.mqtt.MqttGlobalPublishFilter
 import com.hivemq.client.mqtt.datatypes.MqttQos
@@ -14,19 +13,11 @@ import io.kauth.util.io
 import io.kauth.util.not
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.*
-import mqtt.Subscription
-import mqtt.packets.Qos
-import mqtt.packets.mqttv5.MQTT5Publish
-import mqtt.packets.mqttv5.MQTT5Subscribe
-import mqtt.packets.mqttv5.ReasonCode
-import sun.security.util.Password
 import java.util.*
 
-fun mqttRequesteHiveMQNew(
+fun mqttRequesterHiveMQNew(
     username: String,
     password: String,
     serverHost: String,
@@ -78,6 +69,14 @@ data class MqttRequesterHiveMQ(
 
     val disconnect get() = Async {
         client.disconnect().await()
+    }
+
+    fun unsubscribe(topic: String) = Async {
+        client.unsubscribeWith()
+            .topicFilter(topic)
+            .send()
+            .await()
+        !subscriptions.set(!subscriptions.get - topic)
     }
 
     fun subscribe(subs: List<String>) = Async {

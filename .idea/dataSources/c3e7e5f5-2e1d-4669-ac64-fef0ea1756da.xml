@@ -3,17 +3,9 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.52">
     <root id="1">
       <DateStyle>mdy</DateStyle>
-      <Grants>1||-9223372036854775808|c|G
-1||10|c|G
-1||10|C|G
-1||10|T|G
-13822||-9223372036854775808|c|G
-13822||10|c|G
-13822||10|C|G
-13822||10|T|G</Grants>
-      <IntrospectionStateNumber>4885</IntrospectionStateNumber>
+      <IntrospectionStateNumber>6099</IntrospectionStateNumber>
       <ServerVersion>14.11</ServerVersion>
-      <StartupTime>1717942181</StartupTime>
+      <StartupTime>1718325959</StartupTime>
       <TimeZones>true ACDT
 true ACSST
 false ACST
@@ -810,7 +802,7 @@ true posixrules
 13457||10|C|G
 13457||-9223372036854775808|U|G
 13457||10|U|G</Grants>
-      <IntrospectionStateNumber>4885</IntrospectionStateNumber>
+      <IntrospectionStateNumber>6099</IntrospectionStateNumber>
       <ObjectId>16384</ObjectId>
       <OwnerName>salt</OwnerName>
     </database>
@@ -4240,8 +4232,8 @@ true posixrules
     <schema id="262" parent="2" name="public">
       <Comment>standard public schema</Comment>
       <Current>1</Current>
-      <IntrospectionStateNumber>4885</IntrospectionStateNumber>
-      <LastIntrospectionLocalTimestamp>2024-06-09.14:27:29</LastIntrospectionLocalTimestamp>
+      <IntrospectionStateNumber>6099</IntrospectionStateNumber>
+      <LastIntrospectionLocalTimestamp>2024-06-14.02:55:03</LastIntrospectionLocalTimestamp>
       <ObjectId>2200</ObjectId>
       <StateNumber>527</StateNumber>
       <OwnerName>salt</OwnerName>
@@ -4253,8 +4245,8 @@ true posixrules
       <OwnerName>salt</OwnerName>
     </table>
     <table id="264" parent="262" name="mqtt_messages">
-      <ObjectId>16451</ObjectId>
-      <StateNumber>1111</StateNumber>
+      <ObjectId>16520</ObjectId>
+      <StateNumber>6002</StateNumber>
       <AccessMethodId>2</AccessMethodId>
       <OwnerName>salt</OwnerName>
     </table>
@@ -4367,66 +4359,73 @@ true posixrules
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
-      <StateNumber>1111</StateNumber>
+      <StateNumber>6002</StateNumber>
       <TypeId>25</TypeId>
     </column>
     <column id="282" parent="264" name="data">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
-      <StateNumber>1111</StateNumber>
+      <StateNumber>6002</StateNumber>
       <TypeId>25</TypeId>
     </column>
     <column id="283" parent="264" name="topic">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
-      <StateNumber>1111</StateNumber>
+      <StateNumber>6002</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <index id="284" parent="264" name="mqtt_messages_id_unique">
+    <column id="284" parent="264" name="timestamp">
+      <DasType>timestamp|0s</DasType>
+      <NotNull>1</NotNull>
+      <Position>4</Position>
+      <StateNumber>6002</StateNumber>
+      <TypeId>1114</TypeId>
+    </column>
+    <index id="285" parent="264" name="mqtt_messages_id_unique">
       <ColNames>id</ColNames>
-      <ObjectId>16456</ObjectId>
-      <StateNumber>1111</StateNumber>
+      <ObjectId>16525</ObjectId>
+      <StateNumber>6002</StateNumber>
       <Unique>1</Unique>
       <AccessMethodId>403</AccessMethodId>
       <CollationNames>default</CollationNames>
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="285" parent="264" name="mqtt_messages_id_unique">
-      <ObjectId>16457</ObjectId>
-      <StateNumber>1111</StateNumber>
-      <UnderlyingIndexId>16456</UnderlyingIndexId>
+    <key id="286" parent="264" name="mqtt_messages_id_unique">
+      <ObjectId>16526</ObjectId>
+      <StateNumber>6002</StateNumber>
+      <UnderlyingIndexId>16525</UnderlyingIndexId>
     </key>
-    <column id="286" parent="265" name="topic">
+    <column id="287" parent="265" name="topic">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StateNumber>2659</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="287" parent="265" name="resource">
+    <column id="288" parent="265" name="resource">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>2659</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="288" parent="265" name="created_at">
+    <column id="289" parent="265" name="created_at">
       <DasType>timestamp|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>2659</StateNumber>
       <TypeId>1114</TypeId>
     </column>
-    <column id="289" parent="265" name="last_subscribed_at">
+    <column id="290" parent="265" name="last_subscribed_at">
       <DasType>timestamp|0s</DasType>
       <Position>4</Position>
       <StateNumber>2659</StateNumber>
       <TypeId>1114</TypeId>
     </column>
-    <index id="290" parent="265" name="mqtt_subscriptions_topic_unique">
+    <index id="291" parent="265" name="mqtt_subscriptions_topic_unique">
       <ColNames>topic</ColNames>
       <ObjectId>16510</ObjectId>
       <StateNumber>2659</StateNumber>
@@ -4436,54 +4435,54 @@ true posixrules
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="291" parent="265" name="mqtt_subscriptions_topic_unique">
+    <key id="292" parent="265" name="mqtt_subscriptions_topic_unique">
       <ObjectId>16511</ObjectId>
       <StateNumber>2659</StateNumber>
       <UnderlyingIndexId>16510</UnderlyingIndexId>
     </key>
-    <column id="292" parent="266" name="id">
+    <column id="293" parent="266" name="id">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StateNumber>1150</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="293" parent="266" name="name">
+    <column id="294" parent="266" name="name">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>1150</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="294" parent="266" name="tag">
+    <column id="295" parent="266" name="tag">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>1150</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="295" parent="266" name="description">
+    <column id="296" parent="266" name="description">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>1150</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="296" parent="266" name="created_by">
+    <column id="297" parent="266" name="created_by">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>1150</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="297" parent="266" name="created_at">
+    <column id="298" parent="266" name="created_at">
       <DasType>timestamp|0s</DasType>
       <NotNull>1</NotNull>
       <Position>6</Position>
       <StateNumber>1150</StateNumber>
       <TypeId>1114</TypeId>
     </column>
-    <index id="298" parent="266" name="organims_id_unique">
+    <index id="299" parent="266" name="organims_id_unique">
       <ColNames>id</ColNames>
       <ObjectId>16471</ObjectId>
       <StateNumber>1150</StateNumber>
@@ -4493,58 +4492,58 @@ true posixrules
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="299" parent="266" name="organims_id_unique">
+    <key id="300" parent="266" name="organims_id_unique">
       <ObjectId>16472</ObjectId>
       <StateNumber>1150</StateNumber>
       <UnderlyingIndexId>16471</UnderlyingIndexId>
     </key>
-    <column id="300" parent="267" name="id">
+    <column id="301" parent="267" name="id">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StateNumber>935</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="301" parent="267" name="message">
+    <column id="302" parent="267" name="message">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>935</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="302" parent="267" name="resource">
+    <column id="303" parent="267" name="resource">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>935</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="303" parent="267" name="channel">
+    <column id="304" parent="267" name="channel">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>935</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="304" parent="267" name="mqtt_topic">
+    <column id="305" parent="267" name="mqtt_topic">
       <DasType>text|0s</DasType>
       <Position>5</Position>
       <StateNumber>935</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="305" parent="267" name="result_success">
+    <column id="306" parent="267" name="result_success">
       <DasType>text|0s</DasType>
       <Position>6</Position>
       <StateNumber>935</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="306" parent="267" name="result_error">
+    <column id="307" parent="267" name="result_error">
       <DasType>text|0s</DasType>
       <Position>7</Position>
       <StateNumber>935</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <index id="307" parent="267" name="publisher_id_unique">
+    <index id="308" parent="267" name="publisher_id_unique">
       <ColNames>id</ColNames>
       <ObjectId>16430</ObjectId>
       <StateNumber>935</StateNumber>
@@ -4554,47 +4553,47 @@ true posixrules
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="308" parent="267" name="publisher_id_unique">
+    <key id="309" parent="267" name="publisher_id_unique">
       <ObjectId>16431</ObjectId>
       <StateNumber>935</StateNumber>
       <UnderlyingIndexId>16430</UnderlyingIndexId>
     </key>
-    <column id="309" parent="268" name="id">
+    <column id="310" parent="268" name="id">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>1</Position>
       <StateNumber>1102</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="310" parent="268" name="firstname">
+    <column id="311" parent="268" name="firstname">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>2</Position>
       <StateNumber>1102</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="311" parent="268" name="lastname">
+    <column id="312" parent="268" name="lastname">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>3</Position>
       <StateNumber>1102</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="312" parent="268" name="email">
+    <column id="313" parent="268" name="email">
       <DasType>text|0s</DasType>
       <NotNull>1</NotNull>
       <Position>4</Position>
       <StateNumber>1102</StateNumber>
       <TypeId>25</TypeId>
     </column>
-    <column id="313" parent="268" name="roles">
+    <column id="314" parent="268" name="roles">
       <DasType>text[]|0s</DasType>
       <NotNull>1</NotNull>
       <Position>5</Position>
       <StateNumber>1102</StateNumber>
       <TypeId>1009</TypeId>
     </column>
-    <index id="314" parent="268" name="users_id_unique">
+    <index id="315" parent="268" name="users_id_unique">
       <ColNames>id</ColNames>
       <ObjectId>16444</ObjectId>
       <StateNumber>1102</StateNumber>
@@ -4604,7 +4603,7 @@ true posixrules
       <CollationIds>100</CollationIds>
       <CollationParentNames>pg_catalog</CollationParentNames>
     </index>
-    <key id="315" parent="268" name="users_id_unique">
+    <key id="316" parent="268" name="users_id_unique">
       <ObjectId>16445</ObjectId>
       <StateNumber>1102</StateNumber>
       <UnderlyingIndexId>16444</UnderlyingIndexId>
