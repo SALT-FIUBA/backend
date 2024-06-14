@@ -7,6 +7,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.upsert
+import java.util.UUID
 
 object MqttProjection {
 
@@ -16,7 +17,7 @@ object MqttProjection {
         val topic = text("topic")
     }
 
-    val sqlEventHandler = appStackSqlProjector<MqttConnectorService.MqttData<JsonElement>>(
+    val sqlEventHandler = appStackSqlProjector<MqttConnectorService.MqttMessage>(
         streamName = "\$ce-mqtt",
         consumerGroup = "mqtt-data-sql-projection",
         tables = listOf(MqttData)
@@ -24,8 +25,8 @@ object MqttProjection {
         AppStack.Do {
             !appStackDbQuery {
                 MqttData.upsert() {
-                    it[id] = event.value.idempotence.toString()
-                    it[data] = serialization.encodeToString(event.value.data)
+                    it[id] = UUID.randomUUID().toString()
+                    it[data] = serialization.encodeToString(event.value.message)
                     it[topic] = event.streamName
                 }
             }

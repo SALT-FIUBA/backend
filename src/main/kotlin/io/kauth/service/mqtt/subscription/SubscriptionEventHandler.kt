@@ -43,7 +43,7 @@ object SubscriptionEventHandler {
             val mqtt = !getService<MqttConnectorService.Interface>()
             when(event.value) {
                 is Subscription.Event.Add -> {
-                    val subscribedTopics = !mqtt.mqtt.subscribe(event.value.data.map { it.toMqttSubs })
+                    val subscribedTopics = !mqtt.mqtt.subscribe(event.value.data.map { it.toMqttSubs.topicFilter })
                     !event.value.data
                         .filter { it.topic in subscribedTopics }
                         .map { SubscriptionApi.subscribedToTopic(it.topic) }
@@ -51,14 +51,14 @@ object SubscriptionEventHandler {
                 }
                 is Subscription.Event.Subscribe -> {
                     val topics = !SubscriptionApi.readState() ?: return@Do
-                    val subscribedTopics = !mqtt.mqtt.subscribe(topics.data.map { it.toMqttSubs })
+                    val subscribedTopics = !mqtt.mqtt.subscribe(topics.data.map { it.toMqttSubs.topicFilter })
                     !topics.data
                         .filter { it.topic in subscribedTopics }
                         .map { SubscriptionApi.subscribedToTopic(it.topic) }
                         .sequential()
                 }
                 is Subscription.Event.Remove -> {
-                    !mqtt.mqtt.unsubscribe(listOf(event.value.topic))
+                    //!mqtt.mqtt.unsubscribe(listOf(event.value.topic))
                 }
             }
         }

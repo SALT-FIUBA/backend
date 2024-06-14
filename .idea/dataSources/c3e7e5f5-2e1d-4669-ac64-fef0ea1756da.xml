@@ -3,9 +3,17 @@
   <database-model serializer="dbm" dbms="POSTGRES" family-id="POSTGRES" format-version="4.52">
     <root id="1">
       <DateStyle>mdy</DateStyle>
-      <IntrospectionStateNumber>4305</IntrospectionStateNumber>
+      <Grants>1||-9223372036854775808|c|G
+1||10|c|G
+1||10|C|G
+1||10|T|G
+13822||-9223372036854775808|c|G
+13822||10|c|G
+13822||10|C|G
+13822||10|T|G</Grants>
+      <IntrospectionStateNumber>4885</IntrospectionStateNumber>
       <ServerVersion>14.11</ServerVersion>
-      <StartupTime>1717874983</StartupTime>
+      <StartupTime>1717942181</StartupTime>
       <TimeZones>true ACDT
 true ACSST
 false ACST
@@ -802,7 +810,7 @@ true posixrules
 13457||10|C|G
 13457||-9223372036854775808|U|G
 13457||10|U|G</Grants>
-      <IntrospectionStateNumber>4305</IntrospectionStateNumber>
+      <IntrospectionStateNumber>4885</IntrospectionStateNumber>
       <ObjectId>16384</ObjectId>
       <OwnerName>salt</OwnerName>
     </database>
@@ -4232,8 +4240,8 @@ true posixrules
     <schema id="262" parent="2" name="public">
       <Comment>standard public schema</Comment>
       <Current>1</Current>
-      <IntrospectionStateNumber>4305</IntrospectionStateNumber>
-      <LastIntrospectionLocalTimestamp>2024-06-08.20:43:10</LastIntrospectionLocalTimestamp>
+      <IntrospectionStateNumber>4885</IntrospectionStateNumber>
+      <LastIntrospectionLocalTimestamp>2024-06-09.14:27:29</LastIntrospectionLocalTimestamp>
       <ObjectId>2200</ObjectId>
       <StateNumber>527</StateNumber>
       <OwnerName>salt</OwnerName>

@@ -21,7 +21,7 @@ object MqttConnectorApiRest {
                     !call.auth
                     val mqtt = !getService<MqttConnectorService.Interface>()
                     val subs = !mqtt.mqtt.getSubscriptions
-                    call.respond(HttpStatusCode.OK, subs.map { it.topicFilter })
+                    call.respond(HttpStatusCode.OK, subs.map { it })
                 }
 
             }

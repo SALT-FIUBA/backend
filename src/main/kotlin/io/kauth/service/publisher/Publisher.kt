@@ -70,10 +70,7 @@ object Publisher {
     fun handleSetStatus(
         command: Command.PublishResult
     ) = StateMonad.Do<State?, Event, Output> { exit ->
-        val state = !getState
-        if(state == null) {
-            !exit(Failure("Message does not exists"))
-        }
+        val state = !getState ?: !exit(Failure("Message does not exists"))
         if(state.result != null) {
             !exit(Failure("Already finished"))
         }

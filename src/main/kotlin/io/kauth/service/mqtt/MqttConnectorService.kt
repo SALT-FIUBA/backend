@@ -17,15 +17,23 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import mqtt.MQTTVersion
 import mqtt.packets.mqtt.MQTTPublish
+import socket.tls.TLSClientSettings
 import java.util.*
+
 
 object MqttConnectorService : AppService {
 
+    //pensar esto
     @Serializable
     data class MqttData<out T>(
         val data: T,
         @Serializable(with = UUIDSerializer::class)
         val idempotence: UUID
+    )
+
+    @Serializable
+    data class MqttMessage(
+        val message: JsonElement
     )
 
     enum class StatusEvent {
@@ -34,17 +42,16 @@ object MqttConnectorService : AppService {
     }
 
     data class Interface(
-        val mqtt: MqttRequester,
+        val mqtt: MqttRequesterHiveMQ,
     )
 
-    @OptIn(ExperimentalUnsignedTypes::class)
     val getConfig = AppStack.Do {
         Config(
-            brokerAddress = "localhost",
-            brokerPort = 1883,
-            clientId = "salt",
-            username = "mati",
-            password = "1234".toByteArray().toUByteArray()
+            brokerAddress = "007f5e0286aa4c36ba410312d36d42f0.s1.eu.hivemq.cloud",
+            brokerPort = 8883,
+            clientId = "tasmota",
+            username = "tasmota",
+            password = "Password123"
         )
     }
 
@@ -53,25 +60,8 @@ object MqttConnectorService : AppService {
         val brokerPort: Int,
         val clientId: String,
         val username: String,
-        val password: UByteArray
+        val password: String
     )
-
-    @OptIn(ExperimentalUnsignedTypes::class)
-    fun mqttClientNew(
-        config: Config,
-        json: Json,
-        onPublish: (messaeg: MQTTPublish) -> Async<Unit>
-    ) = Async {
-        MQTTClient(
-            MQTTVersion.MQTT5,
-            config.brokerAddress,
-            config.brokerPort,
-            null,
-            clientId = config.clientId,
-            userName = config.username,
-            password = config.password,
-        ) { message -> !onPublish(message).io }
-    }
 
     @OptIn(ExperimentalUnsignedTypes::class)
     override val start =
@@ -82,30 +72,29 @@ object MqttConnectorService : AppService {
             val config = !getConfig
             val client = !getService<EventStoreClient>()
 
-            //Retry for ever?
-            val mqtt = !mqttRequesterNew(
-                mqttClientNew(config, json) { message ->
-                    Async {
-                        try {
-                            val topicName = message.topicName.replace("/", "-")
-                            val data = message.payload
-                                ?.toByteArray()
-                                ?.decodeToString()
-                                ?.let { value -> json.decodeFromString<MqttData<JsonElement>>(value) }
-                            if (data != null) {
-                                !stream<MqttData<JsonElement>>(client, "mqtt-${topicName}")
-                                    .append(data, StreamRevision.AnyRevision) { it.idempotence }
-                            }
-                        } catch (e: Throwable) {
-                            log.error("MQTT subscription loop error", e)
-                        }
-                    }
-                },
+            val mqtt = !mqttRequesteHiveMQNew(
+                config.username,
+                config.password,
+                config.brokerAddress,
+                config.brokerPort,
                 json,
                 ctx
-            )
+            ) { message ->
+                Async {
+                    try {
+                        val topicName = message.topic.toString().replace("/", "-")
+                        val data = message.payloadAsBytes
+                            .decodeToString()
+                            .let { value -> json.decodeFromString<JsonElement>(value) }
 
-            !mqtt.connect()
+                        !stream<MqttMessage>(client, "mqtt-${topicName}")
+                            .append(MqttMessage(data), StreamRevision.AnyRevision)
+
+                    } catch (e: Throwable) {
+                        log.error("MQTT subscription loop error", e)
+                    }
+                }
+            }
 
             !MqttProjection.sqlEventHandler
 

@@ -10,11 +10,10 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.*
 import mqtt.Subscription
 import mqtt.packets.Qos
 import mqtt.packets.mqttv5.ReasonCode
-import socket.SocketClosedException
 import java.util.*
 
 fun mqttRequesterNew(
@@ -99,22 +98,38 @@ data class MqttRequester(
         }
     }
 
+    fun JsonElement.primitiveOrNull(): JsonPrimitive? {
+        return try {
+            this.jsonPrimitive
+        } catch (e: Throwable) {
+            null
+        }
+    }
+
     @OptIn(ExperimentalUnsignedTypes::class)
     inline fun <reified T> publish(
         topic: String,
         data: T,
-        idempotence: UUID,
         retain: Boolean = false
     ): Async<Unit> = Async {
-        val payload = serializable.encodeToString(MqttData(data, idempotence)).toByteArray().toUByteArray()
+        val json = serializable.encodeToJsonElement(data)
+        val primitive = json.primitiveOrNull()?.contentOrNull
+        val payload = serializable.encodeToString(data)
         withContext(Dispatchers.IO) {
             mqtt.get()!!.publish(
                 qos = Qos.AT_LEAST_ONCE,
-                payload = payload,
+                payload = (primitive ?: payload).toByteArray().toUByteArray(),
                 retain = retain,
                 topic = topic
             )
         }
     }
+
+    inline fun <reified T> publishIdempotent(
+        topic: String,
+        data: T,
+        idempotence: UUID,
+        retain: Boolean = false
+    ): Async<Unit> = publish(topic, MqttData(data, idempotence), retain)
 
 }

@@ -42,7 +42,7 @@ object PublisherEventHandler {
             log.info("Publishing message")
 
             //SI aca te trabas trabas la lectura de los otros topics
-            !mqtt.mqtt.publish(topic.topic, event.value.data, publishId)
+            !mqtt.mqtt.publish(topic.topic, event.value.data)
 
             AppResult("Ok")
 
