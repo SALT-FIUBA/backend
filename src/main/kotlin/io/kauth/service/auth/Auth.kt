@@ -4,6 +4,7 @@ import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.StateMonad
+import io.kauth.service.publisher.Publisher
 import io.kauth.util.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -154,54 +155,50 @@ object Auth {
         val refresh: String?
     )
 
-    //Hay eventos que dan comandos, y otros que no..
-    val UserEvent.asCommand get() =
-        when(this) {
-            is UserEvent.UserLoggedIn -> Command.UserLogin(passwordHash = passwordHash)
-            is UserEvent.UserCreated -> Command.CreateUser(
-                email = user.email,
-                credentials = user.credentials,
-                personalData = user.personalData,
-                roles = user.roles
-            )
-            is UserEvent.PersonalDataUpdated -> Command.UpdatePersonalData(
-                personalData = personalData
-            )
-        }
+
+    fun handleUserLoggedIn(
+        event: UserEvent.UserLoggedIn
+    ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
+        val state = !getState
+        !setState(state?.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0))
+        Ok
+    }
+
+    fun handleUpdatedPersonalData(
+        event: UserEvent.PersonalDataUpdated
+    ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
+        val state = !getState
+        !setState(state?.copy(personalData = event.personalData))
+        Ok
+    }
+
+    fun handleCreatedUser(
+        event: UserEvent.UserCreated
+    ) =  StateMonad.Do<User?, UserEvent, Output> { exit ->
+        !setState(event.user)
+        Ok
+    }
+
 
     fun handleUserLogin(
         command: Command.UserLogin
     ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
         val state = !getState ?: !exit(Failure("User does not exists"))
-
         if(state.credentials.passwordHash != command.passwordHash) {
             !emitEvents(UserEvent.UserLoggedIn(passwordHash = command.passwordHash, success = false))
             !exit(Failure("Invalid credentials"))
         }
-
-        !setState(state.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0))
         !emitEvents(UserEvent.UserLoggedIn(passwordHash = command.passwordHash, success = true))
-
         Ok
     }
 
     fun handleUpdatePersonalData(
         command: Command.UpdatePersonalData
     ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
-        val state = !getState ?: !exit(Failure("User does not exists"))
-
+        !getState ?: !exit(Failure("User does not exists"))
         val personalData = command.personalData
-
-        !emitEvents(
-            UserEvent.PersonalDataUpdated(personalData)
-        )
-
-        !setState(
-            state.copy(personalData = personalData)
-        )
-
+        !emitEvents(UserEvent.PersonalDataUpdated(personalData))
         Ok
-
     }
 
     fun handleCreateUser(
@@ -224,10 +221,6 @@ object Auth {
             UserEvent.UserCreated(user)
         )
 
-        !setState(
-            user
-        )
-
         Ok
 
     }
@@ -238,6 +231,14 @@ object Auth {
         is Command.CreateUser -> handleCreateUser(command)
         is Command.UpdatePersonalData -> handleUpdatePersonalData(command)
         is Command.UserLogin -> handleUserLogin(command)
+    }
+
+    fun eventStateMachine(
+        event: UserEvent
+    ) = when (event) {
+        is UserEvent.UserCreated -> handleCreatedUser(event)
+        is UserEvent.UserLoggedIn -> handleUserLoggedIn(event)
+        is UserEvent.PersonalDataUpdated -> handleUpdatedPersonalData(event)
     }
 
 }

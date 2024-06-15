@@ -35,19 +35,17 @@ object ReservationService : AppService {
 
             val client = !getService<EventStoreClient>()
 
-            val stateMachine = Reservation::stateMachine
-
             val commands = Command(
                 handle = { id ->
                     stream<Reservation.ResourceEvent, Reservation.Reservation>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Reservation::stateMachine) { it.asCommand }
+                        .commandHandler(Reservation::stateMachine, Reservation::eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Reservation.ResourceEvent, Reservation.Reservation>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(stateMachine) { it.asCommand }
+                        .computeStateResult(Reservation::eventStateMachine)
                 }
             )
 

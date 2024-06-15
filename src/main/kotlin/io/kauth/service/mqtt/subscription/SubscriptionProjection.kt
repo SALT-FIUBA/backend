@@ -2,16 +2,11 @@ package io.kauth.service.mqtt.subscription
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
-import io.kauth.monad.stack.appStackEventHandler
 import io.kauth.monad.stack.appStackSqlProjector
-import io.kauth.service.mqtt.subscription.SubscriptionService.STREAM_NAME
 import io.kauth.service.mqtt.subscription.SubscriptionService.TOPIC_STREAM_NAME
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.json.json
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.upsert
 

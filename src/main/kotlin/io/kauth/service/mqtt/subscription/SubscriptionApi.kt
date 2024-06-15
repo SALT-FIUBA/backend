@@ -11,7 +11,7 @@ object SubscriptionApi {
         val service = !getService<SubscriptionService.Interface>()
         !service.command
             .handle()
-            .throwOnFailureHandler(Subscription.Event.Subscribe)
+            .throwOnFailureHandler(Subscription.Command.Subscribe)
     }
 
     fun addTopic(
@@ -20,7 +20,7 @@ object SubscriptionApi {
         val service = !getService<SubscriptionService.Interface>()
         !service.command
             .handle()
-            .throwOnFailureHandler(Subscription.Event.Add(data))
+            .throwOnFailureHandler(Subscription.Command.Add(data))
     }
 
     fun removeTopic(
@@ -29,7 +29,7 @@ object SubscriptionApi {
         val service = !getService<SubscriptionService.Interface>()
         !service.command
             .handle()
-            .throwOnFailureHandler(Subscription.Event.Remove(data))
+            .throwOnFailureHandler(Subscription.Command.Remove(data))
     }
 
     fun subscribeToTopic(
@@ -39,7 +39,7 @@ object SubscriptionApi {
         val service = !getService<SubscriptionService.Interface>()
         !service.command
             .handleTopic(topic)
-            .throwOnFailureHandler(SubscriptionTopic.Event.Add(resource))
+            .throwOnFailureHandler(SubscriptionTopic.Command.Add(resource))
     }
 
     fun subscribedToTopic(
@@ -48,7 +48,7 @@ object SubscriptionApi {
         val service = !getService<SubscriptionService.Interface>()
         !service.command
             .handleTopic(topic)
-            .throwOnFailureHandler(SubscriptionTopic.Event.Subscribed(Clock.System.now()))
+            .throwOnFailureHandler(SubscriptionTopic.Command.Subscribed(Clock.System.now()))
     }
 
     fun unsubscribeToTopic(
@@ -57,7 +57,7 @@ object SubscriptionApi {
         val service = !getService<SubscriptionService.Interface>()
         !service.command
             .handleTopic(topic)
-            .throwOnFailureHandler(SubscriptionTopic.Event.Remove)
+            .throwOnFailureHandler(SubscriptionTopic.Command.Remove)
     }
 
     fun readState() = AppStack.Do {

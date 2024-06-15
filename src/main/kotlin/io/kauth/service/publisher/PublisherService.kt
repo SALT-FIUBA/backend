@@ -10,10 +10,7 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
-import io.kauth.service.publisher.Publisher.asCommand
 import io.kauth.util.Async
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
 
@@ -43,14 +40,14 @@ object PublisherService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Publisher.Event, Publisher.State>(client, id.streamName)
-                        .commandHandler(Publisher::stateMachine) { it.asCommand }
+                        .commandHandler(Publisher::stateMachine, Publisher::eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Publisher.Event,Publisher.State>(client, id.streamName)
-                        .computeStateResult(Publisher::stateMachine) { it.asCommand }
+                        .computeStateResult(Publisher::eventStateMachine)
                 }
             )
 

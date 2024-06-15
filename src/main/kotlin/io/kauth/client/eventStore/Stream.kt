@@ -100,19 +100,23 @@ fun <E> stream(
 
 
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandlerIdempotent(
-    noinline stateMachine: StateMachine<C,S,E,O>,
+    noinline commandStateMachine: StateMachine<C,S,E,O>,
+    noinline eventStateMachine: StateMachine<E,S,E,O>,
     crossinline idempotenceId: (E) -> UUID,
-    crossinline eventToCommand: (E) -> C? // Esto te lo podes ahorrar si de alguna froma persistis los commands
 ): CommandHandler<C, O> = { command: C ->
     AppStack.Do {
 
-        val (state, revision) = !computeState<E,S,O,C>(stateMachine, eventToCommand)
+        //actual state computation
+        val (state, revision) = !computeState<E,S,O>(eventStateMachine)
 
-        val (newState, newEvents, output) = stateMachine(command).run(state)
+        //new events generated
+        val (n, newEvents, output) = commandStateMachine(command).run(state)
 
         val result = !stream.append<E>(newEvents, revision ?: StreamRevision.NoStream, idempotenceId)
 
         if(snapshot != null) {
+            //new state computation
+            val (newState, _) = eventStateMachine.runMany(newEvents, state)
             if (newState != null && newState != state) {
                 !snapshot.append(
                     Event(
@@ -136,12 +140,11 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
 
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
     noinline stateMachine: StateMachine<C,S,E,O>,
-    crossinline eventToCommand: (E) -> C? // Esto te lo podes ahorrar si de alguna froma persistis los commands
-): CommandHandler<C, O> = commandHandlerIdempotent(stateMachine, {UUID.randomUUID()}, eventToCommand)
+    noinline eventStateMachine: StateMachine<E,S,E,O>,
+): CommandHandler<C, O> = commandHandlerIdempotent(stateMachine,eventStateMachine) { UUID.randomUUID() }
 
-inline fun <reified E, reified S, O, C> EventStoreStreamSnapshot<E, S>.computeState(
-    noinline stateMachine: StateMachine<C, S, E, O>,
-    crossinline eventsToCommand: (E) -> C?
+inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeState(
+    noinline eventStateMachine: StateMachine<E,S,E,O>,
 ) = Async {
 
     val snapshotResult = if(snapshot != null) !snapshot.readLast() else null
@@ -152,20 +155,19 @@ inline fun <reified E, reified S, O, C> EventStoreStreamSnapshot<E, S>.computeSt
         revision = if(snapshotRevision != null) snapshotRevision + 1L else 0L
     )
 
-    val events = streamResult?.events?.mapNotNull { eventsToCommand(it.value) } ?: emptyList()
+    val events = streamResult?.events?.mapNotNull { it.value } ?: emptyList()
 
-    val (newState, _) = stateMachine.runMany(events, state)
+    val (newState,_) = eventStateMachine.runMany(events, state)
 
     newState to (streamResult?.lastStreamPosition?.let { ExpectedRevision.fromRawLong(it) }?.toStreamRevision )
 
 }
 
 
-inline fun <reified E, reified S, O, C> EventStoreStreamSnapshot<E, S>.computeStateResult(
-    noinline stateMachine: StateMachine<C, S, E, O>,
-    crossinline eventsToCommand: (E) -> C?
+inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeStateResult(
+    noinline eventStateMachine: StateMachine<E,S,E,O>
 ) = Async {
-    val (fst, snd) = !computeState(stateMachine, eventsToCommand)
+    val (fst, snd) = !computeState(eventStateMachine)
     return@Async fst
 }
 

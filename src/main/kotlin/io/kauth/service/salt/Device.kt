@@ -4,9 +4,6 @@ import io.kauth.monad.state.StateMonad
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
-import io.kauth.abstractions.state.StateMachineHandler
-import io.kauth.abstractions.state.StateMachinieHandler
-import io.kauth.abstractions.state.buildStateMachine
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -104,67 +101,72 @@ object Device {
 
     }
 
-    val Event.asCommand get() =
-        when(this) {
-            is Event.Created -> Command.Create(
-                organismId = device.organismId,
-                seriesNumber = device.seriesNumber,
-                ports = device.ports,
-                createdBy = device.createdBy,
-                createdAt = device.createdAt,
-                topics = device.topics
-            )
-            is Event.StatusSet -> Command.SetStatus(
-                status = status
-            )
+    @Serializable
+    sealed interface Error : Event {
+        @Serializable
+        data class DeviceAlreadyExists(val seriesNumber: String): Error
+        @Serializable
+        object DeviceDoesNotExists: Error
+    }
+
+    fun createdEventHandler(
+        event: Event.Created
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        !setState(event.device)
+        Ok
+    }
+
+    fun statusSetEventHandler(
+        event: Event.StatusSet
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        !setState(state?.copy(status = event.status))
+        Ok
+    }
+
+    fun setStatusHandler(command: Command.SetStatus) = StateMonad.Do<State?, Event, Output> { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device already exists"))
+        }
+        !emitEvents(Event.StatusSet(command.status))
+        Ok
+    }
+
+    fun createCommandHandler(command: Command.Create) =  StateMonad.Do<State?, Event, Output> { exit ->
+        val state = !getState
+
+        if (state != null) {
+            !emitEvents(Error.DeviceAlreadyExists(command.seriesNumber))
+            !exit(Failure("Device already exists"))
         }
 
-    val commandRouter get() =
-        object : StateMachinieHandler<Command, State, Event, Output> {
-            override fun Command.handle() =
-                when(this) {
-                    is Command.SetStatus -> with(setStatusHandler) { this@handle.handle() }
-                    is Command.Create -> with(createHandler) { this@handle.handle() }
-                }
-            }
+        val data =
+            State(
+                organismId = command.organismId,
+                seriesNumber = command.seriesNumber,
+                ports = command.ports,
+                status = null,
+                createdBy = command.createdBy,
+                createdAt = command.createdAt,
+                topics = command.topics
+            )
 
-    val setStatusHandler get() =
-        object : StateMachinieHandler<Command.SetStatus, State, Event, Output> {
-            override fun Command.SetStatus.handle() = StateMonad.Do<State?, Event, Output> { exit ->
-                val state = !getState ?: !exit(Failure("Device does not exists"))
-                !setState(state.copy(status = status))
-                !emitEvents(Event.StatusSet(status))
-                Ok
-            }
+        !emitEvents(Event.Created(data))
+
+        Ok
+    }
+
+    fun commandStateMachine(command: Command) =
+        when(command) {
+            is Command.Create -> createCommandHandler(command)
+            is Command.SetStatus -> setStatusHandler(command)
         }
 
-    val createHandler
-        get() =
-            StateMachineHandler { command: Command.Create, exit ->
-
-                val state = !getState
-
-                if (state != null) {
-                    !exit(Failure("Device already exists"))
-                }
-
-                val data =
-                    State(
-                        organismId = command.organismId,
-                        seriesNumber = command.seriesNumber,
-                        ports = command.ports,
-                        status = null,
-                        createdBy = command.createdBy,
-                        createdAt = command.createdAt,
-                        topics = command.topics
-                    )
-
-                !setState(data)
-                !emitEvents(Event.Created(data))
-
-                Ok
-            }
-
-    fun stateMachine(command: Command) = buildStateMachine(command, commandRouter)
-
+    fun eventStateMachine(event: Event) =
+        when(event) {
+            is Event.Created -> createdEventHandler(event)
+            is Event.StatusSet -> statusSetEventHandler(event)
+            else -> StateMonad.noOp(Ok)
+        }
 }

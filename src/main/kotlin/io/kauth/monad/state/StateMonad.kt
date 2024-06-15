@@ -3,6 +3,9 @@ package io.kauth.monad.state
 import kotlin.experimental.ExperimentalTypeInference
 
 
+
+//StateMachine
+
 /*
 StateMonad
     - S: State
@@ -46,6 +49,9 @@ data class StateMonad<S, out E, out T>(
 
         fun <S> get(): StateMonad<S, Nothing, S> =
             StateMonad { state -> Triple(state, emptyList(), state) }
+
+        fun <S,O> noOp(o: O): StateMonad<S,Nothing,O> =
+            StateMonad { state -> Triple(state, emptyList(), o) }
 
         @OptIn(ExperimentalTypeInference::class)
         fun <S, E, T> Do(

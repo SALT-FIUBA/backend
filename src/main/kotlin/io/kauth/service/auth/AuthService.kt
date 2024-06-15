@@ -5,7 +5,6 @@ import io.kauth.client.eventStore.*
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
-import io.kauth.service.auth.Auth.asCommand
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.stack.AppStack
@@ -41,14 +40,14 @@ object AuthService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Auth.UserEvent, Auth.User>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Auth::stateMachine) { it.asCommand }
+                        .commandHandler(Auth::stateMachine, Auth::eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Auth.UserEvent, Auth.User>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Auth::stateMachine) { it.asCommand }
+                        .computeStateResult(Auth::eventStateMachine)
                 }
             )
 

@@ -23,17 +23,57 @@ object SubscriptionTopic {
         @Serializable
         data class Subscribed(val at: Instant): Event
         @Serializable
-        data class Add(
+        data class Added(
             val resource: String,
             val createdAt: Instant? = null
         ): Event
         @Serializable
-        data object Remove: Event
+        data object Removed: Event
+    }
+
+    @Serializable
+    sealed interface Command {
+        @Serializable
+        data class Subscribed(val at: Instant): Command
+        @Serializable
+        data class Add(
+            val resource: String,
+            val createdAt: Instant? = null
+        ): Command
+        @Serializable
+        data object Remove: Command
+    }
+
+    fun handleAdded(
+        event: Event.Added
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        !setState(
+            State(
+                resource = event.resource,
+                createdAt = event.createdAt
+            )
+        )
+        Ok
+    }
+
+    fun handleSubscribedEvent(
+        event: Event.Subscribed
+    ) = StateMonad.Do<State?,Event, Output> { exit ->
+        val state = !getState
+        !setState(state?.copy(lastSubscribedAt = event.at))
+        Ok
+    }
+
+    fun handleRemoved(
+        command: Event.Removed
+    ) = StateMonad.Do<State?,Event, Output> { exit ->
+        !setState(null)
+        Ok
     }
 
     fun handleAdd(
-        command: Event.Add
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        command: Command.Add
+    ) = StateMonad.Do<State?,Event, Output> { exit ->
 
         val state = !getState
 
@@ -48,35 +88,43 @@ object SubscriptionTopic {
             )
         )
 
-        !emitEvents(command)
+        !emitEvents(Event.Added(command.resource, command.createdAt))
 
         Ok
     }
 
     fun handleSubscribed(
-        command: Event.Subscribed
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        command: Command.Subscribed
+    ) = StateMonad.Do<State?,Event, Output> { exit ->
         val state = !getState ?: !exit(Failure("Topic subscription does not exists"))
         !setState(state.copy(lastSubscribedAt = command.at))
-        !emitEvents(command)
+        !emitEvents(Event.Subscribed(command.at))
         Ok
     }
 
     fun handleRemove(
-        command: Event.Remove
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        command: Command.Remove
+    ) = StateMonad.Do<State?,Event, Output> { exit ->
         val state = !getState ?: !exit(Failure("Topic subscription does not exists to remove"))
         !setState(null)
-        !emitEvents(command)
+        !emitEvents(Event.Removed)
         Ok
     }
 
     fun stateMachine(
-        command: Event
+        command: Command
     ) = when (command) {
-        is Event.Add -> handleAdd(command)
-        is Event.Subscribed -> handleSubscribed(command)
-        is Event.Remove -> handleRemove(command)
+        is Command.Add -> handleAdd(command)
+        is Command.Subscribed -> handleSubscribed(command)
+        is Command.Remove -> handleRemove(command)
+    }
+
+    fun eventStateMachine(
+        event: Event
+    ) = when(event) {
+        is Event.Subscribed -> handleSubscribedEvent(event)
+        is Event.Removed -> handleRemoved(event)
+        is Event.Added -> handleAdded(event)
     }
 
 }

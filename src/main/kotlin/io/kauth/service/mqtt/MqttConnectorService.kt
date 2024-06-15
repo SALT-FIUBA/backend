@@ -21,14 +21,9 @@ object MqttConnectorService : AppService {
     //pensar esto
     @Serializable
     data class MqttData<out T>(
-        val data: T,
+        val message: T,
         @Serializable(with = UUIDSerializer::class)
-        val idempotence: UUID
-    )
-
-    @Serializable
-    data class MqttMessage<out T>(
-        val message: T
+        val idempotence: UUID? = null
     )
 
     data class Interface(
@@ -75,8 +70,8 @@ object MqttConnectorService : AppService {
                         val data = message.payloadAsBytes
                             .decodeToString()
                             .let { value -> json.decodeFromString<JsonElement>(value) }
-                        !stream<MqttMessage<JsonElement>>(client, "mqtt-${topicName}")
-                            .append(MqttMessage(data), StreamRevision.AnyRevision)
+                        !stream<MqttData<JsonElement>>(client, "mqtt-${topicName}")
+                            .append(MqttData(data), StreamRevision.AnyRevision)
                     } catch (e: Throwable) {
                         log.error("MQTT subscription loop error", e)
                     }

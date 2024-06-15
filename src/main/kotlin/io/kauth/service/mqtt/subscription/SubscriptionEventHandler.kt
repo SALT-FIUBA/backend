@@ -21,13 +21,13 @@ object SubscriptionEventHandler {
                 val state = !subs.query.readStateTopic(topic)
 
                 when(event.value) {
-                    is SubscriptionTopic.Event.Add -> {
+                    is SubscriptionTopic.Event.Added -> {
                         state ?: return@Do
                         !SubscriptionApi.addTopic(
                             listOf(Subscription.SubsData(topic = topic, resource = state.resource))
                         )
                     }
-                    is SubscriptionTopic.Event.Remove -> { !SubscriptionApi.removeTopic(topic) }
+                    is SubscriptionTopic.Event.Removed -> { !SubscriptionApi.removeTopic(topic) }
                     else -> {}
                 }
 
@@ -42,14 +42,14 @@ object SubscriptionEventHandler {
         AppStack.Do {
             val mqtt = !getService<MqttConnectorService.Interface>()
             when(event.value) {
-                is Subscription.Event.Add -> {
+                is Subscription.Event.Added -> {
                     val subscribedTopics = !mqtt.mqtt.subscribe(event.value.data.map { it.toMqttSubs.topicFilter })
                     !event.value.data
                         .filter { it.topic in subscribedTopics }
                         .map { SubscriptionApi.subscribedToTopic(it.topic) }
                         .sequential()
                 }
-                is Subscription.Event.Subscribe -> {
+                is Subscription.Event.Subscribed -> {
                     val topics = !SubscriptionApi.readState() ?: return@Do
                     val subscribedTopics = !mqtt.mqtt.subscribe(topics.data.map { it.toMqttSubs.topicFilter })
                     !topics.data
@@ -57,7 +57,7 @@ object SubscriptionEventHandler {
                         .map { SubscriptionApi.subscribedToTopic(it.topic) }
                         .sequential()
                 }
-                is Subscription.Event.Remove -> {
+                is Subscription.Event.Removed -> {
                     !mqtt.mqtt.unsubscribe(event.value.topic)
                 }
             }

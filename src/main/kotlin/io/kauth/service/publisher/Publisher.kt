@@ -53,12 +53,6 @@ object Publisher {
 
     }
 
-    val Event.asCommand get() =
-        when(this) {
-            is Event.PublishResult -> Command.PublishResult(result)
-            is Event.Publish -> Command.Publish(channel, resource, data)
-        }
-
     @Serializable
     data class State(
         val data: JsonElement,
@@ -67,6 +61,28 @@ object Publisher {
         val result: AppResult<String>?
     )
 
+    fun handlePublishedEvent(
+        event: Event.Publish
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        !setState(
+            State(
+                data = event.data,
+                channel = event.channel,
+                resource = event.resource,
+                result = null
+            )
+        )
+        Ok
+    }
+
+    fun handleSetStatusEvent(
+        event : Event.PublishResult
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        val state = !getState
+        !setState(state?.copy(result = event.result))
+        Ok
+    }
+
     fun handleSetStatus(
         command: Command.PublishResult
     ) = StateMonad.Do<State?, Event, Output> { exit ->
@@ -74,7 +90,6 @@ object Publisher {
         if(state.result != null) {
             !exit(Failure("Already finished"))
         }
-        !setState(state.copy(result = command.result))
         !emitEvents(Event.PublishResult(command.result))
         Ok
     }
@@ -86,15 +101,6 @@ object Publisher {
         if(state != null) {
             !exit(Failure("Message already exists."))
         }
-        val data =
-            State(
-                data = command.data,
-                channel = command.channel,
-                resource = command.resource,
-                result = null
-            )
-        !setState(data)
-        //Solo emito 1 evneto en EvenSourcing, los eventos son el estado....
         !emitEvents(Event.Publish(command.data, command.resource, command.channel))
         Ok
     }
@@ -104,6 +110,13 @@ object Publisher {
     ) = when (command) {
         is Command.Publish -> handlePublish(command)
         is Command.PublishResult -> handleSetStatus(command)
+    }
+
+    fun eventStateMachine(
+        event: Event
+    ) = when(event) {
+        is Event.Publish -> handlePublishedEvent(event)
+        is Event.PublishResult -> handleSetStatusEvent(event)
     }
 
 }

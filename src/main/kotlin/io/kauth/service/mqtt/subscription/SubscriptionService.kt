@@ -18,8 +18,8 @@ object SubscriptionService : AppService {
     val STREAM_NAME = "subscription"
     val STREAM_PREFIX = "$STREAM_NAME-"
     val SNAPSHOT_STREAM_PREFIX = "subscription_snapshot-"
-    val streamName get() = STREAM_PREFIX + "unit"
-    val snapshotName get() = SNAPSHOT_STREAM_PREFIX + "unit"
+    val streamName get() = STREAM_PREFIX + "UNIT"
+    val snapshotName get() = SNAPSHOT_STREAM_PREFIX + "UNIT"
 
     //INDIVIDUAL TOPIC
     val TOPIC_STREAM_NAME = "subscription_topic"
@@ -27,8 +27,8 @@ object SubscriptionService : AppService {
     val String.topicStreamName get() = TOPIC_STREAM_PREFIX + this
 
     data class Command(
-        val handle: () -> CommandHandler<Subscription.Event, Output>,
-        val handleTopic: (topic: String) -> CommandHandler<SubscriptionTopic.Event, Output>
+        val handle: () -> CommandHandler<Subscription.Command, Output>,
+        val handleTopic: (topic: String) -> CommandHandler<SubscriptionTopic.Command, Output>
     )
 
     data class Query(
@@ -49,22 +49,22 @@ object SubscriptionService : AppService {
             val commands = Command(
                 handle = {
                     stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
-                        .commandHandler(Subscription::stateMachine) { it }
+                        .commandHandler(Subscription::stateMachine, Subscription::eventStateMachine)
                 },
                 handleTopic = { id ->
                     stream<SubscriptionTopic.Event, SubscriptionTopic.State>(client, id.topicStreamName)
-                        .commandHandler(SubscriptionTopic::stateMachine) { it }
+                        .commandHandler(SubscriptionTopic::stateMachine, SubscriptionTopic::eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = {
                     stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
-                        .computeStateResult(Subscription::stateMachine) { it }
+                        .computeStateResult(Subscription::eventStateMachine)
                 },
                 readStateTopic = { id ->
                     stream<SubscriptionTopic.Event, SubscriptionTopic.State>(client, id.topicStreamName)
-                        .computeStateResult(SubscriptionTopic::stateMachine) { it }
+                        .computeStateResult(SubscriptionTopic::eventStateMachine)
                 }
             )
 

@@ -8,7 +8,6 @@ import io.kauth.client.eventStore.stream
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
-import io.kauth.service.salt.Device.asCommand
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.stack.AppStack
@@ -43,14 +42,14 @@ object DeviceService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Device.Event, Device.State>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Device::stateMachine) { it.asCommand }
+                        .commandHandler(Device::commandStateMachine, Device::eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Device.Event, Device.State>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Device::stateMachine) { it.asCommand }
+                        .computeStateResult(Device::eventStateMachine)
                 }
             )
 

@@ -42,16 +42,18 @@ object Organism {
 
     }
 
-    val Event.asCommand get() =
-        when(this) {
-            is Event.OrganismCreated -> Command.CreateOrganism(
-                tag = organism.tag,
-                name = organism.name,
-                description = organism.description,
-                createdBy = organism.createdBy,
-                createdAt = organism.createdAt
-            )
-        }
+    sealed interface Error : Event {
+        object OrganismAlreadyExists : Error
+    }
+
+
+    fun handleCreatedEvent(
+        event: Event.OrganismCreated
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        !setState(event.organism)
+        Ok
+    }
+
 
     fun handleCreate(
         command: Command.CreateOrganism
@@ -60,29 +62,37 @@ object Organism {
         val state = !getState
 
         if(state != null) {
+            !emitEvents(Error.OrganismAlreadyExists)
             !exit(Failure("Organism already exists"))
         }
 
-        val data =
-            State(
-                tag = command.tag,
-                name = command.name,
-                description = command.description,
-                createdBy = command.createdBy,
-                createdAt = command.createdAt
+        !emitEvents(
+            Event.OrganismCreated(
+                State(
+                    tag = command.tag,
+                    name = command.name,
+                    description = command.description,
+                    createdBy = command.createdBy,
+                    createdAt = command.createdAt
+                )
             )
-
-        !setState(data)
-        !emitEvents(Event.OrganismCreated(data))
+        )
 
         Ok
     }
 
 
-    fun stateMachine(
+    fun commandStateMachine(
         command: Command
     ) = when (command) {
         is Command.CreateOrganism -> handleCreate(command)
+    }
+
+    fun eventStateMachine(
+        event: Event
+    ) = when (event) {
+        is Event.OrganismCreated -> handleCreatedEvent(event)
+        else -> StateMonad.noOp<State?, Output>(Ok)
     }
 
 }

@@ -4,6 +4,7 @@ import io.kauth.abstractions.result.Fail
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.StateMonad
+import io.kauth.service.salt.Device
 import kotlinx.serialization.Serializable
 
 //Este servicio sirve para tomar/liberar un recurso
@@ -47,40 +48,39 @@ object Reservation {
         }
 
 
+    fun handleTakenEvent(
+        event: ResourceEvent.ResourceTaken
+    ) = StateMonad.Do<Reservation?, ResourceEvent, Output> { exit ->
+        val state = !getState
+        !setState(state?.copy(taken = true) ?: Reservation(taken = true, ownerId = event.ownerId))
+        Ok
+    }
+
+    fun handleReleasedEvent(
+        event: ResourceEvent.ResourceReleased
+    ) = StateMonad.Do<Reservation?, ResourceEvent, Output> { exit ->
+        val state = !getState
+        !setState(state?.copy(taken = false))
+        Ok
+    }
+
+
     fun handleTake(
         command: Command.Take
     ) =  StateMonad.Do<Reservation?, ResourceEvent, Output> { exit ->
-
         val state = !getState
-
-        if(state != null && state.taken) {
-            !exit(Fail("Resource taken"))
-        }
-
-        !emitEvents(
-            ResourceEvent.ResourceTaken(command.ownerId)
-        )
-
-        !setState(state?.copy(taken = true) ?: Reservation(taken = true, ownerId = command.ownerId))
-
+        if(state != null && state.taken) { !exit(Fail("Resource taken")) }
+        !emitEvents(ResourceEvent.ResourceTaken(command.ownerId))
         Ok
-
     }
 
     fun handleRelease(
         command: Command.Release
     ) =  StateMonad.Do<Reservation?, ResourceEvent,Output> { exit ->
-
         val state = !getState ?: !exit(Fail("No resource exists"))
-
-        !emitEvents(
-            ResourceEvent.ResourceReleased
-        )
-
+        !emitEvents(ResourceEvent.ResourceReleased)
         !setState(state.copy(taken = false))
-
         Ok
-
     }
 
     fun stateMachine(
@@ -88,6 +88,13 @@ object Reservation {
     ) = when (command) {
         is Command.Take -> handleTake(command)
         is Command.Release -> handleRelease(command)
+    }
+
+    fun eventStateMachine(
+        event: ResourceEvent
+    ) = when(event) {
+        is ResourceEvent.ResourceTaken -> handleTakenEvent(event)
+        is ResourceEvent.ResourceReleased -> handleReleasedEvent(event)
     }
 
 }

@@ -27,59 +27,100 @@ object Subscription {
     val SubsData.toMqttSubs get() =
         Subscription(topic, SubscriptionOptions(Qos.AT_LEAST_ONCE))
 
+
     @Serializable
-    sealed interface Event {
+    sealed interface Command {
 
         @Serializable
-        object Subscribe: Event
+        object Subscribe: Command
 
         @Serializable
         data class Add(
             val data: List<SubsData>
-        ): Event
+        ): Command
 
         @Serializable
         data class Remove(
+            val topic: String
+        ): Command
+
+    }
+
+    @Serializable
+    sealed interface Event {
+
+        @Serializable
+        object Subscribed: Event
+
+        @Serializable
+        data class Added(
+            val data: List<SubsData>
+        ): Event
+
+        @Serializable
+        data class Removed(
             val topic: String
         ): Event
 
     }
 
+    fun handleAdded(
+        event: Event.Added
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        val state = !getState ?: State(emptyList())
+        !setState(state.copy(state.data + event.data))
+        Ok
+    }
+
+    fun handleRemoved(
+        event: Event.Removed
+    ) = StateMonad.Do<State?, Event, Output> { exit ->
+        val state = !getState
+        !setState(state?.copy(data = state.data.filter { it.topic != event.topic }))
+        Ok
+    }
+
     fun handleAdd(
-        command: Event.Add
+        command: Command.Add
     ) = StateMonad.Do<State?, Event, Output> { exit ->
         val state = !getState ?: State(emptyList())
         if(command.data.map { it.topic }.any { topic -> topic in state.data.map { it.topic } }) {
             !exit(Failure("Already subscribed ${command.data}"))
         }
-        !setState(state.copy(state.data + command.data))
-        !emitEvents(command)
+        !emitEvents(Event.Added(command.data))
         Ok
     }
 
     fun handleRemove(
-        command: Event.Remove
+        command: Command.Remove
     ) = StateMonad.Do<State?, Event, Output> { exit ->
         val state = !getState ?: !exit(Failure("No topics to remove"))
-        !setState(state.copy(data = state.data.filter { it.topic != command.topic }))
-        !emitEvents(command)
+        !emitEvents(Event.Removed(command.topic))
         Ok
     }
 
     fun handleSubscribe(
-        command: Event.Subscribe
+        command: Command.Subscribe
     ) = StateMonad.Do<State?, Event, Output> { exit ->
         !getState ?: !exit(Failure("No topics to subscribe"))
-        !emitEvents(command)
+        !emitEvents(Event.Subscribed)
         Ok
     }
 
     fun stateMachine(
-        command: Event
+        command: Command
     ) = when (command) {
-        is Event.Add -> handleAdd(command)
-        is Event.Subscribe -> handleSubscribe(command)
-        is Event.Remove -> handleRemove(command)
+        is Command.Add -> handleAdd(command)
+        is Command.Subscribe -> handleSubscribe(command)
+        is Command.Remove -> handleRemove(command)
+    }
+
+    fun eventStateMachine(
+        event: Event
+    ) = when(event) {
+        is Event.Removed -> handleRemoved(event)
+        is Event.Added -> handleAdded(event)
+        else -> StateMonad.noOp(Ok)
     }
 
 }

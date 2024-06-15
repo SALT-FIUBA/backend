@@ -10,7 +10,6 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
-import io.kauth.service.organism.Organism.asCommand
 import io.kauth.util.Async
 import java.util.*
 
@@ -43,14 +42,14 @@ object OrganismService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Organism.Event, Organism.State>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Organism::stateMachine) { it.asCommand }
+                        .commandHandler(Organism::commandStateMachine, Organism::eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Organism.Event, Organism.State>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Organism::stateMachine) { it.asCommand }
+                        .computeStateResult(Organism::eventStateMachine)
                 }
             )
 
