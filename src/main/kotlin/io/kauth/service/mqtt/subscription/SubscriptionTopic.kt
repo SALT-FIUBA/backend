@@ -3,6 +3,8 @@ package io.kauth.service.mqtt.subscription
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
+import io.kauth.monad.state.CommandMonad
+import io.kauth.monad.state.EventMonad
 import io.kauth.monad.state.StateMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
@@ -44,9 +46,8 @@ object SubscriptionTopic {
         data object Remove: Command
     }
 
-    fun handleAdded(
-        event: Event.Added
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleAdded get() = EventMonad.Do<State?, Event.Added, Output> { exit ->
+        val event = !getEvent
         !setState(
             State(
                 resource = event.resource,
@@ -56,24 +57,19 @@ object SubscriptionTopic {
         Ok
     }
 
-    fun handleSubscribedEvent(
-        event: Event.Subscribed
-    ) = StateMonad.Do<State?,Event, Output> { exit ->
+    val handleSubscribedEvent get() = EventMonad.Do<State?,Event.Subscribed, Output> { exit ->
+        val event = !getEvent
         val state = !getState
         !setState(state?.copy(lastSubscribedAt = event.at))
         Ok
     }
 
-    fun handleRemoved(
-        command: Event.Removed
-    ) = StateMonad.Do<State?,Event, Output> { exit ->
+    val handleRemoved get() = EventMonad.Do<State?,Event.Removed, Output> { exit ->
         !setState(null)
         Ok
     }
 
-    fun handleAdd(
-        command: Command.Add
-    ) = StateMonad.Do<State?,Event, Output> { exit ->
+    val handleAdd get() = CommandMonad.Do<Command.Add, State?,Event, Output> { exit ->
 
         val state = !getState
 
@@ -81,50 +77,43 @@ object SubscriptionTopic {
             !exit(Failure("Already subscribed"))
         }
 
-        !setState(
-            State(
-                resource = command.resource,
-                createdAt = command.createdAt
-            )
-        )
-
         !emitEvents(Event.Added(command.resource, command.createdAt))
 
         Ok
     }
 
-    fun handleSubscribed(
-        command: Command.Subscribed
-    ) = StateMonad.Do<State?,Event, Output> { exit ->
-        val state = !getState ?: !exit(Failure("Topic subscription does not exists"))
-        !setState(state.copy(lastSubscribedAt = command.at))
+    val handleSubscribed get() = CommandMonad.Do<Command.Subscribed, State?,Event, Output> { exit ->
+        val command = !getCommand
+        !getState ?: !exit(Failure("Topic subscription does not exists"))
         !emitEvents(Event.Subscribed(command.at))
         Ok
     }
 
-    fun handleRemove(
-        command: Command.Remove
-    ) = StateMonad.Do<State?,Event, Output> { exit ->
+    val handleRemove get() = CommandMonad.Do<Command.Remove, State?,Event, Output> { exit ->
         val state = !getState ?: !exit(Failure("Topic subscription does not exists to remove"))
-        !setState(null)
         !emitEvents(Event.Removed)
         Ok
     }
 
-    fun stateMachine(
-        command: Command
-    ) = when (command) {
-        is Command.Add -> handleAdd(command)
-        is Command.Subscribed -> handleSubscribed(command)
-        is Command.Remove -> handleRemove(command)
-    }
+    val stateMachine get() =
+        CommandMonad.Do<Command, State?,Event, Output> { exit ->
+            val command = !getCommand
+            !when (command) {
+                is Command.Add -> handleAdd
+                is Command.Subscribed -> handleSubscribed
+                is Command.Remove -> handleRemove
+            }
+        }
 
-    fun eventStateMachine(
-        event: Event
-    ) = when(event) {
-        is Event.Subscribed -> handleSubscribedEvent(event)
-        is Event.Removed -> handleRemoved(event)
-        is Event.Added -> handleAdded(event)
-    }
+
+    val eventStateMachine get() =
+        EventMonad.Do<State?,Event, Output> { exit ->
+            val event = !getEvent
+            !when(event) {
+                is Event.Subscribed -> handleSubscribedEvent
+                is Event.Removed -> handleRemoved
+                is Event.Added -> handleAdded
+            }
+        }
 
 }

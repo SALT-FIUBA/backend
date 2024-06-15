@@ -3,6 +3,8 @@ package io.kauth.service.auth
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
+import io.kauth.monad.state.CommandMonad
+import io.kauth.monad.state.EventMonad
 import io.kauth.monad.state.StateMonad
 import io.kauth.service.publisher.Publisher
 import io.kauth.util.*
@@ -156,33 +158,28 @@ object Auth {
     )
 
 
-    fun handleUserLoggedIn(
-        event: UserEvent.UserLoggedIn
-    ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
+    val handleUserLoggedIn get() = EventMonad.Do<User?, UserEvent.UserLoggedIn, Output> { exit ->
+        val event = !getEvent
         val state = !getState
         !setState(state?.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0))
         Ok
     }
 
-    fun handleUpdatedPersonalData(
-        event: UserEvent.PersonalDataUpdated
-    ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
+    val handleUpdatedPersonalData get() = EventMonad.Do<User?, UserEvent.PersonalDataUpdated, Output> { exit ->
+        val event = !getEvent
         val state = !getState
         !setState(state?.copy(personalData = event.personalData))
         Ok
     }
 
-    fun handleCreatedUser(
-        event: UserEvent.UserCreated
-    ) =  StateMonad.Do<User?, UserEvent, Output> { exit ->
+    val handleCreatedUser get() = EventMonad.Do<User?, UserEvent.UserCreated, Output> { exit ->
+        val event = !getEvent
         !setState(event.user)
         Ok
     }
 
 
-    fun handleUserLogin(
-        command: Command.UserLogin
-    ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
+    val handleUserLogin get() = CommandMonad.Do<Command.UserLogin, User?, UserEvent, Output> { exit ->
         val state = !getState ?: !exit(Failure("User does not exists"))
         if(state.credentials.passwordHash != command.passwordHash) {
             !emitEvents(UserEvent.UserLoggedIn(passwordHash = command.passwordHash, success = false))
@@ -192,18 +189,14 @@ object Auth {
         Ok
     }
 
-    fun handleUpdatePersonalData(
-        command: Command.UpdatePersonalData
-    ) = StateMonad.Do<User?, UserEvent, Output> { exit ->
+    val handleUpdatePersonalData get() = CommandMonad.Do<Command.UpdatePersonalData, User?, UserEvent, Output> { exit ->
         !getState ?: !exit(Failure("User does not exists"))
         val personalData = command.personalData
         !emitEvents(UserEvent.PersonalDataUpdated(personalData))
         Ok
     }
 
-    fun handleCreateUser(
-        command: Command.CreateUser,
-    ) =  StateMonad.Do<User?, UserEvent, Output> { exit ->
+    val handleCreateUser get() = CommandMonad.Do<Command.CreateUser, User?, UserEvent, Output> { exit ->
         val state = !getState
 
         if(state != null) !exit(Failure("User already exists"))
@@ -225,20 +218,24 @@ object Auth {
 
     }
 
-    fun stateMachine(
-        command: Command
-    ) = when (command) {
-        is Command.CreateUser -> handleCreateUser(command)
-        is Command.UpdatePersonalData -> handleUpdatePersonalData(command)
-        is Command.UserLogin -> handleUserLogin(command)
-    }
+    val stateMachine get() =
+        CommandMonad.Do<Command, User?, UserEvent, Output> { exit ->
+            val command = !getCommand
+            !when (command) {
+                is Command.CreateUser -> handleCreateUser
+                is Command.UpdatePersonalData -> handleUpdatePersonalData
+                is Command.UserLogin -> handleUserLogin
+            }
+        }
 
-    fun eventStateMachine(
-        event: UserEvent
-    ) = when (event) {
-        is UserEvent.UserCreated -> handleCreatedUser(event)
-        is UserEvent.UserLoggedIn -> handleUserLoggedIn(event)
-        is UserEvent.PersonalDataUpdated -> handleUpdatedPersonalData(event)
-    }
+    val eventStateMachine get() =
+        EventMonad.Do<User?, UserEvent, Output> { exit ->
+            val event = !getEvent
+            !when (event) {
+                is UserEvent.UserCreated -> handleCreatedUser
+                is UserEvent.UserLoggedIn -> handleUserLoggedIn
+                is UserEvent.PersonalDataUpdated -> handleUpdatedPersonalData
+            }
+        }
 
 }

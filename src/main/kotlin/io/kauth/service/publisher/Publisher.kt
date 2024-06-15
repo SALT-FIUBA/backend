@@ -4,7 +4,8 @@ import io.kauth.abstractions.result.AppResult
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
-import io.kauth.monad.state.StateMonad
+import io.kauth.monad.state.CommandMonad
+import io.kauth.monad.state.EventMonad
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -61,9 +62,8 @@ object Publisher {
         val result: AppResult<String>?
     )
 
-    fun handlePublishedEvent(
-        event: Event.Publish
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handlePublishedEvent get() =EventMonad.Do<State?, Event.Publish, Output> { exit ->
+        val event = !getEvent
         !setState(
             State(
                 data = event.data,
@@ -75,17 +75,13 @@ object Publisher {
         Ok
     }
 
-    fun handleSetStatusEvent(
-        event : Event.PublishResult
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleSetStatusEvent get() = EventMonad.Do<State?, Event.PublishResult, Output> { exit ->
         val state = !getState
         !setState(state?.copy(result = event.result))
         Ok
     }
 
-    fun handleSetStatus(
-        command: Command.PublishResult
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleSetStatus get() = CommandMonad.Do<Command.PublishResult, State?, Event, Output> { exit ->
         val state = !getState ?: !exit(Failure("Message does not exists"))
         if(state.result != null) {
             !exit(Failure("Already finished"))
@@ -94,9 +90,7 @@ object Publisher {
         Ok
     }
 
-    fun handlePublish(
-        command: Command.Publish
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handlePublish get() = CommandMonad.Do<Command.Publish, State?, Event, Output> { exit ->
         val state = !getState
         if(state != null) {
             !exit(Failure("Message already exists."))
@@ -105,18 +99,22 @@ object Publisher {
         Ok
     }
 
-    fun stateMachine(
-        command: Command
-    ) = when (command) {
-        is Command.Publish -> handlePublish(command)
-        is Command.PublishResult -> handleSetStatus(command)
-    }
+    val stateMachine get() =
+        CommandMonad.Do<Command, State?, Event, Output> { exit ->
+            val command = !getCommand
+            !when (command) {
+                is Command.Publish -> handlePublish
+                is Command.PublishResult -> handleSetStatus
+            }
+        }
 
-    fun eventStateMachine(
-        event: Event
-    ) = when(event) {
-        is Event.Publish -> handlePublishedEvent(event)
-        is Event.PublishResult -> handleSetStatusEvent(event)
-    }
+    val eventStateMachine get() =
+        EventMonad.Do<State?, Event, Output> { exit ->
+            val event = !getEvent
+            !when(event) {
+                is Event.Publish -> handlePublishedEvent
+                is Event.PublishResult -> handleSetStatusEvent
+            }
+        }
 
 }

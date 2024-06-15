@@ -42,14 +42,14 @@ object OrganismService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Organism.Event, Organism.State>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Organism::commandStateMachine, Organism::eventStateMachine)
+                        .commandHandler(Organism.commandStateMachine, Organism.eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Organism.Event, Organism.State>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Organism::eventStateMachine)
+                        .computeStateResult(Organism.eventStateMachine)
                 }
             )
 

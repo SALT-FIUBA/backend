@@ -3,7 +3,8 @@ package io.kauth.service.mqtt.subscription
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
-import io.kauth.monad.state.StateMonad
+import io.kauth.monad.state.CommandMonad
+import io.kauth.monad.state.EventMonad
 import kotlinx.serialization.Serializable
 import mqtt.Subscription
 import mqtt.packets.Qos
@@ -64,25 +65,22 @@ object Subscription {
 
     }
 
-    fun handleAdded(
-        event: Event.Added
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleAdded get() = EventMonad.Do<State?, Event.Added, Output> { exit ->
+        val event = !getEvent
         val state = !getState ?: State(emptyList())
         !setState(state.copy(state.data + event.data))
         Ok
     }
 
-    fun handleRemoved(
-        event: Event.Removed
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleRemoved get() = EventMonad.Do<State?, Event.Removed, Output> { exit ->
+        val event = !getEvent
         val state = !getState
         !setState(state?.copy(data = state.data.filter { it.topic != event.topic }))
         Ok
     }
 
-    fun handleAdd(
-        command: Command.Add
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleAdd get() = CommandMonad.Do<Command.Add, State?, Event, Output> { exit ->
+        val command = !getCommand
         val state = !getState ?: State(emptyList())
         if(command.data.map { it.topic }.any { topic -> topic in state.data.map { it.topic } }) {
             !exit(Failure("Already subscribed ${command.data}"))
@@ -91,36 +89,37 @@ object Subscription {
         Ok
     }
 
-    fun handleRemove(
-        command: Command.Remove
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleRemove get() = CommandMonad.Do<Command.Remove, State?, Event, Output> { exit ->
+        val command = !getCommand
         val state = !getState ?: !exit(Failure("No topics to remove"))
         !emitEvents(Event.Removed(command.topic))
         Ok
     }
 
-    fun handleSubscribe(
-        command: Command.Subscribe
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleSubscribe get() = CommandMonad.Do<Command.Subscribe, State?, Event, Output> { exit ->
         !getState ?: !exit(Failure("No topics to subscribe"))
         !emitEvents(Event.Subscribed)
         Ok
     }
 
-    fun stateMachine(
-        command: Command
-    ) = when (command) {
-        is Command.Add -> handleAdd(command)
-        is Command.Subscribe -> handleSubscribe(command)
-        is Command.Remove -> handleRemove(command)
-    }
+    val stateMachine get() =
+        CommandMonad.Do<Command, State?, Event, Output> { exit ->
+            val command = !getCommand
+            !when (command) {
+                is Command.Add -> handleAdd
+                is Command.Subscribe -> handleSubscribe
+                is Command.Remove -> handleRemove
+            }
+        }
 
-    fun eventStateMachine(
-        event: Event
-    ) = when(event) {
-        is Event.Removed -> handleRemoved(event)
-        is Event.Added -> handleAdded(event)
-        else -> StateMonad.noOp(Ok)
-    }
+    val eventStateMachine get() =
+        EventMonad.Do<State?, Event, Output> { exit ->
+            val event = !getEvent
+            when(event) {
+                is Event.Removed -> !handleRemoved
+                is Event.Added -> !handleAdded
+                else -> Ok
+            }
+        }
 
 }

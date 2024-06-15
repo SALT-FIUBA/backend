@@ -1,9 +1,10 @@
 package io.kauth.service.salt
 
-import io.kauth.monad.state.StateMonad
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
+import io.kauth.monad.state.CommandMonad
+import io.kauth.monad.state.EventMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -109,22 +110,22 @@ object Device {
         object DeviceDoesNotExists: Error
     }
 
-    fun createdEventHandler(
-        event: Event.Created
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val createdEventHandler get() = EventMonad.Do<State?, Event.Created, Output> { exit ->
+        val event = !getEvent
         !setState(event.device)
         Ok
     }
 
-    fun statusSetEventHandler(
-        event: Event.StatusSet
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val statusSetEventHandler get() = EventMonad.Do<State?, Event.StatusSet, Output> { exit ->
+        val state = !getState
+        val event = !getEvent
         !setState(state?.copy(status = event.status))
         Ok
     }
 
-    fun setStatusHandler(command: Command.SetStatus) = StateMonad.Do<State?, Event, Output> { exit ->
+    val setStatusHandler get() = CommandMonad.Do<Command.SetStatus, State?, Event, Output> { exit ->
         val state = !getState
+        val command = !getCommand
         if (state == null) {
             !emitEvents(Error.DeviceDoesNotExists)
             !exit(Failure("Device already exists"))
@@ -133,8 +134,9 @@ object Device {
         Ok
     }
 
-    fun createCommandHandler(command: Command.Create) =  StateMonad.Do<State?, Event, Output> { exit ->
+    val createCommandHandler get() = CommandMonad.Do<Command.Create, State?, Event, Output> { exit ->
         val state = !getState
+        val command = !getCommand
 
         if (state != null) {
             !emitEvents(Error.DeviceAlreadyExists(command.seriesNumber))
@@ -157,16 +159,23 @@ object Device {
         Ok
     }
 
-    fun commandStateMachine(command: Command) =
-        when(command) {
-            is Command.Create -> createCommandHandler(command)
-            is Command.SetStatus -> setStatusHandler(command)
+    val commandStateMachine get() =
+        CommandMonad.Do<Command, State?, Event, Output> {
+            val command = !getCommand
+            when(command) {
+                is Command.Create -> !createCommandHandler
+                is Command.SetStatus -> !setStatusHandler
+            }
         }
 
-    fun eventStateMachine(event: Event) =
-        when(event) {
-            is Event.Created -> createdEventHandler(event)
-            is Event.StatusSet -> statusSetEventHandler(event)
-            else -> StateMonad.noOp(Ok)
+    val eventStateMachine get() =
+        EventMonad.Do<State?, Event, Output> {
+            val event = !getEvent
+            when(event) {
+                is Event.Created -> !createdEventHandler
+                is Event.StatusSet -> !statusSetEventHandler
+                else -> Ok
+            }
         }
+
 }

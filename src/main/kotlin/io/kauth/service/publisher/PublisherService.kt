@@ -40,14 +40,14 @@ object PublisherService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Publisher.Event, Publisher.State>(client, id.streamName)
-                        .commandHandler(Publisher::stateMachine, Publisher::eventStateMachine)
+                        .commandHandler(Publisher.stateMachine, Publisher.eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Publisher.Event,Publisher.State>(client, id.streamName)
-                        .computeStateResult(Publisher::eventStateMachine)
+                        .computeStateResult(Publisher.eventStateMachine)
                 }
             )
 

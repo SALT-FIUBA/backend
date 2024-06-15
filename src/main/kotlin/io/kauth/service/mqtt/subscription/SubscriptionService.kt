@@ -49,22 +49,22 @@ object SubscriptionService : AppService {
             val commands = Command(
                 handle = {
                     stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
-                        .commandHandler(Subscription::stateMachine, Subscription::eventStateMachine)
+                        .commandHandler(Subscription.stateMachine, Subscription.eventStateMachine)
                 },
                 handleTopic = { id ->
                     stream<SubscriptionTopic.Event, SubscriptionTopic.State>(client, id.topicStreamName)
-                        .commandHandler(SubscriptionTopic::stateMachine, SubscriptionTopic::eventStateMachine)
+                        .commandHandler(SubscriptionTopic.stateMachine, SubscriptionTopic.eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = {
                     stream<Subscription.Event, Subscription.State>(client, streamName, snapshotName)
-                        .computeStateResult(Subscription::eventStateMachine)
+                        .computeStateResult(Subscription.eventStateMachine)
                 },
                 readStateTopic = { id ->
                     stream<SubscriptionTopic.Event, SubscriptionTopic.State>(client, id.topicStreamName)
-                        .computeStateResult(SubscriptionTopic::eventStateMachine)
+                        .computeStateResult(SubscriptionTopic.eventStateMachine)
                 }
             )
 

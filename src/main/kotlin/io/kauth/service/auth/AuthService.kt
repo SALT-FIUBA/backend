@@ -40,14 +40,14 @@ object AuthService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Auth.UserEvent, Auth.User>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Auth::stateMachine, Auth::eventStateMachine)
+                        .commandHandler(Auth.stateMachine, Auth.eventStateMachine)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Auth.UserEvent, Auth.User>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Auth::eventStateMachine)
+                        .computeStateResult(Auth.eventStateMachine)
                 }
             )
 

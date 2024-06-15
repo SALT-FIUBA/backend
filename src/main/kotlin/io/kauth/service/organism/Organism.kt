@@ -1,9 +1,10 @@
 package io.kauth.service.organism
 
-import io.kauth.monad.state.StateMonad
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
+import io.kauth.monad.state.CommandMonad
+import io.kauth.monad.state.EventMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
@@ -46,18 +47,13 @@ object Organism {
         object OrganismAlreadyExists : Error
     }
 
-
-    fun handleCreatedEvent(
-        event: Event.OrganismCreated
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleCreatedEvent get() = EventMonad.Do<State?, Event.OrganismCreated, Output> { exit ->
+        val event = !getEvent
         !setState(event.organism)
         Ok
     }
 
-
-    fun handleCreate(
-        command: Command.CreateOrganism
-    ) = StateMonad.Do<State?, Event, Output> { exit ->
+    val handleCreate get() = CommandMonad.Do<Command.CreateOrganism, State?, Event, Output> { exit ->
 
         val state = !getState
 
@@ -81,18 +77,21 @@ object Organism {
         Ok
     }
 
+    val commandStateMachine get() =
+        CommandMonad.Do<Command, State?, Event, Output> { exit ->
+            val command = !getCommand
+            !when (command) {
+                is Command.CreateOrganism -> handleCreate
+            }
+        }
 
-    fun commandStateMachine(
-        command: Command
-    ) = when (command) {
-        is Command.CreateOrganism -> handleCreate(command)
-    }
-
-    fun eventStateMachine(
-        event: Event
-    ) = when (event) {
-        is Event.OrganismCreated -> handleCreatedEvent(event)
-        else -> StateMonad.noOp<State?, Output>(Ok)
-    }
+    val eventStateMachine get() =
+        EventMonad.Do<State?, Event, Output> { exit ->
+            val event = !getEvent
+            when (event) {
+                is Event.OrganismCreated -> !handleCreatedEvent
+                else -> Ok
+            }
+        }
 
 }
