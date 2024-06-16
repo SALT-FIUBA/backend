@@ -44,3 +44,4 @@ bin/
 mqtt/data
 mqtt/log
 monitoring/grafana
+db

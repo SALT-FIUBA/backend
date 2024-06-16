@@ -148,6 +148,13 @@ object Auth {
             val success: Boolean
         ) : UserEvent
 
+
+    }
+
+    @Serializable
+    sealed interface Error : UserEvent {
+        @Serializable
+        data object UserAlReadyExists : Error
     }
 
     @Serializable
@@ -169,7 +176,6 @@ object Auth {
         event.user
     }
 
-
     val handleUserLogin get() = CommandMonad.Do<Command.UserLogin, User?, UserEvent, Output> { exit ->
         val state = !getState ?: !exit(Failure("User does not exists"))
         if(state.credentials.passwordHash != command.passwordHash) {
@@ -190,7 +196,10 @@ object Auth {
     val handleCreateUser get() = CommandMonad.Do<Command.CreateUser, User?, UserEvent, Output> { exit ->
         val state = !getState
 
-        if(state != null) !exit(Failure("User already exists"))
+        if(state != null) {
+            !emitEvents(Error.UserAlReadyExists)
+            !exit(Failure("User already exists"))
+        }
 
         val user =
             User(

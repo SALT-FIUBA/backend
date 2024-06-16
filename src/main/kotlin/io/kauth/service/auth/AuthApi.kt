@@ -11,6 +11,7 @@ import io.kauth.service.auth.jwt.Jwt
 import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
@@ -128,7 +129,7 @@ object AuthApi {
             ?.groups?.get("token")
             ?.value?.trim() ?: ""
 
-        val jwt = !jwtVerify(token) ?: !ApiException("UnAuthorized")
+        val jwt = !jwtVerify(token) ?: !ApiException("UnAuthorized ${request.uri} ${request.origin.remoteAddress}")
 
         !registerService(jwt)
 
