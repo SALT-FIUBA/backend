@@ -1,12 +1,11 @@
 package io.kauth.service.auth
 
+import io.kauth.abstractions.reducer.Reducer
+import io.kauth.abstractions.reducer.reducerOf
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
-import io.kauth.monad.state.EventMonad
-import io.kauth.monad.state.StateMonad
-import io.kauth.service.publisher.Publisher
 import io.kauth.util.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -158,24 +157,16 @@ object Auth {
     )
 
 
-    val handleUserLoggedIn get() = EventMonad.Do<User?, UserEvent.UserLoggedIn, Output> { exit ->
-        val event = !getEvent
-        val state = !getState
-        !setState(state?.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0))
-        Ok
+    val handleUserLoggedIn get() = Reducer<User?, UserEvent.UserLoggedIn> { state, event ->
+        state?.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0)
     }
 
-    val handleUpdatedPersonalData get() = EventMonad.Do<User?, UserEvent.PersonalDataUpdated, Output> { exit ->
-        val event = !getEvent
-        val state = !getState
-        !setState(state?.copy(personalData = event.personalData))
-        Ok
+    val handleUpdatedPersonalData get() = Reducer<User?, UserEvent.PersonalDataUpdated> { state, event ->
+        state?.copy(personalData = event.personalData)
     }
 
-    val handleCreatedUser get() = EventMonad.Do<User?, UserEvent.UserCreated, Output> { exit ->
-        val event = !getEvent
-        !setState(event.user)
-        Ok
+    val handleCreatedUser get() = Reducer<User?, UserEvent.UserCreated> { state, event ->
+        event.user
     }
 
 
@@ -229,13 +220,10 @@ object Auth {
         }
 
     val eventStateMachine get() =
-        EventMonad.Do<User?, UserEvent, Output> { exit ->
-            val event = !getEvent
-            !when (event) {
-                is UserEvent.UserCreated -> handleCreatedUser
-                is UserEvent.UserLoggedIn -> handleUserLoggedIn
-                is UserEvent.PersonalDataUpdated -> handleUpdatedPersonalData
-            }
-        }
+        reducerOf(
+            UserEvent.UserCreated::class to handleCreatedUser,
+            UserEvent.UserLoggedIn::class to handleUserLoggedIn,
+            UserEvent.PersonalDataUpdated::class to handleUpdatedPersonalData
+        )
 
 }

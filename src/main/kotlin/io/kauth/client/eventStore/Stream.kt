@@ -3,14 +3,12 @@ package io.kauth.client.eventStore
 import com.eventstore.dbclient.ExpectedRevision
 import com.eventstore.dbclient.WriteResult
 import io.kauth.abstractions.command.CommandHandler
-import io.kauth.abstractions.state.StateMachine
-import io.kauth.abstractions.state.runMany
+import io.kauth.abstractions.reducer.Reducer
+import io.kauth.abstractions.reducer.runMany
 import io.kauth.client.eventStore.model.*
 import io.kauth.client.eventStore.model.toStreamRevision
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.state.CommandMonad
-import io.kauth.monad.state.EventMonad
-import io.kauth.monad.state.EventMonad.Companion.runMany
 import io.kauth.util.Async
 import io.kauth.util.not
 import kotlinx.datetime.Clock
@@ -104,13 +102,13 @@ fun <E> stream(
 
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandlerIdempotent(
     commandStateMachine: CommandMonad<C,S?,E,O>,
-    eventStateMachine: EventMonad<S?,E,O>,
+    eventStateMachine: Reducer<S?,E>,
     crossinline idempotenceId: (E) -> UUID,
 ): CommandHandler<C, O> = { command: C ->
     AppStack.Do {
 
         //actual state computation
-        val (state, revision) = !computeState<E,S,O>(eventStateMachine)
+        val (state, revision) = !computeState<E,S>(eventStateMachine)
 
         //new events generated
         val (newEvents, output) = commandStateMachine.run(command, state)
@@ -143,11 +141,11 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
 
 inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
     commandStateMachine: CommandMonad<C,S?,E,O>,
-    eventStateMachine: EventMonad<S?,E,O>,
+    eventStateMachine: Reducer<S?,E>,
 ): CommandHandler<C, O> = commandHandlerIdempotent(commandStateMachine,eventStateMachine) { UUID.randomUUID() }
 
-inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeState(
-    eventStateMachine: EventMonad<S?,E,O>,
+inline fun <reified E, reified S> EventStoreStreamSnapshot<E, S>.computeState(
+    eventReducer: Reducer<S?,E>,
 ) = Async {
 
     val snapshotResult = if(snapshot != null) !snapshot.readLast() else null
@@ -160,17 +158,17 @@ inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeState
 
     val events = streamResult?.events?.mapNotNull { it.value } ?: emptyList()
 
-    val newState = eventStateMachine.runMany(events, state)
+    val newState = eventReducer.runMany(events, state)
 
     newState to (streamResult?.lastStreamPosition?.let { ExpectedRevision.fromRawLong(it) }?.toStreamRevision )
 
 }
 
 
-inline fun <reified E, reified S, O> EventStoreStreamSnapshot<E, S>.computeStateResult(
-    eventStateMachine: EventMonad<S?,E,O>,
+inline fun <reified E, reified S> EventStoreStreamSnapshot<E, S>.computeStateResult(
+    eventReducer: Reducer<S?,E>,
 ) = Async {
-    val (fst, snd) = !computeState(eventStateMachine)
+    val (fst, snd) = !computeState(eventReducer)
     return@Async fst
 }
 

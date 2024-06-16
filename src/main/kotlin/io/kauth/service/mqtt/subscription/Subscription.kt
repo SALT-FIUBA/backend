@@ -1,10 +1,11 @@
 package io.kauth.service.mqtt.subscription
 
+import io.kauth.abstractions.reducer.Reducer
+import io.kauth.abstractions.reducer.reducerOf
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
-import io.kauth.monad.state.EventMonad
 import kotlinx.serialization.Serializable
 import mqtt.Subscription
 import mqtt.packets.Qos
@@ -65,18 +66,12 @@ object Subscription {
 
     }
 
-    val handleAdded get() = EventMonad.Do<State?, Event.Added, Output> { exit ->
-        val event = !getEvent
-        val state = !getState ?: State(emptyList())
-        !setState(state.copy(state.data + event.data))
-        Ok
+    val handleAdded get() = Reducer<State?, Event.Added> { state, event ->
+        state?.copy(state.data + event.data)
     }
 
-    val handleRemoved get() = EventMonad.Do<State?, Event.Removed, Output> { exit ->
-        val event = !getEvent
-        val state = !getState
-        !setState(state?.copy(data = state.data.filter { it.topic != event.topic }))
-        Ok
+    val handleRemoved get() = Reducer<State?, Event.Removed> { state, event ->
+        state?.copy(data = state.data.filter { it.topic != event.topic })
     }
 
     val handleAdd get() = CommandMonad.Do<Command.Add, State?, Event, Output> { exit ->
@@ -112,14 +107,11 @@ object Subscription {
             }
         }
 
-    val eventStateMachine get() =
-        EventMonad.Do<State?, Event, Output> { exit ->
-            val event = !getEvent
-            when(event) {
-                is Event.Removed -> !handleRemoved
-                is Event.Added -> !handleAdded
-                else -> Ok
-            }
-        }
+    val eventStateMachine
+        get() =
+            reducerOf(
+                Event.Removed::class to handleRemoved,
+                Event.Added::class to handleAdded
+            )
 
 }

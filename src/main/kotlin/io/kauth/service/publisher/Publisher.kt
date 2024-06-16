@@ -1,11 +1,12 @@
 package io.kauth.service.publisher
 
+import io.kauth.abstractions.reducer.Reducer
+import io.kauth.abstractions.reducer.reducerOf
 import io.kauth.abstractions.result.AppResult
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
-import io.kauth.monad.state.EventMonad
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -62,23 +63,18 @@ object Publisher {
         val result: AppResult<String>?
     )
 
-    val handlePublishedEvent get() =EventMonad.Do<State?, Event.Publish, Output> { exit ->
-        val event = !getEvent
-        !setState(
+    val handlePublishedEvent
+        get() = Reducer<State?, Event.Publish> { state, event ->
             State(
                 data = event.data,
                 channel = event.channel,
                 resource = event.resource,
                 result = null
             )
-        )
-        Ok
-    }
+        }
 
-    val handleSetStatusEvent get() = EventMonad.Do<State?, Event.PublishResult, Output> { exit ->
-        val state = !getState
-        !setState(state?.copy(result = event.result))
-        Ok
+    val handleSetStatusEvent get() = Reducer<State?, Event.PublishResult> { state, event ->
+        state?.copy(result = event.result)
     }
 
     val handleSetStatus get() = CommandMonad.Do<Command.PublishResult, State?, Event, Output> { exit ->
@@ -108,13 +104,11 @@ object Publisher {
             }
         }
 
-    val eventStateMachine get() =
-        EventMonad.Do<State?, Event, Output> { exit ->
-            val event = !getEvent
-            !when(event) {
-                is Event.Publish -> handlePublishedEvent
-                is Event.PublishResult -> handleSetStatusEvent
-            }
-        }
+    val eventReducer
+        get() =
+            reducerOf(
+                Event.Publish::class to handlePublishedEvent,
+                Event.PublishResult::class to handleSetStatusEvent
+            )
 
 }

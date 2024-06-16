@@ -1,12 +1,11 @@
 package io.kauth.service.reservation
 
+import io.kauth.abstractions.reducer.Reducer
+import io.kauth.abstractions.reducer.reducerOf
 import io.kauth.abstractions.result.Fail
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
-import io.kauth.monad.state.EventMonad
-import io.kauth.monad.state.StateMonad
-import io.kauth.service.salt.Device
 import kotlinx.serialization.Serializable
 
 //Este servicio sirve para tomar/liberar un recurso
@@ -43,23 +42,12 @@ object Reservation {
 
     }
 
-    val ResourceEvent.asCommand get() =
-        when(this) {
-            is ResourceEvent.ResourceReleased -> Command.Release
-            is ResourceEvent.ResourceTaken -> Command.Take(ownerId)
-        }
-
-
-    val handleTakenEvent get() = EventMonad.Do<Reservation?, ResourceEvent.ResourceTaken, Output> { exit ->
-        val state = !getState
-        !setState(state?.copy(taken = true) ?: Reservation(taken = true, ownerId = event.ownerId))
-        Ok
+    val handleTakenEvent get() = Reducer<Reservation?, ResourceEvent.ResourceTaken> { state, event ->
+        state?.copy(taken = true) ?: Reservation(taken = true, ownerId = event.ownerId)
     }
 
-    val handleReleasedEvent get() = EventMonad.Do<Reservation?, ResourceEvent.ResourceReleased, Output> { exit ->
-        val state = !getState
-        !setState(state?.copy(taken = false))
-        Ok
+    val handleReleasedEvent get() = Reducer<Reservation?, ResourceEvent.ResourceReleased> { state, event ->
+        state?.copy(taken = false)
     }
 
 
@@ -85,12 +73,9 @@ object Reservation {
             }
         }
 
-    val eventStateMachine get() = EventMonad.Do<Reservation?, ResourceEvent, Output> {
-        val event = !getEvent
-        !when(event) {
-            is ResourceEvent.ResourceTaken -> handleTakenEvent
-            is ResourceEvent.ResourceReleased -> handleReleasedEvent
-        }
-    }
+    val eventReducer get() = reducerOf(
+        ResourceEvent.ResourceTaken::class to handleTakenEvent,
+        ResourceEvent.ResourceReleased::class to handleReleasedEvent
+    )
 
 }

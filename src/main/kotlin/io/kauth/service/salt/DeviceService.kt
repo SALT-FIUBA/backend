@@ -42,14 +42,14 @@ object DeviceService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Device.Event, Device.State>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Device.commandStateMachine, Device.eventStateMachine)
+                        .commandHandler(Device.commandStateMachine, Device.eventReducer)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Device.Event, Device.State>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Device.eventStateMachine)
+                        .computeStateResult(Device.eventReducer)
                 }
             )
 

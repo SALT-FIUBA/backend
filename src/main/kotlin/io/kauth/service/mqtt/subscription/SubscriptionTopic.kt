@@ -1,11 +1,11 @@
 package io.kauth.service.mqtt.subscription
 
+import io.kauth.abstractions.reducer.Reducer
+import io.kauth.abstractions.reducer.reducerOf
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
-import io.kauth.monad.state.EventMonad
-import io.kauth.monad.state.StateMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
@@ -46,27 +46,20 @@ object SubscriptionTopic {
         data object Remove: Command
     }
 
-    val handleAdded get() = EventMonad.Do<State?, Event.Added, Output> { exit ->
-        val event = !getEvent
-        !setState(
+    val handleAdded
+        get() = Reducer<State?, Event.Added> { state, event ->
             State(
                 resource = event.resource,
                 createdAt = event.createdAt
             )
-        )
-        Ok
+        }
+
+    val handleSubscribedEvent get() = Reducer<State?,Event.Subscribed> { state, event ->
+        state?.copy(lastSubscribedAt = event.at)
     }
 
-    val handleSubscribedEvent get() = EventMonad.Do<State?,Event.Subscribed, Output> { exit ->
-        val event = !getEvent
-        val state = !getState
-        !setState(state?.copy(lastSubscribedAt = event.at))
-        Ok
-    }
-
-    val handleRemoved get() = EventMonad.Do<State?,Event.Removed, Output> { exit ->
-        !setState(null)
-        Ok
+    val handleRemoved get() = Reducer<State?,Event.Removed> { state, event ->
+        null
     }
 
     val handleAdd get() = CommandMonad.Do<Command.Add, State?,Event, Output> { exit ->
@@ -90,7 +83,7 @@ object SubscriptionTopic {
     }
 
     val handleRemove get() = CommandMonad.Do<Command.Remove, State?,Event, Output> { exit ->
-        val state = !getState ?: !exit(Failure("Topic subscription does not exists to remove"))
+        !getState ?: !exit(Failure("Topic subscription does not exists to remove"))
         !emitEvents(Event.Removed)
         Ok
     }
@@ -105,15 +98,12 @@ object SubscriptionTopic {
             }
         }
 
-
-    val eventStateMachine get() =
-        EventMonad.Do<State?,Event, Output> { exit ->
-            val event = !getEvent
-            !when(event) {
-                is Event.Subscribed -> handleSubscribedEvent
-                is Event.Removed -> handleRemoved
-                is Event.Added -> handleAdded
-            }
-        }
+    val eventStateMachine
+        get() =
+            reducerOf(
+                Event.Subscribed::class to handleSubscribedEvent,
+                Event.Removed::class to handleRemoved,
+                Event.Added::class to handleAdded
+            )
 
 }

@@ -7,7 +7,6 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
-import io.kauth.service.reservation.Reservation.asCommand
 import io.kauth.util.Async
 
 object ReservationService : AppService {
@@ -38,14 +37,14 @@ object ReservationService : AppService {
             val commands = Command(
                 handle = { id ->
                     stream<Reservation.ResourceEvent, Reservation.Reservation>(client, id.streamName, id.snapshotName)
-                        .commandHandler(Reservation.stateMachine, Reservation.eventStateMachine)
+                        .commandHandler(Reservation.stateMachine, Reservation.eventReducer)
                 }
             )
 
             val query = Query(
                 readState = { id ->
                     stream<Reservation.ResourceEvent, Reservation.Reservation>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(Reservation.eventStateMachine)
+                        .computeStateResult(Reservation.eventReducer)
                 }
             )
 

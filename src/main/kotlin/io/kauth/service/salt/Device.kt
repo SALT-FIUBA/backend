@@ -1,10 +1,11 @@
 package io.kauth.service.salt
 
+import io.kauth.abstractions.reducer.Reducer
+import io.kauth.abstractions.reducer.reducerOf
 import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
-import io.kauth.monad.state.EventMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -110,17 +111,12 @@ object Device {
         object DeviceDoesNotExists: Error
     }
 
-    val createdEventHandler get() = EventMonad.Do<State?, Event.Created, Output> { exit ->
-        val event = !getEvent
-        !setState(event.device)
-        Ok
+    val createdEventHandler get() = Reducer<State?, Event.Created> { state, event ->
+        event.device
     }
 
-    val statusSetEventHandler get() = EventMonad.Do<State?, Event.StatusSet, Output> { exit ->
-        val state = !getState
-        val event = !getEvent
-        !setState(state?.copy(status = event.status))
-        Ok
+    val statusSetEventHandler get() = Reducer<State?, Event.StatusSet> { state, event ->
+        state?.copy(status = event.status)
     }
 
     val setStatusHandler get() = CommandMonad.Do<Command.SetStatus, State?, Event, Output> { exit ->
@@ -168,14 +164,10 @@ object Device {
             }
         }
 
-    val eventStateMachine get() =
-        EventMonad.Do<State?, Event, Output> {
-            val event = !getEvent
-            when(event) {
-                is Event.Created -> !createdEventHandler
-                is Event.StatusSet -> !statusSetEventHandler
-                else -> Ok
-            }
-        }
+    val eventReducer get() =
+        reducerOf(
+            Event.Created::class to createdEventHandler,
+            Event.StatusSet::class to statusSetEventHandler
+        )
 
 }
