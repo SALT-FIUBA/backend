@@ -26,7 +26,7 @@ ktor {
     }
     docker {
         localImageName.set("salt-server")
-        imageTag.set("0.0.1-preview")
+        imageTag.set("0.0.1-preview-rc1")
     }
 }
 

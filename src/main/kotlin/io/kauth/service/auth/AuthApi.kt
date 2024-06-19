@@ -129,7 +129,7 @@ object AuthApi {
             ?.groups?.get("token")
             ?.value?.trim() ?: ""
 
-        val jwt = !jwtVerify(token) ?: !ApiException("UnAuthorized ${request.uri} ${request.origin.remoteAddress}")
+        val jwt = !jwtVerify(token) ?: !ApiException("UnAuthorized ${request.uri}")
 
         !registerService(jwt)
 
