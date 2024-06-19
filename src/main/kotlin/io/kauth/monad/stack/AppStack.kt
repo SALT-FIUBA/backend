@@ -125,8 +125,14 @@ inline fun <reified T> appStackEventHandler(
 
 fun Application.runAppStack(stack: AppStack<*>) {
 
+    val dbHost = environment
+        .config
+        .propertyOrNull("postgres.host")
+        ?.getString()
+        ?: "localhost:5432/salt"
+
     val db = Database.connect(
-        url = "jdbc:postgresql://localhost:5432/salt",
+        url = "jdbc:postgresql://$dbHost",
         driver = "org.postgresql.Driver",
         user = "salt",
         password = "1234"

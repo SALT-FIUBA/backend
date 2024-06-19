@@ -1,9 +1,9 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     application
     kotlin("jvm") version "2.0.0"
     kotlin("plugin.serialization") version "1.9.0"
+    id("io.ktor.plugin") version "2.3.11"
 }
 
 group = "org.example"
@@ -13,11 +13,21 @@ repositories {
     mavenCentral()
 }
 
+
 application {
     mainClass.set("io.kauth.MainKt")
-
     val isDevelopment: Boolean = project.ext.has("development")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
+}
+
+ktor {
+    fatJar {
+        archiveFileName.set("salt-server.jar")
+    }
+    docker {
+        localImageName.set("salt-server")
+        imageTag.set("0.0.1-preview")
+    }
 }
 
 val ktorVersion = "2.3.6"
@@ -73,6 +83,12 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.jar {
+    from("src/main/resources/META-INF/services/io.grpc.LoadBalancerProvider") {
+        into("META-INF/services")
+    }
 }
 
 kotlin {

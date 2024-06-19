@@ -35,6 +35,7 @@ object PublisherApiRest {
             route("publisher")  {
 
                 post(path = "/publish") {
+                    !call.auth
                     val command = call.receive<PublishRequest>()
                     val result = !PublisherApi.publish(
                         command.messageId,
@@ -47,6 +48,7 @@ object PublisherApiRest {
 
 
                 get("{id}") {
+                    !call.auth
                     val id = call.parameters["id"] ?: !ApiException("Id Not found")
                     val organism = !PublisherApi.readState(UUID.fromString(id)) ?: !ApiException("Message not found")
                     call.respond(HttpStatusCode.OK, organism)

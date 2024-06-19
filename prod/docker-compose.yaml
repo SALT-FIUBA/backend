@@ -24,22 +24,22 @@ services:
         target: /var/log/eventstore
 
  # Prometheus container to query backend metrics
-  prometheus:
-      image: prom/prometheus
-      restart: always
-      ports:
-        - "3570:9090"
-      volumes:
-        - ./monitoring:/etc/prometheus/
+  #  prometheus:
+  #    image: prom/prometheus
+  #    restart: always
+  #    ports:
+  #      - "3570:9090"
+  #    volumes:
+  #      - ./monitoring:/etc/prometheus/
 
   # Grafana container to visualize data
-  grafana:
-     image: grafana/grafana:5.1.0
-     ports:
-       - 3000:3000
-     user: "104"
-     volumes:
-       - ./monitoring/grafana:/var/lib/grafana
+  # grafana:
+  #   image: grafana/grafana:5.1.0
+  #   ports:
+  #     - 3000:3000
+  #   user: "104"
+  #   volumes:
+  #     - ./monitoring/grafana:/var/lib/grafana
 
   # mqtt-broker:
   #   image: eclipse-mosquitto
@@ -63,6 +63,36 @@ services:
       - POSTGRES_PASSWORD=1234
       - POSTGRES_USER=salt
       - POSTGRES_DB=salt
+
+  backend:
+    image: salt-server:0.0.1-preview
+    environment:
+      - EVENTSTORE_DB_HOST=esdb://eventstore.db:2113?tls=false
+      - POSTGRES_HOST=postgres:5432/salt
+    depends_on:
+      - eventstore.db
+      - postgres
+
+  nginx:
+     build:
+       context: ./nginx
+       dockerfile: Dockerfile
+     ports:
+       - "80:80"
+       - "443:443"
+     volumes:
+       - ./certbot/conf:/etc/letsencrypt
+       - ./certbot/www:/var/www/certbot
+     depends_on:
+       - backend
+
+  certbot:
+     image: certbot/certbot
+     restart: unless-stopped
+     volumes:
+       - ./certbot/conf:/etc/letsencrypt
+       - ./certbot/www:/var/www/certbot
+     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
 
 volumes:
   eventstore-volume-data:

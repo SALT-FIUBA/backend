@@ -114,13 +114,20 @@ fun Application.kauthApp() {
     runAppStack(
         AppStack.Do {
 
+            println(environment.config.toMap())
+
+            val eventstoreDbHost = environment.config
+                .propertyOrNull("eventstoredb.host")
+                ?.getString()
+                ?: "esdb://localhost:2113?tls=false"
+
             //Setup clients
             !registerService(
-                !eventStoreClientNew("esdb://localhost:2113?tls=false", serialization)
+                !eventStoreClientNew(eventstoreDbHost, serialization)
             )
 
             !registerService(
-                !eventStoreClientPersistenceSubsNew("esdb://localhost:2113?tls=false", serialization)
+                !eventStoreClientPersistenceSubsNew(eventstoreDbHost, serialization)
             )
 
             !registerService(
@@ -141,12 +148,5 @@ fun Application.kauthApp() {
     )
 }
 
-fun main() {
-    embeddedServer(
-        factory = CIO,
-        port = 8080,
-        host = "0.0.0.0",
-        module = Application::kauthApp
-    )
-        .start(wait = true)
-}
+
+fun main(args: Array<String>): Unit = EngineMain.main(args)

@@ -1,4 +1,3 @@
-
 scrape_configs:
   - job_name: 'salt'
     metrics_path: /metrics

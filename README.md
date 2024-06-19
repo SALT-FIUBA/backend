@@ -22,6 +22,36 @@ https://medium.com/@math21/how-to-monitor-a-ktor-server-using-grafana-bab54a9ac0
 https://docs.micrometer.io/micrometer/reference/implementations/prometheus.html
 https://github.com/mathias21/KtorEasy/blob/feature/monitoring/KtorEasyGrafanaDashboard.json
 
+Domains FREE
+============
+
+https://freedns.afraid.org/
+Domain -> saltautomation.chickenkiller.com
+
+SSL Certbot 
+===========
+
+https://pentacent.medium.com/nginx-and-lets-encrypt-with-docker-in-less-than-5-minutes-b4b8a60d3a71
+https://leangaurav.medium.com/simplest-https-setup-nginx-reverse-proxy-letsencrypt-ssl-certificate-aws-cloud-docker-4b74569b3c61
+
+Docker 
+======
+
+Exportar imagen docker a un tar:
+
+> docker save -o ./salt-server.tar salt-server:0.0.1-preview
+
+Port Knocking
+=============
+
+TODO
+
+Installations
+=============
+
+Docker->https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
+Docker-compose -> https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04
+
 Type classes & context receivers
 ================================
 
