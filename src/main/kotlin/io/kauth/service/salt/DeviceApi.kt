@@ -45,7 +45,7 @@ object DeviceApi {
 
         log.info("Create device $seriesNumber")
 
-        !OrganismApi.readState(organismId) ?: !ApiException("Organism does not exists")
+        !OrganismApi.Query.readState(organismId) ?: !ApiException("Organism does not exists")
 
         val deviceId = !ReservationApi.takeIfNotTaken("device-${seriesNumber}") { UUID.randomUUID().toString() }
 

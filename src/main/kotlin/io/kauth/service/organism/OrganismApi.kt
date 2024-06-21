@@ -2,46 +2,68 @@ package io.kauth.service.organism
 
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.monad.stack.*
+import io.kauth.service.auth.AuthApi.validateSupervisor
+import io.kauth.service.auth.jwt.Jwt
+import io.kauth.service.organism.OrganismProjection.OrganismTable
+import io.kauth.service.organism.OrganismProjection.toOrganismProjection
 import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.not
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.upsert
 import java.util.*
 
 object OrganismApi {
 
-    fun readState(id: UUID) = AppStack.Do {
-        val authService = !getService<OrganismService.Interface>()
-        !authService.query.readState(id)
+    object Command {
+
+        fun create(
+            tag: String,
+            name: String,
+            description: String,
+        ) = AppStack.Do {
+
+            val log = !authStackLog
+            val jwt = !authStackJwt
+
+            val service = !getService<OrganismService.Interface>()
+
+            val id = !ReservationApi.takeIfNotTaken("organism-${name}") { UUID.randomUUID().toString() }
+
+            log.info("Create organism $name")
+
+            !service.command
+                .handle(UUID.fromString(id))
+                .throwOnFailureHandler(
+                    Organism.Command.CreateOrganism(
+                        tag = tag,
+                        name = name,
+                        description = description,
+                        createdBy = jwt.payload.id,
+                        createdAt = Clock.System.now()
+                    ),
+                )
+
+            id
+
+        }
+
     }
 
-    fun create(
-        tag: String,
-        name: String,
-        description: String,
-    ) = AppStack.Do {
+    object Query {
 
-        val log = !authStackLog
-        val jwt = !authStackJwt
+        fun readState(id: UUID) = AppStack.Do {
+            val service = !getService<OrganismService.Interface>()
+            !service.query.readState(id)
+        }
 
-        val service = !getService<OrganismService.Interface>()
-
-        val id = !ReservationApi.takeIfNotTaken("organism-${name}") { UUID.randomUUID().toString() }
-
-        log.info("Create organism $name")
-
-        !service.command
-            .handle(UUID.fromString(id))
-            .throwOnFailureHandler(
-                Organism.Command.CreateOrganism(
-                    tag = tag,
-                    name = name,
-                    description = description,
-                    createdBy = jwt.payload.id,
-                    createdAt = Clock.System.now()
-                ),
-            )
-
-        id
+        fun organismsList() = AppStack.Do {
+            !validateSupervisor
+            !appStackDbQuery {
+                OrganismTable.selectAll()
+                    .map { it.toOrganismProjection }
+            }
+        }
 
     }
 

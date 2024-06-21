@@ -159,6 +159,13 @@ object AuthApi {
 
     }
 
+    val validateSupervisor get() = AppStack.Do {
+        val auth = !authStackJwt
+        if("supervisor" !in auth.payload.roles) {
+            !ApiException("UnAuthorized")
+        }
+    }
+
     val readStateFromSession get() = AppStack.Do {
         val jwt = !authStackJwt
         !readState(UUID.fromString(jwt.payload.id)) ?: !ApiException("User not found")

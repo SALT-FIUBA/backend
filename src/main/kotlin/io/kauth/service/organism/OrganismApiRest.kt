@@ -30,7 +30,7 @@ object OrganismApiRest {
                 post(path = "/create") {
                     !call.auth
                     val command = call.receive<CreateRequest>()
-                    val result = !OrganismApi.create(
+                    val result = !OrganismApi.Command.create(
                         command.tag,
                         command.name,
                         command.description
@@ -38,10 +38,16 @@ object OrganismApiRest {
                     call.respond(HttpStatusCode.Created, result)
                 }
 
+                get("/list") {
+                    !call.auth
+                    val result = !OrganismApi.Query.organismsList()
+                    call.respond(HttpStatusCode.OK, result)
+                }
+
                 get("{id}") {
                     !call.auth
                     val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                    val organism = !OrganismApi.readState(UUID.fromString(id)) ?: !ApiException("Organism not found")
+                    val organism = !OrganismApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Organism not found")
                     call.respond(HttpStatusCode.OK, organism)
                 }
 

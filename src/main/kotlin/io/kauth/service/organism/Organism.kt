@@ -44,8 +44,10 @@ object Organism {
 
     }
 
+    @Serializable
     sealed interface Error : Event {
-        object OrganismAlreadyExists : Error
+        @Serializable
+        data object OrganismAlreadyExists : Error
     }
 
     val handleCreatedEvent get() = Reducer<State?, Event.OrganismCreated> { state, event ->

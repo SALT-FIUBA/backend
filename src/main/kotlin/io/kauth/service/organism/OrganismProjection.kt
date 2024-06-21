@@ -6,6 +6,7 @@ import io.kauth.monad.stack.appStackSqlProjector
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -24,6 +25,26 @@ object OrganismProjection {
         val createdAt = timestamp("created_at")
     }
 
+    @Serializable
+    data class OrganismProjection(
+        val id: String,
+        val name: String,
+        val tag: String,
+        val description: String,
+        val createdBy: String,
+        val createdAt: Instant
+    )
+
+    val ResultRow.toOrganismProjection get() =
+        OrganismProjection(
+            this[OrganismTable.id],
+            this[OrganismTable.name],
+            this[OrganismTable.tag],
+            this[OrganismTable.description],
+            this[OrganismTable.createdBy],
+            this[OrganismTable.createdAt],
+        )
+
     val sqlEventHandler = appStackSqlProjector<Organism.Event>(
         streamName = "\$ce-organism",
         consumerGroup = "organism-sql-projection",
@@ -32,7 +53,7 @@ object OrganismProjection {
         AppStack.Do {
 
             val entity = UUID.fromString(event.retrieveId("organism"))
-            val state = !OrganismApi.readState(entity) ?: return@Do
+            val state = !OrganismApi.Query.readState(entity) ?: return@Do
 
             !appStackDbQuery {
                 OrganismTable.upsert() {
