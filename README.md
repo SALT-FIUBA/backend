@@ -1,3 +1,12 @@
+
+TODO
+====
+
++ Setup secure EventStore to have users and ACL 
+https://developers.eventstore.com/server/v22.10/installation.html#use-docker-compose
+
+
+
 kauth
 =====
 

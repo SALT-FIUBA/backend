@@ -23,6 +23,7 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -60,6 +61,17 @@ val installKtorPlugins =
                 get("/metrics") {
                     call.respond(metricClient.scrape())
                 }
+            }
+
+            //TODO config
+            install(CORS) {
+                anyHost()
+                allowMethod(HttpMethod.Get)
+                allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Options)
+                allowHeader(HttpHeaders.ContentType)
+                allowHeader(HttpHeaders.Authorization)
+                allowCredentials = true
             }
 
             install(MicrometerMetrics) {
