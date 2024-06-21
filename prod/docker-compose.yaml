@@ -3,6 +3,7 @@ version: "3.9"
 services:
   eventstore.db:
     image: eventstore/eventstore:21.10.0-buster-slim
+    restart: always
     environment:
       - EVENTSTORE_CLUSTER_SIZE=1
       - EVENTSTORE_RUN_PROJECTIONS=All
@@ -24,37 +25,41 @@ services:
         target: /var/log/eventstore
 
  # Prometheus container to query backend metrics
-  #  prometheus:
-  #    image: prom/prometheus
-  #    restart: always
-  #    ports:
-  #      - "3570:9090"
-  #    volumes:
-  #      - ./monitoring:/etc/prometheus/
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    ports:
+      - "3570:9090"
+    volumes:
+      - ./monitoring:/etc/prometheus/
 
   # Grafana container to visualize data
-  # grafana:
-  #   image: grafana/grafana:5.1.0
-  #   ports:
-  #     - 3000:3000
-  #   user: "104"
-  #   volumes:
-  #     - ./monitoring/grafana:/var/lib/grafana
+  grafana:
+    image: grafana/grafana:5.1.0
+    restart: always
+    ports:
+      - 3000:3000
+    #user: "104"
+    user: "0"
+    environment:
+      #- GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
+      - GF_SECURITY_ADMIN_PASSWORD=s@ltsecretmetrics
+    volumes:
+      - ./monitoring/grafana:/var/lib/grafana
 
-  # mqtt-broker:
-  #   image: eclipse-mosquitto
-  #   container_name: mqtt5
-  #   ports:
-  #     - "1883:1883" #default mqtt port
-  #     - "9001:9001" #default mqtt port for websockets
-  #   volumes:
-  #     - ./mqtt/config:/mosquitto/config:rw
-  #     - ./mqtt/data:/mosquitto/data:rw
-  #     - ./mqtt/log:/mosquitto/log:rw
-  #   restart: unless-stopped
+  nginx-logs:
+    image: quay.io/martinhelmich/prometheus-nginxlog-exporter
+    restart: always
+    ports:
+      - 127.0.0.1:4040:4040
+    volumes:
+      - ./nginx/logs:/mnt/nginxlogs
+      - ./monitoring/prometheus-nginxlog-exporter.hcl:/etc/prometheus-nginxlog-exporter.hcl
+    command: ["-config-file", "/etc/prometheus-nginxlog-exporter.hcl"]
 
   postgres:
     image: postgres:14-alpine
+    restart: always
     ports:
       - "5432:5432"
     volumes:
@@ -66,6 +71,7 @@ services:
 
   backend:
     image: salt-server:0.0.1-preview
+    restart: always
     environment:
       - EVENTSTORE_DB_HOST=esdb://eventstore.db:2113?tls=false
       - POSTGRES_HOST=postgres:5432/salt
@@ -77,12 +83,14 @@ services:
      build:
        context: ./nginx
        dockerfile: Dockerfile
+     restart: always
      ports:
        - "80:80"
        - "443:443"
      volumes:
        - ./certbot/conf:/etc/letsencrypt
        - ./certbot/www:/var/www/certbot
+       - ./nginx/logs:/var/log/nginx
      depends_on:
        - backend
 
@@ -92,7 +100,8 @@ services:
      volumes:
        - ./certbot/conf:/etc/letsencrypt
        - ./certbot/www:/var/www/certbot
-     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+       - ./certbot/nging_reload.sh:/nginx_reload.sh
+     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; /nginx_reload.sh; sleep 12h & wait $${!}; done;'"
 
 volumes:
   eventstore-volume-data:
