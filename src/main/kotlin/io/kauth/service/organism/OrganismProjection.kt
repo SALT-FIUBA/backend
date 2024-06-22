@@ -3,6 +3,7 @@ package io.kauth.service.organism
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.service.auth.AuthApi
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
@@ -22,6 +23,7 @@ object OrganismProjection {
         val tag = text("tag")
         val description = text("description")
         val createdBy = text("created_by")
+        val createdByEmail = text("created_by_email").nullable()
         val createdAt = timestamp("created_at")
     }
 
@@ -32,6 +34,7 @@ object OrganismProjection {
         val tag: String,
         val description: String,
         val createdBy: String,
+        val createdByEmail: String? = null,
         val createdAt: Instant
     )
 
@@ -42,6 +45,7 @@ object OrganismProjection {
             this[OrganismTable.tag],
             this[OrganismTable.description],
             this[OrganismTable.createdBy],
+            this[OrganismTable.createdByEmail],
             this[OrganismTable.createdAt],
         )
 
@@ -54,6 +58,7 @@ object OrganismProjection {
 
             val entity = UUID.fromString(event.retrieveId("organism"))
             val state = !OrganismApi.Query.readState(entity) ?: return@Do
+            val user = !AuthApi.Query.readState(UUID.fromString(state.createdBy))
 
             !appStackDbQuery {
                 OrganismTable.upsert() {
@@ -62,6 +67,7 @@ object OrganismProjection {
                     it[name] = state.name
                     it[description] = state.description
                     it[createdBy] = state.createdBy
+                    it[createdByEmail] = user?.email
                     it[createdAt] = state.createdAt
                 }
             }

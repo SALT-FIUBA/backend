@@ -18,8 +18,8 @@ object SubscriptionService : AppService {
     val STREAM_NAME = "subscription"
     val STREAM_PREFIX = "$STREAM_NAME-"
     val SNAPSHOT_STREAM_PREFIX = "subscription_snapshot-"
-    val streamName get() = STREAM_PREFIX + "UNIT"
-    val snapshotName get() = SNAPSHOT_STREAM_PREFIX + "UNIT"
+    val streamName get() = STREAM_PREFIX + "Unit"
+    val snapshotName get() = SNAPSHOT_STREAM_PREFIX + "Unit"
 
     //INDIVIDUAL TOPIC
     val TOPIC_STREAM_NAME = "subscription_topic"

@@ -72,7 +72,7 @@ fun <T : Any> registerService(key: KClass<T>, service: T) =
 
 
 inline fun <reified T : Any> getService() = AppStack.Do {
-    !services.get(T::class) ?: error("[${T::class.simpleName}] Service not found")
+    !services.get(T::class) ?: error("[${T::class}] Service not found")
 }
 
 val authStackMetrics = AppStack.Do {

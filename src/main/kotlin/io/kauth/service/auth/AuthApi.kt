@@ -6,13 +6,17 @@ import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
+import io.kauth.service.auth.AuthProjection.toUserProjection
 import io.kauth.service.auth.jwt.Jwt
 import io.kauth.service.reservation.ReservationApi
+import io.kauth.service.salt.DeviceProjection
+import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.util.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
+import org.jetbrains.exposed.sql.selectAll
 import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
 
@@ -68,7 +72,7 @@ object AuthApi {
 
         val result = !ReservationApi.readState("user-$email") ?: !ApiException("User does not exists")
 
-        val user = !readState(UUID.fromString(result.ownerId)) ?: !ApiException("User does not exists")
+        val user = !Query.readState(UUID.fromString(result.ownerId)) ?: !ApiException("User does not exists")
 
         !authService.command
             .handle(UUID.fromString(result.ownerId))
@@ -166,12 +170,45 @@ object AuthApi {
 
     val readStateFromSession get() = AppStack.Do {
         val jwt = !authStackJwt
-        !readState(UUID.fromString(jwt.payload.id)) ?: !ApiException("User not found")
+        !Query.get(jwt.payload.id) ?: !ApiException("User not found")
     }
 
-    fun readState(id: UUID) = AppStack.Do {
-        val authService = !getService<AuthService.Interface>()
-        !authService.query.readState(id)
+    object Query {
+
+        fun readState(id: UUID) = AppStack.Do {
+            val authService = !getService<AuthService.Interface>()
+            !authService.query.readState(id)
+        }
+
+        fun get(id: String) = AppStack.Do {
+            !appStackAuthValidateSupervisor
+            !appStackDbQuery {
+                AuthProjection.User.selectAll()
+                    .where { AuthProjection.User.id eq id }
+                    .singleOrNull()
+                    ?.toUserProjection
+            }
+        }
+
+        fun getByEmail(email: String) = AppStack.Do {
+            !appStackAuthValidateSupervisor
+            !appStackDbQuery {
+                AuthProjection.User.selectAll()
+                    .where { AuthProjection.User.email eq email }
+                    .singleOrNull()
+                    ?.toUserProjection
+            }
+        }
+
+        fun list() = AppStack.Do {
+            !appStackAuthValidateSupervisor
+            !appStackDbQuery {
+                AuthProjection.User.selectAll()
+                    .map { it.toUserProjection }
+            }
+        }
+
+
     }
 
 }

@@ -66,7 +66,7 @@ object AuthService : AppService {
 
             !AuthProjection.sqlEventHandler
 
-            !AuthRest.api
+            !AuthApiRest.api
 
         }
 

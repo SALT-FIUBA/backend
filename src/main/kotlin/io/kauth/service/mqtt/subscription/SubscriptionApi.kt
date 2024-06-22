@@ -62,7 +62,9 @@ object SubscriptionApi {
 
     fun readState() = AppStack.Do {
         val authService = !getService<SubscriptionService.Interface>()
-        !authService.query.readState()
+        val topics = !authService.query.readState()
+        println("TOPICS $topics")
+        topics
     }
 
     fun readState(topic: String) = AppStack.Do {

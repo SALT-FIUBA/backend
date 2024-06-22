@@ -67,7 +67,8 @@ object Subscription {
     }
 
     val handleAdded get() = Reducer<State?, Event.Added> { state, event ->
-        state?.copy(state.data + event.data)
+        val s = state ?: State(emptyList())
+        s.copy(s.data + event.data)
     }
 
     val handleRemoved get() = Reducer<State?, Event.Removed> { state, event ->

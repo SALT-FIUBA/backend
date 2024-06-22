@@ -3,6 +3,8 @@ package io.kauth.service.auth
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
+import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.upsert
 import java.util.*
@@ -18,6 +20,24 @@ object AuthProjection {
         val roles = array<String>("roles")
     }
 
+    @Serializable
+    data class UserProjection(
+        val id: String,
+        val firstname: String,
+        val lastname: String,
+        val email: String,
+        val roles: List<String>
+    )
+
+    val ResultRow.toUserProjection get() =
+        UserProjection(
+            this[User.id],
+            this[User.firstname],
+            this[User.lastname],
+            this[User.email],
+            this[User.roles],
+        )
+
     val sqlEventHandler = appStackSqlProjector<Auth.UserEvent>(
         streamName = "\$ce-user",
         consumerGroup = "user-sql-projection",
@@ -26,7 +46,7 @@ object AuthProjection {
         AppStack.Do {
 
             val userId = UUID.fromString(event.retrieveId("user"))
-            val state = !AuthApi.readState(userId) ?: return@Do
+            val state = !AuthApi.Query.readState(userId) ?: return@Do
 
             !appStackDbQuery {
                 User.upsert() {

@@ -1,5 +1,7 @@
 package io.kauth.service.auth
 
+import io.kauth.exception.ApiException
+import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
 import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
@@ -9,7 +11,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 
-object AuthRest {
+object AuthApiRest {
 
     @Serializable
     data class RegisterRequest(
@@ -72,6 +74,26 @@ object AuthRest {
                     !call.auth
                     val user = !AuthApi.readStateFromSession
                     call.respond(HttpStatusCode.OK, user)
+                }
+
+                get(path = "/user/{id}") {
+                    !call.auth
+                    val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                    val user = !AuthApi.Query.get(id) ?: !ApiException("User not found")
+                    call.respond(HttpStatusCode.OK, user)
+                }
+
+                get(path = "/user/email/{email}") {
+                    !call.auth
+                    val id = call.parameters["email"] ?: !ApiException("Email Not found")
+                    val user = !AuthApi.Query.getByEmail(id) ?: !ApiException("User not found")
+                    call.respond(HttpStatusCode.OK, user)
+                }
+
+                get(path = "/user/list") {
+                    !call.auth
+                    val users = !AuthApi.Query.list()
+                    call.respond(HttpStatusCode.OK, users)
                 }
 
             }
