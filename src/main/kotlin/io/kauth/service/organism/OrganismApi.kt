@@ -2,15 +2,13 @@ package io.kauth.service.organism
 
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.monad.stack.*
-import io.kauth.service.auth.AuthApi.validateSupervisor
-import io.kauth.service.auth.jwt.Jwt
+import io.kauth.service.auth.AuthApi.appStackAuthValidateSupervisor
 import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
 import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.not
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.upsert
 import java.util.*
 
 object OrganismApi {
@@ -58,7 +56,7 @@ object OrganismApi {
         }
 
         fun organismsList() = AppStack.Do {
-            !validateSupervisor
+            !appStackAuthValidateSupervisor
             !appStackDbQuery {
                 OrganismTable.selectAll()
                     .map { it.toOrganismProjection }

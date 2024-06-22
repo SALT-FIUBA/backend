@@ -4,7 +4,6 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import java.util.*
 

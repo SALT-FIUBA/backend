@@ -5,12 +5,17 @@ import io.kauth.util.not
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
+import io.kauth.service.auth.AuthApi.appStackAuthValidateSupervisor
 import io.kauth.service.salt.DeviceService.streamName
 import io.kauth.service.organism.OrganismApi
+import io.kauth.service.organism.OrganismProjection.OrganismTable
+import io.kauth.service.organism.OrganismProjection.toOrganismProjection
 import io.kauth.service.publisher.Publisher
 import io.kauth.service.publisher.PublisherApi
 import io.kauth.service.reservation.ReservationApi
+import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 
 object DeviceApi {
@@ -21,7 +26,7 @@ object DeviceApi {
         message: String,
     ) = AppStack.Do {
 
-        val state = !readState(deviceId) ?: return@Do
+        val state = !Query.readState(deviceId) ?: return@Do
 
         !PublisherApi.publish(
             messageId = messageId,
@@ -68,9 +73,33 @@ object DeviceApi {
 
     }
 
-    fun readState(id: UUID) = AppStack.Do {
-        val authService = !getService<DeviceService.Interface>()
-        !authService.query.readState(id)
+    object Query {
+
+        fun readState(id: UUID) = AppStack.Do {
+            val authService = !getService<DeviceService.Interface>()
+            !authService.query.readState(id)
+        }
+
+        fun get(id: String) = AppStack.Do {
+            !appStackAuthValidateSupervisor
+            !appStackDbQuery {
+                DeviceProjection.DeviceTable
+                    .selectAll()
+                    .where { DeviceProjection.DeviceTable.id eq id }
+                    .singleOrNull()?.toDeviceProjection
+            }
+        }
+
+        fun list() = AppStack.Do {
+            !appStackAuthValidateSupervisor
+            !appStackDbQuery {
+                DeviceProjection.DeviceTable.selectAll()
+                    .map { it.toDeviceProjection }
+            }
+
+        }
+
     }
+
 
 }

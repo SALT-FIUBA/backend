@@ -62,10 +62,23 @@ object DeviceApiRest {
                     call.respond(HttpStatusCode.Created, result)
                 }
 
-                get("{id}") {
+                get("/list") {
+                    !call.auth
+                    val result = !DeviceApi.Query.list()
+                    call.respond(HttpStatusCode.OK, result)
+                }
+
+                get("/state/{id}") {
                     !call.auth
                     val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                    val device = !DeviceApi.readState(UUID.fromString(id)) ?: !ApiException("Organism not found")
+                    val device = !DeviceApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Device not found")
+                    call.respond(HttpStatusCode.OK, device)
+                }
+
+                get("/{id}") {
+                    !call.auth
+                    val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                    val device = !DeviceApi.Query.get(id) ?: !ApiException("Device not found")
                     call.respond(HttpStatusCode.OK, device)
                 }
 

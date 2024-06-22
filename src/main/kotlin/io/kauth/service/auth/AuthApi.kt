@@ -3,7 +3,6 @@ package io.kauth.service.auth
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.kauth.abstractions.command.throwOnFailureHandler
-import io.kauth.abstractions.result.throwOnFailure
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
@@ -11,7 +10,6 @@ import io.kauth.service.auth.jwt.Jwt
 import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
@@ -159,7 +157,7 @@ object AuthApi {
 
     }
 
-    val validateSupervisor get() = AppStack.Do {
+    val appStackAuthValidateSupervisor get() = AppStack.Do {
         val auth = !authStackJwt
         if("supervisor" !in auth.payload.roles) {
             !ApiException("UnAuthorized")
