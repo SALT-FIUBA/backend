@@ -62,6 +62,8 @@ object DeviceService : AppService {
 
             !DeviceProjection.sqlEventHandler
 
+            !DeviceEventHandler.mqttConsumer
+
             !DeviceEventHandler.deviceTopicSubscriptionHandler
 
             !DeviceApiRest.api

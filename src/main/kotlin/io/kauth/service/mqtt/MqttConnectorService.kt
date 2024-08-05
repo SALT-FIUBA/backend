@@ -18,6 +18,8 @@ import java.util.*
 
 object MqttConnectorService : AppService {
 
+    val STREAM_NAME = "mqtt"
+
     //pensar esto
     @Serializable
     data class MqttData<out T>(
@@ -66,11 +68,11 @@ object MqttConnectorService : AppService {
             ) { message ->
                 Async {
                     try {
-                        val topicName = message.topic.toString().replace("/", "-")
+                        val topicName = message.topic.toString()
                         val data = message.payloadAsBytes
                             .decodeToString()
                             .let { value -> json.decodeFromString<JsonElement>(value) }
-                        !stream<MqttData<JsonElement>>(client, "mqtt-${topicName}")
+                        !stream<MqttData<JsonElement>>(client, "$STREAM_NAME-${topicName}")
                             .append(MqttData(data), StreamRevision.AnyRevision)
                     } catch (e: Throwable) {
                         log.error("MQTT subscription loop error", e)

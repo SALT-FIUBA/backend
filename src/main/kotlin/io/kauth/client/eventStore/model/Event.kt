@@ -3,6 +3,7 @@ package io.kauth.client.eventStore.model
 import io.kauth.serializer.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.util.UUID
+import kotlin.concurrent.thread
 
 //Los eventos tienen un ID en el stream
 //A su vez el stream tiene un nombre con el ID de la entidad
@@ -16,14 +17,15 @@ data class Event<V>(
     //Evaluar metadata Generica ?
     val metadata: EventMetadata
 ) {
+    fun retrieveId(serviceName: String): String? =
+        streamName.retrieveId(serviceName)
+}
 
-    fun retrieveId(serviceName: String): String? {
-        return "$serviceName-(?<id>.+)"
-            .toRegex()
-            .matchEntire(streamName)
-            ?.groups
-            ?.get("id")
-            ?.value
-    }
-
+fun String.retrieveId(serviceName: String): String? {
+    return "$serviceName-(?<id>.+)"
+        .toRegex()
+        .matchEntire(this)
+        ?.groups
+        ?.get("id")
+        ?.value
 }

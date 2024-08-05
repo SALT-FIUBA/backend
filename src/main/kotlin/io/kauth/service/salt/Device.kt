@@ -64,7 +64,8 @@ object Device {
         val status: String?,
         val createdBy: String,
         val createdAt: Instant,
-        val topics: Topics? = null
+        val topics: Topics? = null,
+        val deviceState: Mqtt.SaltState? = null
     )
 
     @Serializable

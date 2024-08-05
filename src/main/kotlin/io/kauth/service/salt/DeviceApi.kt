@@ -38,6 +38,21 @@ object DeviceApi {
         messageId
     }
 
+    fun setStatus(
+        deviceId: UUID,
+        status: String
+    ) = AppStack.Do {
+        val service = !getService<DeviceService.Interface>()
+        !service.command
+            .handle(deviceId)
+            .throwOnFailureHandler(
+                Device.Command.SetStatus(
+                    status = status
+                ),
+            )
+        deviceId
+    }
+
     fun create(
         organismId: UUID,
         seriesNumber: String,

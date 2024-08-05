@@ -48,6 +48,9 @@ object Organism {
     sealed interface Error : Event {
         @Serializable
         data object OrganismAlreadyExists : Error
+
+        @Serializable
+        data class InvalidCommand(val message: String): Error
     }
 
     val handleCreatedEvent get() = Reducer<State?, Event.OrganismCreated> { state, event ->
@@ -61,6 +64,21 @@ object Organism {
         if(state != null) {
             !emitEvents(Error.OrganismAlreadyExists)
             !exit(Failure("Organism already exists"))
+        }
+
+        if (command.tag.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid tag"))
+            !exit(Failure("Invalid empty tag"))
+        }
+
+        if (command.name.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid name"))
+            !exit(Failure("Invalid empty name"))
+        }
+
+        if (command.description.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid description"))
+            !exit(Failure("Invalid empty description"))
         }
 
         !emitEvents(
