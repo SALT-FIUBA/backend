@@ -43,7 +43,6 @@ object PublisherApi {
     }
 
     fun result(
-        idempotence: UUID,
         id: UUID,
         result: AppResult<String>
     ) = AppStack.Do {

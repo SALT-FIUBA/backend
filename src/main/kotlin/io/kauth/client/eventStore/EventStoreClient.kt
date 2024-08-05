@@ -144,7 +144,7 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
     crossinline onEvent: (Event<T>) -> Async<Unit>
 ) = Async {
 
-    try {
+    runCatching {
         client.createToStream(
             stream,
             consumerGroup,
@@ -154,8 +154,6 @@ inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(
                 .fromStart()
                 .namedConsumerStrategy(NamedConsumerStrategy.PINNED)
         ).await()
-    } catch (e: Throwable) {
-        println(e.message)
     }
 
     //TODO parametrize buffer size

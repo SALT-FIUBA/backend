@@ -52,7 +52,6 @@ object PublisherEventHandler {
         }
 
         !PublisherApi.result(
-            idempotence = event.id,
             id = publishId,
             result = result
         )

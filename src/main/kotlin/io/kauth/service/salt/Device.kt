@@ -68,6 +68,12 @@ object Device {
         val deviceState: Mqtt.SaltState? = null
     )
 
+    //Metadatos del tren en el que se configuró este device
+    @Serializable
+    data class Metadata(
+        val train: String,
+    )
+
     @Serializable
     sealed interface Command {
 
