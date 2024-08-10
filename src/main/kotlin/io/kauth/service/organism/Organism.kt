@@ -17,7 +17,16 @@ object Organism {
         val name: String,
         val description: String,
         val createdBy: String,
-        val createdAt: Instant
+        val createdAt: Instant,
+        val supervisors: List<UserInfo> = emptyList(),
+        val operators: List<UserInfo> = emptyList()
+    )
+
+    @Serializable
+    data class UserInfo(
+        val id: String,
+        val addedBy: String,
+        val addedAt: Instant
     )
 
     @Serializable
@@ -32,6 +41,16 @@ object Organism {
             val createdAt: Instant
         ): Command
 
+        @Serializable
+        data class AddSupervisor(
+            val user: UserInfo
+        ): Command
+
+        @Serializable
+        data class AddOperator(
+            val user: UserInfo
+        ): Command
+
     }
 
     @Serializable
@@ -42,6 +61,16 @@ object Organism {
             val organism: State
         ): Event
 
+        @Serializable
+        data class OperatorAdded(
+            val user: UserInfo
+        ): Event
+
+        @Serializable
+        data class SupervisorAdded(
+            val user: UserInfo
+        ): Event
+
     }
 
     @Serializable
@@ -50,11 +79,60 @@ object Organism {
         data object OrganismAlreadyExists : Error
 
         @Serializable
+        data object OrganismDoesNotExists: Error
+
+        @Serializable
         data class InvalidCommand(val message: String): Error
     }
 
+    //Reducers
     val handleCreatedEvent get() = Reducer<State?, Event.OrganismCreated> { state, event ->
         event.organism
+    }
+
+    val handleOperatorEvent get() = Reducer<State?, Event.OperatorAdded> { state, event ->
+        state?.copy(operators = state.operators + event.user)
+    }
+
+    val handleSupervisorEvent get() = Reducer<State?, Event.SupervisorAdded> { state, event ->
+        state?.copy(supervisors = state.supervisors + event.user)
+    }
+
+    //event generators
+    val handleAddSupervisor get() = CommandMonad.Do<Command.AddSupervisor, State?, Event, Output> { exit ->
+        val state = !getState
+        if(state == null) {
+            !emitEvents(Error.OrganismDoesNotExists)
+            !exit(Failure("Organism does not exists"))
+        }
+        if(state.supervisors.any { it -> it.id == command.user.id }) {
+            !emitEvents(Error.InvalidCommand("User ${command.user.id} is supervisor"))
+            !exit(Failure("User ${command.user.id} is supervisor"))
+        }
+        !emitEvents(
+            Event.SupervisorAdded(
+                user = command.user
+            )
+        )
+        Ok
+    }
+
+    val handleAddOperator get() = CommandMonad.Do<Command.AddOperator, State?, Event, Output> { exit ->
+        val state = !getState
+        if(state == null) {
+            !emitEvents(Error.OrganismDoesNotExists)
+            !exit(Failure("Organism does not exists"))
+        }
+        if(state.operators.any { it -> it.id == command.user.id }) {
+            !emitEvents(Error.InvalidCommand("User ${command.user.id} is operator"))
+            !exit(Failure("User ${command.user.id} is operator"))
+        }
+        !emitEvents(
+            Event.OperatorAdded(
+                user = command.user
+            )
+        )
+        Ok
     }
 
     val handleCreate get() = CommandMonad.Do<Command.CreateOrganism, State?, Event, Output> { exit ->
@@ -101,13 +179,17 @@ object Organism {
             val command = !getCommand
             !when (command) {
                 is Command.CreateOrganism -> handleCreate
+                is Command.AddSupervisor -> handleAddSupervisor
+                is Command.AddOperator -> handleAddOperator
             }
         }
 
     val eventReducer: Reducer<State?, Event>
         get() =
             reducerOf(
-                Event.OrganismCreated::class to handleCreatedEvent
+                Event.OrganismCreated::class to handleCreatedEvent,
+                Event.SupervisorAdded::class to handleSupervisorEvent,
+                Event.OperatorAdded::class to handleOperatorEvent
             )
 
 }

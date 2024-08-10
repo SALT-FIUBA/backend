@@ -36,7 +36,7 @@ object AuthApiRest {
                 route("internal") {
 
                     post(path = "/register/admin") {
-                        !call.auth
+                        //!call.auth
                         //Do not expose this endpoint
                         val command = call.receive<RegisterRequest>()
                         val result = !AuthApi.register(

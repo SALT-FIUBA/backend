@@ -3,6 +3,7 @@ package io.kauth.service.organism
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
+import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -21,6 +22,13 @@ object OrganismApiRest {
         val description: String
     )
 
+    @Serializable
+    data class UserRequest(
+        val user: String,
+        val role: Auth.Role,
+        val organism: String
+    )
+
     val api = AppStack.Do {
 
         ktor.routing {
@@ -36,6 +44,17 @@ object OrganismApiRest {
                         command.description
                     )
                     call.respond(HttpStatusCode.Created, result)
+                }
+
+                post(path = "/user") {
+                    !call.auth
+                    val command = call.receive<UserRequest>()
+                    val result = !OrganismApi.Command.addUser(
+                        organism = command.organism,
+                        role = command.role,
+                        user = command.user
+                    )
+                    call.respond(HttpStatusCode.OK, result)
                 }
 
                 get("/list") {

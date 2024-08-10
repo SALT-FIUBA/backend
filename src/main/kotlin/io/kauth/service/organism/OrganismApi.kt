@@ -1,7 +1,10 @@
 package io.kauth.service.organism
 
 import io.kauth.abstractions.command.throwOnFailureHandler
+import io.kauth.exception.ApiException
+import io.kauth.exception.not
 import io.kauth.monad.stack.*
+import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi.appStackAuthValidateSupervisor
 import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
@@ -15,6 +18,40 @@ object OrganismApi {
 
     object Command {
 
+        fun addUser(
+            organism: String,
+            role: Auth.Role,
+            user: String
+        ) = AppStack.Do {
+            val jwt = !authStackJwt
+            val service = !getService<OrganismService.Interface>()
+            val organismId = UUID.fromString(organism)
+
+            val organismState = !service.query.readState(organismId) ?: !ApiException("Organism does not exists")
+
+            if (Auth.InternalRole.admin.name !in jwt.payload.roles &&
+                !(jwt.payload.roles.contains(Auth.Role.supervisor.name) && organismState.supervisors.any { it.id == jwt.payload.id })
+            ) {
+                !ApiException("Not Authorized")
+            }
+
+            val userInfo = Organism.UserInfo(
+                id = user,
+                addedBy = jwt.payload.id,
+                addedAt = Clock.System.now()
+            )
+
+            !service.command
+                .handle(organismId)
+                .throwOnFailureHandler(
+                    when(role) {
+                        Auth.Role.operators -> Organism.Command.AddOperator(userInfo)
+                        Auth.Role.supervisor -> Organism.Command.AddSupervisor(userInfo)
+                    }
+                )
+            userInfo
+        }
+
         fun create(
             tag: String,
             name: String,
@@ -23,6 +60,10 @@ object OrganismApi {
 
             val log = !authStackLog
             val jwt = !authStackJwt
+
+            if (Auth.InternalRole.admin.name !in jwt.payload.roles) {
+               !ApiException("Not Authorized")
+            }
 
             val service = !getService<OrganismService.Interface>()
 
