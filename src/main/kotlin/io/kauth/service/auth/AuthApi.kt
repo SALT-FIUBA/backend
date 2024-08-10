@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.exception.ApiException
+import io.kauth.exception.allowIf
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.AuthProjection.toUserProjection
@@ -121,12 +122,13 @@ object AuthApi {
             .sign(!algorithm)
     }
 
+    private val regex = "Bearer (?<token>.+)".toRegex()
+
     val ApplicationCall.auth get() = AppStack.Do {
 
         val authHeader = request.header("Authorization") ?: ""
 
-        val token = "Bearer (?<token>.+)"
-            .toRegex()
+        val token = regex
             .matchEntire(authHeader)
             ?.groups?.get("token")
             ?.value?.trim() ?: ""
@@ -168,6 +170,11 @@ object AuthApi {
         }
     }
 
+    val appStackAuthValidateAdmin get() = AppStack.Do {
+        val auth = !authStackJwt
+        !allowIf(Auth.InternalRole.admin.name in auth.payload.roles)
+    }
+
     val readStateFromSession get() = AppStack.Do {
         val jwt = !authStackJwt
         !Query.get(jwt.payload.id) ?: !ApiException("User not found")
@@ -181,7 +188,7 @@ object AuthApi {
         }
 
         fun get(id: String) = AppStack.Do {
-            !appStackAuthValidateSupervisor
+            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 AuthProjection.User.selectAll()
                     .where { AuthProjection.User.id eq id }
@@ -191,7 +198,7 @@ object AuthApi {
         }
 
         fun getByEmail(email: String) = AppStack.Do {
-            !appStackAuthValidateSupervisor
+            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 AuthProjection.User.selectAll()
                     .where { AuthProjection.User.email eq email }
@@ -201,7 +208,7 @@ object AuthApi {
         }
 
         fun list() = AppStack.Do {
-            !appStackAuthValidateSupervisor
+            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 AuthProjection.User.selectAll()
                     .map { it.toUserProjection }

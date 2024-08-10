@@ -7,7 +7,9 @@ import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import kotlinx.datetime.Instant
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 object Organism {
 
@@ -24,8 +26,10 @@ object Organism {
 
     @Serializable
     data class UserInfo(
-        val id: String,
-        val addedBy: String,
+        @Contextual
+        val id: UUID,
+        @Contextual
+        val addedBy: UUID,
         val addedAt: Instant
     )
 

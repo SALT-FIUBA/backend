@@ -5,6 +5,7 @@ import io.kauth.util.not
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
+import io.kauth.service.auth.AuthApi.appStackAuthValidateAdmin
 import io.kauth.service.auth.AuthApi.appStackAuthValidateSupervisor
 import io.kauth.service.salt.DeviceService.streamName
 import io.kauth.service.organism.OrganismApi
@@ -96,7 +97,7 @@ object DeviceApi {
         }
 
         fun get(id: String) = AppStack.Do {
-            !appStackAuthValidateSupervisor
+            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 DeviceProjection.DeviceTable
                     .selectAll()
@@ -106,7 +107,7 @@ object DeviceApi {
         }
 
         fun list() = AppStack.Do {
-            !appStackAuthValidateSupervisor
+            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 DeviceProjection.DeviceTable.selectAll()
                     .map { it.toDeviceProjection }

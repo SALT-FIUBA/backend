@@ -70,31 +70,36 @@ object AuthApiRest {
                     call.respond(HttpStatusCode.OK, result)
                 }
 
-                get(path = "/user") {
-                    !call.auth
-                    val user = !AuthApi.readStateFromSession
-                    call.respond(HttpStatusCode.OK, user)
+                route("user") {
+
+                    get() {
+                        !call.auth
+                        val user = !AuthApi.readStateFromSession
+                        call.respond(HttpStatusCode.OK, user)
+                    }
+
+                    get(path = "/{id}") {
+                        !call.auth
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val user = !AuthApi.Query.get(id) ?: !ApiException("User not found")
+                        call.respond(HttpStatusCode.OK, user)
+                    }
+
+                    get(path = "/email/{email}") {
+                        !call.auth
+                        val id = call.parameters["email"] ?: !ApiException("Email Not found")
+                        val user = !AuthApi.Query.getByEmail(id) ?: !ApiException("User not found")
+                        call.respond(HttpStatusCode.OK, user)
+                    }
+
+                    get(path = "/list") {
+                        !call.auth
+                        val users = !AuthApi.Query.list()
+                        call.respond(HttpStatusCode.OK, users)
+                    }
+
                 }
 
-                get(path = "/user/{id}") {
-                    !call.auth
-                    val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                    val user = !AuthApi.Query.get(id) ?: !ApiException("User not found")
-                    call.respond(HttpStatusCode.OK, user)
-                }
-
-                get(path = "/user/email/{email}") {
-                    !call.auth
-                    val id = call.parameters["email"] ?: !ApiException("Email Not found")
-                    val user = !AuthApi.Query.getByEmail(id) ?: !ApiException("User not found")
-                    call.respond(HttpStatusCode.OK, user)
-                }
-
-                get(path = "/user/list") {
-                    !call.auth
-                    val users = !AuthApi.Query.list()
-                    call.respond(HttpStatusCode.OK, users)
-                }
 
             }
 

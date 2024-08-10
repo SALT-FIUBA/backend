@@ -3,14 +3,13 @@ package io.kauth.service.organism
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi
 import kotlinx.datetime.Instant
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
-import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.upsert
 import java.util.*
 
@@ -27,6 +26,16 @@ object OrganismProjection {
         val createdAt = timestamp("created_at")
     }
 
+    object OrganismUserInfoTable: Table("organism_users") {
+        val organismId = text("organism_id")
+        val userId = text("user_id")
+        val addedBy = text("added_by")
+        val addedAt = timestamp("added_at")
+        val role = text("role")
+
+        override val primaryKey: PrimaryKey = PrimaryKey(organismId, userId, role)
+    }
+
     @Serializable
     data class OrganismProjection(
         val id: String,
@@ -37,6 +46,24 @@ object OrganismProjection {
         val createdByEmail: String? = null,
         val createdAt: Instant
     )
+
+    @Serializable
+    data class OrganismUserInfoProjection(
+        val role: Auth.Role,
+        val userId: String,
+        val organismId: String,
+        val addedBy: String,
+        val addedAt: Instant
+    )
+
+    val ResultRow.toOrganismUserInfoProjection get() =
+        OrganismUserInfoProjection(
+            Auth.Role.valueOf(this[OrganismUserInfoTable.role]),
+            this[OrganismUserInfoTable.userId],
+            this[OrganismUserInfoTable.organismId],
+            this[OrganismUserInfoTable.addedBy],
+            this[OrganismUserInfoTable.addedAt],
+        )
 
     val ResultRow.toOrganismProjection get() =
         OrganismProjection(
@@ -52,7 +79,7 @@ object OrganismProjection {
     val sqlEventHandler = appStackSqlProjector<Organism.Event>(
         streamName = "\$ce-organism",
         consumerGroup = "organism-sql-projection",
-        tables = listOf(OrganismTable)
+        tables = listOf(OrganismTable, OrganismUserInfoTable)
     ) { event ->
         AppStack.Do {
 
@@ -61,6 +88,28 @@ object OrganismProjection {
             val user = !AuthApi.Query.readState(UUID.fromString(state.createdBy))
 
             !appStackDbQuery {
+
+                state.operators.forEach {
+                    operator ->
+                        OrganismUserInfoTable.upsert() {
+                            it[userId] = operator.id.toString()
+                            it[addedAt] = operator.addedAt
+                            it[addedBy] = operator.addedBy.toString()
+                            it[role] = Auth.Role.operators.name
+                            it[organismId] = entity.toString()
+                        }
+                }
+
+                state.supervisors.forEach { supervisor ->
+                    OrganismUserInfoTable.upsert() {
+                        it[userId] = supervisor.id.toString()
+                        it[addedAt] = supervisor.addedAt
+                        it[addedBy] = supervisor.addedBy.toString()
+                        it[role] = Auth.Role.supervisor.name
+                        it[organismId] = entity.toString()
+                    }
+                }
+
                 OrganismTable.upsert() {
                     it[id] = entity.toString()
                     it[tag] = state.tag
@@ -70,6 +119,7 @@ object OrganismProjection {
                     it[createdByEmail] = user?.email
                     it[createdAt] = state.createdAt
                 }
+
             }
         }
     }

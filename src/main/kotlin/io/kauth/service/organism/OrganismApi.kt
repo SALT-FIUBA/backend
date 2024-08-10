@@ -2,15 +2,20 @@ package io.kauth.service.organism
 
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.exception.ApiException
+import io.kauth.exception.allowIf
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.Auth
+import io.kauth.service.auth.AuthApi.appStackAuthValidateAdmin
 import io.kauth.service.auth.AuthApi.appStackAuthValidateSupervisor
+import io.kauth.service.auth.AuthService
 import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
+import io.kauth.service.organism.OrganismProjection.toOrganismUserInfoProjection
 import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.not
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 
@@ -19,30 +24,31 @@ object OrganismApi {
     object Command {
 
         fun addUser(
-            organism: String,
+            organism: UUID,
             role: Auth.Role,
-            user: String
+            user: UUID
         ) = AppStack.Do {
             val jwt = !authStackJwt
+
             val service = !getService<OrganismService.Interface>()
-            val organismId = UUID.fromString(organism)
+            val organismState = !service.query.readState(organism) ?: !ApiException("Organism does not exists")
 
-            val organismState = !service.query.readState(organismId) ?: !ApiException("Organism does not exists")
+            !allowIf(
+                Auth.InternalRole.admin.name in jwt.payload.roles ||
+                        jwt.payload.roles.contains(Auth.Role.supervisor.name) && organismState.supervisors.any { it.id == jwt.payload.uuid }
+            )
 
-            if (Auth.InternalRole.admin.name !in jwt.payload.roles &&
-                !(jwt.payload.roles.contains(Auth.Role.supervisor.name) && organismState.supervisors.any { it.id == jwt.payload.id })
-            ) {
-                !ApiException("Not Authorized")
-            }
+            val auth = !getService<AuthService.Interface>()
+            !auth.query.readState(user) ?: !ApiException("User does not exists")
 
             val userInfo = Organism.UserInfo(
                 id = user,
-                addedBy = jwt.payload.id,
+                addedBy = jwt.payload.uuid,
                 addedAt = Clock.System.now()
             )
 
             !service.command
-                .handle(organismId)
+                .handle(organism)
                 .throwOnFailureHandler(
                     when(role) {
                         Auth.Role.operators -> Organism.Command.AddOperator(userInfo)
@@ -97,10 +103,34 @@ object OrganismApi {
         }
 
         fun organismsList() = AppStack.Do {
-            !appStackAuthValidateSupervisor
+            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 OrganismTable.selectAll()
                     .map { it.toOrganismProjection }
+            }
+        }
+
+        fun supervisorList(organism: UUID) = AppStack.Do {
+            !appStackAuthValidateAdmin
+            !appStackDbQuery {
+                OrganismProjection.OrganismUserInfoTable.selectAll()
+                    .where {
+                        (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
+                                (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.supervisor.name)
+                    }
+                    .map { it.toOrganismUserInfoProjection}
+            }
+        }
+
+        fun operatorList(organism: UUID) = AppStack.Do {
+            !appStackAuthValidateAdmin
+            !appStackDbQuery {
+                OrganismProjection.OrganismUserInfoTable.selectAll()
+                    .where {
+                        (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
+                                (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.operators.name)
+                    }
+                    .map { it.toOrganismUserInfoProjection}
             }
         }
 

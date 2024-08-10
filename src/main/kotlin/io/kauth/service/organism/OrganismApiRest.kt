@@ -10,6 +10,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.*
 
@@ -24,9 +25,11 @@ object OrganismApiRest {
 
     @Serializable
     data class UserRequest(
-        val user: String,
+        @Contextual
+        val user: UUID,
         val role: Auth.Role,
-        val organism: String
+        @Contextual
+        val organism: UUID
     )
 
     val api = AppStack.Do {
@@ -63,12 +66,31 @@ object OrganismApiRest {
                     call.respond(HttpStatusCode.OK, result)
                 }
 
-                get("{id}") {
-                    !call.auth
-                    val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                    val organism = !OrganismApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Organism not found")
-                    call.respond(HttpStatusCode.OK, organism)
+                route("{id}") {
+
+                    get() {
+                        !call.auth
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val organism = !OrganismApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Organism not found")
+                        call.respond(HttpStatusCode.OK, organism)
+                    }
+
+                    get("/supervisors") {
+                        !call.auth
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val result = !OrganismApi.Query.supervisorList(UUID.fromString(id))
+                        call.respond(HttpStatusCode.OK, result)
+                    }
+
+                    get("/operators") {
+                        !call.auth
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val result = !OrganismApi.Query.operatorList(UUID.fromString(id))
+                        call.respond(HttpStatusCode.OK, result)
+                    }
+
                 }
+
 
             }
 
