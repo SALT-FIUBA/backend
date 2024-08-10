@@ -1,1 +1,493 @@
-{"v":2,"name":"salt","folders":[{"v":2,"name":"auth","folders":[],"requests":[{"auth":{"token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzLnNhbWJyaXp6aUBnbWFpbC5jb20iLCJpZCI6IjUzOWM1NjVlLTcxOGUtNDhmMC1iYTQwLWYxZjY2NWJkM2RlMCIsInJvbGVzIjpbIm9wZXJhdG9ycyJdLCJleHAiOjE3MTkwMTM2MDR9.p4Pnlprt4fRqsq1UjttOKm_0bu1ODlEICdUwZPPaZvw","authType":"bearer","authActive":true},"headers":[],"endpoint":"http://localhost:8080/auth/user","v":"5","params":[],"body":{"contentType":null,"body":[{"active":true,"key":"cantidadMax","isFile":false,"value":"71"},{"value":"20230928","active":true,"key":"fecha","isFile":false},{"value":"VISITA","key":"titulo","active":true,"isFile":false},{"active":true,"value":"false","key":"suspendida","isFile":false},{"isFile":false,"value":"sambrizzi","key":"apellido","active":true},{"key":"nombre","isFile":false,"value":"matias","active":true},{"key":"mail","value":"matias.sambrizzi@gmail.com","active":true,"isFile":false},{"value":"ARGENTINA","isFile":false,"active":true,"key":"procedenciaPais"},{"active":true,"value":"BUENOS AIRES","key":"porcedenciaProv","isFile":false},{"key":"estado","active":true,"isFile":false,"value":""},{"key":"edad","active":true,"value":"27","isFile":false},{"isFile":false,"active":true,"key":"dni","value":"39373724"},{"key":"pasaporte","active":true,"value":"39373724","isFile":false},{"active":true,"isFile":false,"value":"1158039871","key":"celular"},{"active":true,"isFile":false,"value":"0","key":"cantidadMenores"},{"isFile":false,"key":"comoseentero","active":true,"value":"REDES"},{"isFile":false,"key":"declaro","value":"declaro","active":true}]},"preRequestScript":"","testScript":"","name":"user-data","requestVariables":[],"method":"GET"},{"method":"POST","endpoint":"http://localhost:8080/auth/register","v":"5","params":[],"auth":{"authActive":true,"authType":"none"},"requestVariables":[],"name":"register","testScript":"","headers":[],"body":{"body":"{\n  \"email\": \"m@hotmail.com\",\n  \"password\": \"Password123\",\n  \"personalData\": {\n    \"firstName\": \"matias\",\n    \"lastName\":\"test\"\n  },\n  \"role\": \"supervisor\"\n}\n","contentType":"application/json"},"preRequestScript":""},{"testScript":"","v":"5","auth":{"authActive":true,"authType":"none"},"body":{"body":"{\n  \"email\": \"m@hotmail.com\",\n  \"password\": \"Password123\"\n}","contentType":"application/json"},"requestVariables":[],"params":[],"endpoint":"http://localhost:8080/auth/login","name":"login","method":"POST","preRequestScript":"","headers":[]}],"auth":{"authActive":true,"authType":"inherit"},"headers":[]},{"v":2,"name":"device","folders":[],"requests":[{"params":[],"body":{"contentType":"application/json","body":"{\n  \"organismId\": \"0e25ebcd-d0ee-419b-99e3-8644be71c1ed\",\n  \"seriesNumber\": \"SALT-1234-10\",\n  \"ports\": [\"1\", \"2\"],\n  \"topics\": {\n    \"status\": \"salt/data/10\",\n    \"command\": \"salt/command/10\",\n    \"state\": \"salt/state/10\"\n  }\n}\n"},"testScript":"","endpoint":"http://localhost:8080/device/create","name":"device-create","preRequestScript":"","headers":[],"requestVariables":[],"method":"POST","auth":{"authType":"bearer","authActive":true,"token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzQGhvdG1haWwuY29tIiwiaWQiOiIzNTc3MmY1MC1mMTc3LTQ5N2EtYjk4Yy01MTNmODAxODhmNGEiLCJyb2xlcyI6WyJzdXBlcnZpc29yIl0sImV4cCI6MTcxNzg4MjY1Mn0.Fz4pxAiSVMk7azRxRsNaD5GPWugvLNwQkGp88OokrbU"},"v":"5"},{"method":"POST","params":[],"body":{"contentType":"application/json","body":"{\n  \"deviceId\": \"8b663ff4-6ce2-4677-8c79-558f5be25ab6\",\n  \"messageId\": \"2a08ad42-d2c4-48a1-a4d6-7356ed710369\",\n  \"message\": \"PENDING\",\n  \"topic\": \"salt/data\"\n}"},"endpoint":"http://localhost:8080/device/command","headers":[],"v":"5","name":"device command","testScript":"","auth":{"authActive":true,"token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzQGhvdG1haWwuY29tIiwiaWQiOiIzNTc3MmY1MC1mMTc3LTQ5N2EtYjk4Yy01MTNmODAxODhmNGEiLCJyb2xlcyI6WyJzdXBlcnZpc29yIl0sImV4cCI6MTcxNzEyMDE1NX0.jK8f9s_fkh-BZ-5MRc66IQEXO_A9n_0Tyqkd05GPocU","authType":"bearer"},"requestVariables":[],"preRequestScript":""}],"auth":{"authType":"inherit","authActive":true},"headers":[]},{"v":2,"name":"organism","folders":[],"requests":[{"endpoint":"http://localhost:8080/organism/create","requestVariables":[],"method":"POST","params":[],"body":{"contentType":"application/json","body":"{\n  \"tag\": \"test\",\n  \"name\": \"test-name-1-2-4\",\n  \"description\": \"This is a test\"\n}"},"name":"organism-create","testScript":"","auth":{"token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzQGhvdG1haWwuY29tIiwiaWQiOiIzNTc3MmY1MC1mMTc3LTQ5N2EtYjk4Yy01MTNmODAxODhmNGEiLCJyb2xlcyI6WyJzdXBlcnZpc29yIl0sImV4cCI6MTcxNzExOTc5OH0.y3Gfew6ecRFbcUi52tThBYW2pHZM3ryvcVfct9zY3Rc","authActive":true,"authType":"bearer"},"headers":[],"preRequestScript":"","v":"5"},{"body":{"contentType":"application/json","body":"{\n  \"tag\": \"test\",\n  \"name\": \"test-name-1-2-4\",\n  \"description\": \"This is a test\"\n}"},"endpoint":"http://localhost:8080/organism/list","auth":{"token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiZDIzZGY3MzYtZTJlMS00YzczLTgzYWQtZGM0ZDJmZmFkNjNkIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MTkwMTI0MjB9.sHUKEacNu7UcYjqluAfQPDTrTxsLDoZmWBZyM2nwSyI","authType":"bearer","authActive":true},"name":"organism-list","testScript":"","params":[],"headers":[],"preRequestScript":"","v":"5","requestVariables":[],"method":"GET"}],"auth":{"authActive":true,"authType":"inherit"},"headers":[]},{"v":2,"name":"publisher","folders":[],"requests":[{"headers":[],"requestVariables":[],"preRequestScript":"","params":[],"auth":{"authActive":true,"authType":"inherit"},"testScript":"","endpoint":"http://localhost:8080/publisher/2a08ad42-d2c4-48a1-a4d6-7356ed73037b","method":"GET","v":"5","name":"get-publish-message","body":{"contentType":null,"body":null}},{"body":{"contentType":"application/json","body":"{\n  \"messageId\": \"291ccf59-332d-45ff-df6e-c94a2fc89cf4\",  \n  \"data\": \"OFF\",\n  \"resource\": \"test-rest\",\n  \"channel\": {\n    \"type\": \"io.kauth.service.publisher.Publisher.Channel.Mqtt\",\n    \"topic\": \"salt/kitchen_2C98D9/cmnd/POWER\"\n  }\n}"},"requestVariables":[],"v":"5","method":"POST","headers":[],"name":"publish","params":[],"auth":{"authActive":true,"token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiMDE5YTNjNjMtMDcyMS00OTVmLTg4ZWQtNTUxYmM5N2Y3ZmU2Iiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MTg3OTg1NzB9.wAki6obCRS6iejU9FY-I0B5MpnqaRgHhgeUwL-2Cyjc","authType":"bearer"},"testScript":"","endpoint":"https://saltautomation.chickenkiller.com/api/v1/publisher/publish","preRequestScript":""}],"auth":{"authType":"inherit","authActive":true},"headers":[]},{"v":2,"name":"mqtt","folders":[],"requests":[{"endpoint":"http://localhost:8080/mqtt/subscriptions","preRequestScript":"","method":"GET","requestVariables":[],"v":"5","name":"mqtt-subscriptions","body":{"body":null,"contentType":null},"params":[],"auth":{"authActive":true,"authType":"bearer","token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiZDIzZGY3MzYtZTJlMS00YzczLTgzYWQtZGM0ZDJmZmFkNjNkIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MTkwMjA2ODR9.KPVshX91iL3ipjS6_2wFt8EzCiJX4AXXT7obFTkGAgo"},"headers":[],"testScript":""},{"preRequestScript":"","v":"5","method":"POST","body":{"body":"{\n  \"topics\": [\n  \"1234\",\n  \"12345\",\n  \"123456\"\n\t]\n}\n","contentType":"application/json"},"params":[],"auth":{"authActive":true,"token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYXNpbC5jb20iLCJpZCI6ImZiZjhmYTljLWE0NTMtNDJhMy1hNjI4LTAxZmFiYzQ0NWY0OSIsInJvbGVzIjpbInN1cGVydmlzb3IiXSwiZXhwIjoxNzE4NTAzOTc2fQ.OyhWZyqXuvcp8uLeJ3MAoGouYX8sZFPOwbkMrw75Gpw","authType":"bearer"},"name":"mqtt-unsubscribe","testScript":"","headers":[],"endpoint":"http://localhost:8080/mqtt/subscription/unsubscribe","requestVariables":[]},{"name":"mqtt-subscribe","params":[],"endpoint":"http://localhost:8080/mqtt/subscription/subscribe","v":"5","method":"POST","body":{"contentType":"application/json","body":"{\n  \"topic\": \"salt/kitchen_2C98D9/tele/LWT\",\n  \"resource\": \"mati-rst\"\n}\n"},"auth":{"authType":"bearer","token":"eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiZDIzZGY3MzYtZTJlMS00YzczLTgzYWQtZGM0ZDJmZmFkNjNkIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MTkwMjA3Mjh9.-9NKQ5-1uiywY7OeyJhryCQ4rDpvxtc5Yw8hOz3rEts","authActive":true},"requestVariables":[],"preRequestScript":"","headers":[],"testScript":""}],"auth":{"authType":"inherit","authActive":true},"headers":[]}],"requests":[],"auth":{"authActive":true,"authType":"none"},"headers":[]}
+[
+  {
+    "v": 2,
+    "name": "salt",
+    "folders": [
+      {
+        "v": 2,
+        "name": "auth",
+        "folders": [],
+        "requests": [
+          {
+            "name": "user-data",
+            "method": "GET",
+            "testScript": "",
+            "body": {
+              "contentType": null,
+              "body": [
+                {
+                  "value": "71",
+                  "isFile": false,
+                  "active": true,
+                  "key": "cantidadMax"
+                },
+                {
+                  "key": "fecha",
+                  "isFile": false,
+                  "active": true,
+                  "value": "20230928"
+                },
+                {
+                  "value": "VISITA",
+                  "key": "titulo",
+                  "active": true,
+                  "isFile": false
+                },
+                {
+                  "active": true,
+                  "isFile": false,
+                  "value": "false",
+                  "key": "suspendida"
+                },
+                {
+                  "active": true,
+                  "isFile": false,
+                  "key": "apellido",
+                  "value": "sambrizzi"
+                },
+                {
+                  "active": true,
+                  "key": "nombre",
+                  "value": "matias",
+                  "isFile": false
+                },
+                {
+                  "value": "matias.sambrizzi@gmail.com",
+                  "key": "mail",
+                  "isFile": false,
+                  "active": true
+                },
+                {
+                  "isFile": false,
+                  "value": "ARGENTINA",
+                  "active": true,
+                  "key": "procedenciaPais"
+                },
+                {
+                  "key": "porcedenciaProv",
+                  "value": "BUENOS AIRES",
+                  "active": true,
+                  "isFile": false
+                },
+                {
+                  "isFile": false,
+                  "active": true,
+                  "key": "estado",
+                  "value": ""
+                },
+                {
+                  "isFile": false,
+                  "value": "27",
+                  "active": true,
+                  "key": "edad"
+                },
+                {
+                  "value": "39373724",
+                  "isFile": false,
+                  "active": true,
+                  "key": "dni"
+                },
+                {
+                  "isFile": false,
+                  "key": "pasaporte",
+                  "active": true,
+                  "value": "39373724"
+                },
+                {
+                  "value": "1158039871",
+                  "active": true,
+                  "key": "celular",
+                  "isFile": false
+                },
+                {
+                  "active": true,
+                  "isFile": false,
+                  "key": "cantidadMenores",
+                  "value": "0"
+                },
+                {
+                  "active": true,
+                  "isFile": false,
+                  "value": "REDES",
+                  "key": "comoseentero"
+                },
+                {
+                  "active": true,
+                  "key": "declaro",
+                  "value": "declaro",
+                  "isFile": false
+                }
+              ]
+            },
+            "preRequestScript": "",
+            "v": "5",
+            "params": [],
+            "requestVariables": [],
+            "auth": {
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzLnNhbWJyaXp6aUBnbWFpbC5jb20iLCJpZCI6IjUzOWM1NjVlLTcxOGUtNDhmMC1iYTQwLWYxZjY2NWJkM2RlMCIsInJvbGVzIjpbIm9wZXJhdG9ycyJdLCJleHAiOjE3MTkwMTM2MDR9.p4Pnlprt4fRqsq1UjttOKm_0bu1ODlEICdUwZPPaZvw",
+              "authType": "bearer",
+              "authActive": true
+            },
+            "endpoint": "http://localhost:8080/auth/user",
+            "headers": []
+          },
+          {
+            "preRequestScript": "",
+            "method": "POST",
+            "testScript": "",
+            "endpoint": "http://localhost:8080/auth/register",
+            "v": "5",
+            "headers": [],
+            "auth": {
+              "authType": "none",
+              "authActive": true
+            },
+            "name": "register",
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"m@hotmail.com\",\n  \"password\": \"Password123\",\n  \"personalData\": {\n    \"firstName\": \"matias\",\n    \"lastName\":\"test\"\n  },\n  \"role\": \"supervisor\"\n}\n"
+            },
+            "requestVariables": [],
+            "params": []
+          },
+          {
+            "v": "5",
+            "name": "login",
+            "params": [],
+            "method": "POST",
+            "endpoint": "http://localhost:8080/auth/login",
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"email\": \"ma@hotmail.com\",\n  \"password\": \"Password123\"\n}"
+            },
+            "auth": {
+              "authType": "none",
+              "authActive": true
+            },
+            "testScript": "",
+            "headers": [],
+            "preRequestScript": "",
+            "requestVariables": []
+          },
+          {
+            "requestVariables": [],
+            "method": "POST",
+            "headers": [],
+            "endpoint": "http://localhost:8080/auth/internal/register/admin",
+            "preRequestScript": "",
+            "v": "5",
+            "body": {
+              "body": "{\n  \"email\": \"ma@hotmail.com\",\n  \"password\": \"Password123\",\n  \"personalData\": {\n    \"firstName\": \"matias\",\n    \"lastName\":\"test\"\n  },\n  \"role\": \"supervisor\"\n}\n",
+              "contentType": "application/json"
+            },
+            "params": [],
+            "auth": {
+              "authType": "none",
+              "authActive": true
+            },
+            "testScript": "",
+            "name": "register-admin"
+          }
+        ],
+        "auth": {
+          "authType": "inherit",
+          "authActive": true
+        },
+        "headers": []
+      },
+      {
+        "v": 2,
+        "name": "device",
+        "folders": [],
+        "requests": [
+          {
+            "headers": [],
+            "requestVariables": [],
+            "v": "5",
+            "auth": {
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzQGhvdG1haWwuY29tIiwiaWQiOiIzNTc3MmY1MC1mMTc3LTQ5N2EtYjk4Yy01MTNmODAxODhmNGEiLCJyb2xlcyI6WyJzdXBlcnZpc29yIl0sImV4cCI6MTcxNzg4MjY1Mn0.Fz4pxAiSVMk7azRxRsNaD5GPWugvLNwQkGp88OokrbU",
+              "authActive": true,
+              "authType": "bearer"
+            },
+            "method": "POST",
+            "name": "device-create",
+            "testScript": "",
+            "body": {
+              "body": "{\n  \"organismId\": \"0e25ebcd-d0ee-419b-99e3-8644be71c1ed\",\n  \"seriesNumber\": \"SALT-1234-10\",\n  \"ports\": [\"1\", \"2\"],\n  \"topics\": {\n    \"status\": \"salt/data/10\",\n    \"command\": \"salt/command/10\",\n    \"state\": \"salt/state/10\"\n  }\n}\n",
+              "contentType": "application/json"
+            },
+            "params": [],
+            "preRequestScript": "",
+            "endpoint": "http://localhost:8080/device/create"
+          },
+          {
+            "testScript": "",
+            "requestVariables": [],
+            "headers": [],
+            "method": "POST",
+            "body": {
+              "body": "{\n  \"deviceId\": \"8b663ff4-6ce2-4677-8c79-558f5be25ab6\",\n  \"messageId\": \"2a08ad42-d2c4-48a1-a4d6-7356ed710369\",\n  \"message\": \"PENDING\",\n  \"topic\": \"salt/data\"\n}",
+              "contentType": "application/json"
+            },
+            "endpoint": "http://localhost:8080/device/command",
+            "preRequestScript": "",
+            "v": "5",
+            "name": "device command",
+            "params": [],
+            "auth": {
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzQGhvdG1haWwuY29tIiwiaWQiOiIzNTc3MmY1MC1mMTc3LTQ5N2EtYjk4Yy01MTNmODAxODhmNGEiLCJyb2xlcyI6WyJzdXBlcnZpc29yIl0sImV4cCI6MTcxNzEyMDE1NX0.jK8f9s_fkh-BZ-5MRc66IQEXO_A9n_0Tyqkd05GPocU",
+              "authType": "bearer",
+              "authActive": true
+            }
+          }
+        ],
+        "auth": {
+          "authActive": true,
+          "authType": "inherit"
+        },
+        "headers": []
+      },
+      {
+        "v": 2,
+        "name": "organism",
+        "folders": [],
+        "requests": [
+          {
+            "testScript": "",
+            "v": "5",
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"tag\": \"test\",\n  \"name\": \"test-name-1-2-4\",\n  \"description\": \"This is a test\"\n}"
+            },
+            "preRequestScript": "",
+            "requestVariables": [],
+            "headers": [],
+            "name": "organism-create",
+            "auth": {
+              "authActive": true,
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWF0aWFzQGhvdG1haWwuY29tIiwiaWQiOiIzNTc3MmY1MC1mMTc3LTQ5N2EtYjk4Yy01MTNmODAxODhmNGEiLCJyb2xlcyI6WyJzdXBlcnZpc29yIl0sImV4cCI6MTcxNzExOTc5OH0.y3Gfew6ecRFbcUi52tThBYW2pHZM3ryvcVfct9zY3Rc",
+              "authType": "bearer"
+            },
+            "params": [],
+            "endpoint": "http://localhost:8080/organism/create",
+            "method": "POST"
+          },
+          {
+            "headers": [],
+            "params": [],
+            "v": "5",
+            "method": "GET",
+            "auth": {
+              "authType": "bearer",
+              "authActive": true,
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiZDIzZGY3MzYtZTJlMS00YzczLTgzYWQtZGM0ZDJmZmFkNjNkIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MTkwMTI0MjB9.sHUKEacNu7UcYjqluAfQPDTrTxsLDoZmWBZyM2nwSyI"
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"tag\": \"test\",\n  \"name\": \"test-name-1-2-4\",\n  \"description\": \"This is a test\"\n}"
+            },
+            "endpoint": "http://localhost:8080/organism/list",
+            "name": "organism-list",
+            "preRequestScript": "",
+            "testScript": "",
+            "requestVariables": []
+          },
+          {
+            "requestVariables": [],
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"user\": \"8194e0f5-10c6-4010-bc49-89f8c66b736c\",\n  \"role\": \"operators\",\n  \"organism\": \"a84283c6-6cdf-4e62-8293-f9bf4d4a7483\"\n}"
+            },
+            "auth": {
+              "authType": "bearer",
+              "authActive": true,
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWFAaG90bWFpbC5jb20iLCJpZCI6IjE4OWUxNzQ3LTc0YmItNGZiZC1iZDM3LTg4YTBjMTFmNmJjYyIsInJvbGVzIjpbImFkbWluIl0sImV4cCI6MTcyMzMwOTI2N30.O0e2yUC0NFFm5JmKKdbOlePez7-BN5nBVnzmU6XZXaQ"
+            },
+            "testScript": "",
+            "v": "5",
+            "method": "POST",
+            "params": [],
+            "headers": [],
+            "endpoint": "http://localhost:8080/organism/user",
+            "name": "organism-user",
+            "preRequestScript": ""
+          },
+          {
+            "headers": [],
+            "params": [],
+            "v": "5",
+            "method": "GET",
+            "auth": {
+              "authType": "bearer",
+              "authActive": true,
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibWFAaG90bWFpbC5jb20iLCJpZCI6IjE4OWUxNzQ3LTc0YmItNGZiZC1iZDM3LTg4YTBjMTFmNmJjYyIsInJvbGVzIjpbImFkbWluIl0sImV4cCI6MTcyMzMwOTQxNH0.7mEYnqMYXYTmWH49LHNxG1nFiwV3JvVm9GpqnbbqSNw"
+            },
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"tag\": \"test\",\n  \"name\": \"test-name-1-2-4\",\n  \"description\": \"This is a test\"\n}"
+            },
+            "endpoint": "http://localhost:8080/organism/a84283c6-6cdf-4e62-8293-f9bf4d4a7483",
+            "name": "organism-get",
+            "preRequestScript": "",
+            "testScript": "",
+            "requestVariables": []
+          }
+        ],
+        "auth": {
+          "authActive": true,
+          "authType": "inherit"
+        },
+        "headers": []
+      },
+      {
+        "v": 2,
+        "name": "publisher",
+        "folders": [],
+        "requests": [
+          {
+            "v": "5",
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "name": "get-publish-message",
+            "auth": {
+              "authType": "inherit",
+              "authActive": true
+            },
+            "params": [],
+            "endpoint": "http://localhost:8080/publisher/2a08ad42-d2c4-48a1-a4d6-7356ed73037b",
+            "headers": [],
+            "testScript": "",
+            "requestVariables": [],
+            "preRequestScript": "",
+            "method": "GET"
+          },
+          {
+            "endpoint": "http://localhost:8080/publisher/publish",
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"messageId\": \"291ccf59-332d-45ff-df6e-c94a2fc89cfa\",\n  \"data\": \"OFF\",\n  \"resource\": \"test-rest\",\n  \"channel\": {\n    \"type\": \"io.kauth.service.publisher.Publisher.Channel.Mqtt\",\n    \"topic\": \"salt/123/status\"\n  }\n}"
+            },
+            "preRequestScript": "",
+            "auth": {
+              "authType": "bearer",
+              "authActive": true,
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiODE5NGUwZjUtMTBjNi00MDEwLWJjNDktODlmOGM2NmI3MzZjIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MjI4OTY0ODd9.Y4Xq2BUtIlckw1F2MX9PodzxeIdrRCNawO7LeiuiqBE"
+            },
+            "name": "publish",
+            "testScript": "",
+            "method": "POST",
+            "headers": [],
+            "params": [],
+            "requestVariables": [],
+            "v": "5"
+          }
+        ],
+        "auth": {
+          "authActive": true,
+          "authType": "inherit"
+        },
+        "headers": []
+      },
+      {
+        "v": 2,
+        "name": "mqtt",
+        "folders": [],
+        "requests": [
+          {
+            "name": "mqtt-subscriptions",
+            "headers": [],
+            "method": "GET",
+            "auth": {
+              "authActive": true,
+              "authType": "bearer",
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiODE5NGUwZjUtMTBjNi00MDEwLWJjNDktODlmOGM2NmI3MzZjIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MjI4MjIwMDV9.BdwSmwM9J-8y1kQpoZn982zVeauqJsZrAdspHjLlmSI"
+            },
+            "body": {
+              "contentType": null,
+              "body": null
+            },
+            "testScript": "",
+            "requestVariables": [],
+            "params": [],
+            "preRequestScript": "",
+            "v": "5",
+            "endpoint": "http://localhost:8080/mqtt/subscriptions"
+          },
+          {
+            "preRequestScript": "",
+            "testScript": "",
+            "name": "mqtt-unsubscribe",
+            "method": "POST",
+            "body": {
+              "body": "{\n  \"topics\": [\n  \"1234\",\n  \"12345\",\n  \"123456\"\n\t]\n}\n",
+              "contentType": "application/json"
+            },
+            "endpoint": "http://localhost:8080/mqtt/subscription/unsubscribe",
+            "auth": {
+              "authType": "bearer",
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYXNpbC5jb20iLCJpZCI6ImZiZjhmYTljLWE0NTMtNDJhMy1hNjI4LTAxZmFiYzQ0NWY0OSIsInJvbGVzIjpbInN1cGVydmlzb3IiXSwiZXhwIjoxNzE4NTAzOTc2fQ.OyhWZyqXuvcp8uLeJ3MAoGouYX8sZFPOwbkMrw75Gpw",
+              "authActive": true
+            },
+            "v": "5",
+            "headers": [],
+            "requestVariables": [],
+            "params": []
+          },
+          {
+            "v": "5",
+            "endpoint": "http://localhost:8080/mqtt/subscription/subscribe",
+            "params": [],
+            "testScript": "",
+            "headers": [],
+            "method": "POST",
+            "preRequestScript": "",
+            "body": {
+              "contentType": "application/json",
+              "body": "{\n  \"topic\": \"salt/kitchen_2C98D9/tele/LWT\",\n  \"resource\": \"mati-rst\"\n}\n"
+            },
+            "auth": {
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiZDIzZGY3MzYtZTJlMS00YzczLTgzYWQtZGM0ZDJmZmFkNjNkIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MTkwMjA3Mjh9.-9NKQ5-1uiywY7OeyJhryCQ4rDpvxtc5Yw8hOz3rEts",
+              "authType": "bearer",
+              "authActive": true
+            },
+            "name": "mqtt-subscribe",
+            "requestVariables": []
+          },
+          {
+            "preRequestScript": "",
+            "testScript": "",
+            "body": {
+              "body": null,
+              "contentType": null
+            },
+            "v": "5",
+            "params": [],
+            "endpoint": "http://localhost:8080/mqtt/subscribe",
+            "auth": {
+              "authActive": true,
+              "authType": "bearer",
+              "token": "eyJ0eXAiOiJBY2Nlc3MiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJzYWx0IiwiaXNzIjoic2FsdCIsImVtYWlsIjoibUBob3RtYWlsLmNvbSIsImlkIjoiZDIzZGY3MzYtZTJlMS00YzczLTgzYWQtZGM0ZDJmZmFkNjNkIiwicm9sZXMiOlsic3VwZXJ2aXNvciJdLCJleHAiOjE3MTkwNzg4MjR9.XOpwIoRpq7aPXzgA6141npwa3aGILxMKfSTYbaBlkdo"
+            },
+            "method": "POST",
+            "requestVariables": [],
+            "name": "subscribe-all",
+            "headers": []
+          }
+        ],
+        "auth": {
+          "authActive": true,
+          "authType": "inherit"
+        },
+        "headers": []
+      }
+    ],
+    "requests": [],
+    "auth": {
+      "authActive": true,
+      "authType": "none"
+    },
+    "headers": []
+  }
+]
