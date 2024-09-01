@@ -5,6 +5,7 @@ import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi
+import io.kauth.service.salt.DeviceProjection
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.ResultRow
@@ -28,8 +29,11 @@ object OrganismProjection {
 
     object OrganismUserInfoTable: Table("organism_users") {
         val organismId = text("organism_id")
+        val organismName = text("organism_name").nullable()
         val userId = text("user_id")
+        val userEmail = text("email").nullable()
         val addedBy = text("added_by")
+        val addedByEmail = text("added_by_email").nullable()
         val addedAt = timestamp("added_at")
         val role = text("role")
 
@@ -53,7 +57,10 @@ object OrganismProjection {
         val userId: String,
         val organismId: String,
         val addedBy: String,
-        val addedAt: Instant
+        val addedAt: Instant,
+        val organismName: String? = null,
+        val userEmail: String? = null,
+        val addedByEmail: String? = null
     )
 
     val ResultRow.toOrganismUserInfoProjection get() =
@@ -63,6 +70,9 @@ object OrganismProjection {
             this[OrganismUserInfoTable.organismId],
             this[OrganismUserInfoTable.addedBy],
             this[OrganismUserInfoTable.addedAt],
+            this[OrganismUserInfoTable.organismName],
+            this[OrganismUserInfoTable.userEmail],
+            this[OrganismUserInfoTable.addedByEmail],
         )
 
     val ResultRow.toOrganismProjection get() =
@@ -75,6 +85,14 @@ object OrganismProjection {
             this[OrganismTable.createdByEmail],
             this[OrganismTable.createdAt],
         )
+
+    @Serializable
+    data class AggregatedProjection(
+        val data: OrganismProjection,
+        val supervisors: List<OrganismUserInfoProjection>,
+        val operators: List<OrganismUserInfoProjection>,
+        val devices: List<DeviceProjection.Projection>
+    )
 
     val sqlEventHandler = appStackSqlProjector<Organism.Event>(
         streamName = "\$ce-organism",
@@ -91,22 +109,32 @@ object OrganismProjection {
 
                 state.operators.forEach {
                     operator ->
-                        OrganismUserInfoTable.upsert() {
-                            it[userId] = operator.id.toString()
-                            it[addedAt] = operator.addedAt
-                            it[addedBy] = operator.addedBy.toString()
-                            it[role] = Auth.Role.operators.name
-                            it[organismId] = entity.toString()
-                        }
+                    val addedByState = !AuthApi.Query.readState(operator.addedBy)
+                    val userState = !AuthApi.Query.readState(operator.id)
+                    OrganismUserInfoTable.upsert() {
+                        it[userId] = operator.id.toString()
+                        it[addedAt] = operator.addedAt
+                        it[addedBy] = operator.addedBy.toString()
+                        it[role] = Auth.Role.operators.name
+                        it[organismId] = entity.toString()
+                        it[organismName] = state.name
+                        it[userEmail] = userState?.email
+                        it[addedByEmail] = addedByState?.email
+                    }
                 }
 
                 state.supervisors.forEach { supervisor ->
+                    val addedByState = !AuthApi.Query.readState(supervisor.addedBy)
+                    val userState = !AuthApi.Query.readState(supervisor.id)
                     OrganismUserInfoTable.upsert() {
                         it[userId] = supervisor.id.toString()
                         it[addedAt] = supervisor.addedAt
                         it[addedBy] = supervisor.addedBy.toString()
                         it[role] = Auth.Role.supervisor.name
                         it[organismId] = entity.toString()
+                        it[organismName] = state.name
+                        it[userEmail] = userState?.email
+                        it[addedByEmail] = addedByState?.email
                     }
                 }
 

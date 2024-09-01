@@ -3,6 +3,7 @@ package io.kauth.service.auth
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.service.organism.OrganismProjection
 import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
@@ -37,6 +38,12 @@ object AuthProjection {
             this[User.email],
             this[User.roles],
         )
+
+    @Serializable
+    data class Aggregated(
+        val data: UserProjection,
+        val userInfo: List<OrganismProjection.OrganismUserInfoProjection>,
+    )
 
     val sqlEventHandler = appStackSqlProjector<Auth.UserEvent>(
         streamName = "\$ce-user",

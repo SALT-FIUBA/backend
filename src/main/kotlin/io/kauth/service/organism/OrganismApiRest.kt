@@ -71,7 +71,7 @@ object OrganismApiRest {
                     get() {
                         !call.auth
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                        val organism = !OrganismApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Organism not found")
+                        val organism = !OrganismApi.Query.organism(UUID.fromString(id)) ?: !ApiException("Organism not found")
                         call.respond(HttpStatusCode.OK, organism)
                     }
 

@@ -13,6 +13,8 @@ import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
 import io.kauth.service.organism.OrganismProjection.toOrganismUserInfoProjection
 import io.kauth.service.reservation.ReservationApi
+import io.kauth.service.salt.DeviceProjection
+import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.and
@@ -39,7 +41,11 @@ object OrganismApi {
             )
 
             val auth = !getService<AuthService.Interface>()
-            !auth.query.readState(user) ?: !ApiException("User does not exists")
+            val userData = !auth.query.readState(user) ?: !ApiException("User does not exists")
+
+            if (role.name !in userData.roles) {
+                !ApiException("Invalid role for user")
+            }
 
             val userInfo = Organism.UserInfo(
                 id = user,
@@ -66,6 +72,10 @@ object OrganismApi {
 
             val log = !authStackLog
             val jwt = !authStackJwt
+
+            if (name.isBlank()) {
+                !ApiException("Invalid name")
+            }
 
             if (Auth.InternalRole.admin.name !in jwt.payload.roles) {
                !ApiException("Not Authorized")
@@ -100,6 +110,47 @@ object OrganismApi {
         fun readState(id: UUID) = AppStack.Do {
             val service = !getService<OrganismService.Interface>()
             !service.query.readState(id)
+        }
+
+        fun organism(id: UUID) = AppStack.Do {
+            !appStackDbQuery {
+                val data = OrganismTable.selectAll()
+                    .where { OrganismTable.id eq id.toString() }
+                    .map { it.toOrganismProjection }
+                    .firstOrNull()
+                data?.let { it ->
+
+                    val supervisors =
+                        OrganismProjection.OrganismUserInfoTable.selectAll()
+                            .where {
+                                (OrganismProjection.OrganismUserInfoTable.organismId eq id.toString()) and
+                                        (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.supervisor.name)
+                            }
+                            .map { it.toOrganismUserInfoProjection }
+
+                    val operators =
+                        OrganismProjection.OrganismUserInfoTable.selectAll()
+                            .where {
+                                (OrganismProjection.OrganismUserInfoTable.organismId eq id.toString()) and
+                                        (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.operators.name)
+                            }
+                            .map { it.toOrganismUserInfoProjection}
+
+                    val devices = DeviceProjection.DeviceTable.selectAll()
+                        .where {
+                            DeviceProjection.DeviceTable.organismId eq id.toString()
+                        }
+                        .map { it.toDeviceProjection }
+
+                    OrganismProjection.AggregatedProjection(
+                        it,
+                        supervisors,
+                        operators,
+                        devices
+                    )
+
+                }
+            }
         }
 
         fun organismsList() = AppStack.Do {

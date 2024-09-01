@@ -9,6 +9,8 @@ import io.kauth.exception.not
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.AuthProjection.toUserProjection
 import io.kauth.service.auth.jwt.Jwt
+import io.kauth.service.organism.OrganismProjection
+import io.kauth.service.organism.OrganismProjection.toOrganismUserInfoProjection
 import io.kauth.service.reservation.ReservationApi
 import io.kauth.service.salt.DeviceProjection
 import io.kauth.service.salt.DeviceProjection.toDeviceProjection
@@ -190,10 +192,23 @@ object AuthApi {
         fun get(id: String) = AppStack.Do {
             !appStackAuthValidateAdmin
             !appStackDbQuery {
-                AuthProjection.User.selectAll()
+
+                val data = AuthProjection.User.selectAll()
                     .where { AuthProjection.User.id eq id }
                     .singleOrNull()
                     ?.toUserProjection
+
+                val userInfo = OrganismProjection.OrganismUserInfoTable
+                    .selectAll()
+                    .where { OrganismProjection.OrganismUserInfoTable.userId eq id }
+                    .map { it.toOrganismUserInfoProjection }
+
+                data?.let {
+                    AuthProjection.Aggregated(
+                        data = it,
+                        userInfo = userInfo
+                    )
+                }
             }
         }
 
