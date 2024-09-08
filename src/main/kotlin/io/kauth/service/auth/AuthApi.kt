@@ -12,13 +12,12 @@ import io.kauth.service.auth.jwt.Jwt
 import io.kauth.service.organism.OrganismProjection
 import io.kauth.service.organism.OrganismProjection.toOrganismUserInfoProjection
 import io.kauth.service.reservation.ReservationApi
-import io.kauth.service.salt.DeviceProjection
-import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.util.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.toJavaInstant
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.selectAll
 import java.util.UUID
 import kotlin.time.Duration.Companion.minutes
@@ -29,7 +28,8 @@ object AuthApi {
         email: String,
         password: String,
         personalData: Auth.User.PersonalData,
-        roles: List<String>
+        roles: List<String>,
+        createdBy: UUID? = null
     ) = AppStack.Do {
 
         val log = !authStackLog
@@ -54,7 +54,8 @@ object AuthApi {
                         algorithm = hashAlgorithm
                     ),
                     roles = roles,
-                    personalData = personalData
+                    personalData = personalData,
+                    createdBy = createdBy
                 ),
             )
 
@@ -174,7 +175,7 @@ object AuthApi {
 
     val appStackAuthValidateAdmin get() = AppStack.Do {
         val auth = !authStackJwt
-        !allowIf(Auth.InternalRole.admin.name in auth.payload.roles)
+        !allowIf( "admin" in auth.payload.roles)
     }
 
     val readStateFromSession get() = AppStack.Do {
@@ -222,10 +223,14 @@ object AuthApi {
             }
         }
 
-        fun list() = AppStack.Do {
+        fun list(role: String? = null) = AppStack.Do {
             !appStackAuthValidateAdmin
             !appStackDbQuery {
                 AuthProjection.User.selectAll()
+                    .where {
+                        role?.let { AuthProjection.User.roles inList listOf(listOf(it)) } ?:
+                        Op.TRUE
+                    }
                     .map { it.toUserProjection }
             }
         }

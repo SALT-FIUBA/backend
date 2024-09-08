@@ -90,6 +90,7 @@ tasks.jar {
     from("src/main/resources/META-INF/services/io.grpc.LoadBalancerProvider") {
         into("META-INF/services")
     }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 kotlin {

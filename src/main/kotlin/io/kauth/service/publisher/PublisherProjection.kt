@@ -8,6 +8,9 @@ import org.jetbrains.exposed.sql.Table
 import java.util.*
 import io.kauth.service.publisher.Publisher.Channel.Mqtt
 import io.kauth.service.publisher.Publisher.Event
+import io.kauth.service.salt.DeviceProjection.DeviceTable
+import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.upsert
 
 object PublisherProjection {
@@ -21,6 +24,28 @@ object PublisherProjection {
         val resultSuccess = text("result_success").nullable()
         val resultError = text("result_error").nullable()
     }
+
+    @Serializable
+    data class Projection(
+        val id: String,
+        val data: String,
+        val resource: String,
+        val channel: String,
+        val mqttTopic: String?,
+        val resultSuccess: String?,
+        val resultError: String?
+    )
+
+    val ResultRow.toPublisherProjection get() =
+        Projection(
+            this[Publisher.id],
+            this[Publisher.data],
+            this[Publisher.resource],
+            this[Publisher.channel],
+            this[Publisher.mqttTopic],
+            this[Publisher.resultSuccess],
+            this[Publisher.resultError],
+        )
 
     val sqlEventHandler = appStackSqlProjector<Event>(
         streamName = "\$ce-publisher",

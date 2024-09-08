@@ -27,9 +27,7 @@ object OrganismApiRest {
     data class UserRequest(
         @Contextual
         val user: UUID,
-        val role: Auth.Role,
-        @Contextual
-        val organism: UUID
+        val role: Organism.Role,
     )
 
     val api = AppStack.Do {
@@ -49,16 +47,6 @@ object OrganismApiRest {
                     call.respond(HttpStatusCode.Created, result)
                 }
 
-                post(path = "/user") {
-                    !call.auth
-                    val command = call.receive<UserRequest>()
-                    val result = !OrganismApi.Command.addUser(
-                        organism = command.organism,
-                        role = command.role,
-                        user = command.user
-                    )
-                    call.respond(HttpStatusCode.OK, result)
-                }
 
                 get("/list") {
                     !call.auth

@@ -24,16 +24,18 @@ object DeviceApi {
     fun sendCommand(
         deviceId: UUID,
         messageId: UUID,
-        message: String,
+        action: Device.Mqtt.SaltAction
     ) = AppStack.Do {
 
-        val state = !Query.readState(deviceId) ?: return@Do
+        val state = !Query.readState(deviceId) ?: return@Do messageId
 
         !PublisherApi.publish(
             messageId = messageId,
-            message = message,
+            message = Device.Mqtt.SaltCmd(action = action, config = null),
             resource = deviceId.streamName,
-            channel = Publisher.Channel.Mqtt(state.topics?.command ?: error("No command topic"))
+            channel = Publisher.Channel.Mqtt(
+                state.topics?.command ?: error("No command topic")
+            )
         )
 
         messageId

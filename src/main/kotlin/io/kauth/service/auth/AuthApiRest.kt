@@ -18,7 +18,7 @@ object AuthApiRest {
         val email: String,
         val password: String,
         val personalData: Auth.User.PersonalData,
-        val role: Auth.Role
+        val role: String
     )
 
     @Serializable
@@ -35,17 +35,35 @@ object AuthApiRest {
 
                 route("internal") {
 
-                    post(path = "/register/admin") {
-                        //!call.auth
-                        //Do not expose this endpoint
-                        val command = call.receive<RegisterRequest>()
-                        val result = !AuthApi.register(
-                            command.email,
-                            command.password,
-                            command.personalData,
-                            listOf(Auth.InternalRole.admin.name)
-                        )
-                        call.respond(HttpStatusCode.Created, result)
+                    route("register") {
+
+                        post() {
+                            //Internal register for authenticated users
+                            val jwt = !call.auth
+                            val command = call.receive<RegisterRequest>()
+                            val result = !AuthApi.register(
+                                command.email,
+                                command.password,
+                                command.personalData,
+                                listOf(command.role),
+                                jwt.payload.uuid
+                            )
+                            call.respond(HttpStatusCode.Created, result)
+                        }
+
+                        post(path = "admin") {
+                            //!call.auth
+                            //Do not expose this endpoint
+                            val command = call.receive<RegisterRequest>()
+                            val result = !AuthApi.register(
+                                command.email,
+                                command.password,
+                                command.personalData,
+                                listOf("admin")
+                            )
+                            call.respond(HttpStatusCode.Created, result)
+                        }
+
                     }
 
                 }
@@ -56,7 +74,7 @@ object AuthApiRest {
                         command.email,
                         command.password,
                         command.personalData,
-                        listOf(command.role.name)
+                        listOf(command.role)
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }
@@ -94,7 +112,8 @@ object AuthApiRest {
 
                     get(path = "/list") {
                         !call.auth
-                        val users = !AuthApi.Query.list()
+                        val role = call.request.queryParameters["role"]
+                        val users = !AuthApi.Query.list(role)
                         call.respond(HttpStatusCode.OK, users)
                     }
 

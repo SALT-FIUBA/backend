@@ -7,25 +7,17 @@ import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import io.kauth.util.*
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.security.SecureRandom
+import java.util.UUID
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 
 
 object Auth {
 
-    @Serializable
-    enum class Role {
-        supervisor,
-        operators
-    }
-
-    @Serializable
-    enum class InternalRole {
-        admin
-    }
 
     @Serializable
     data class User(
@@ -33,7 +25,9 @@ object Auth {
         val credentials: Credentials,
         val personalData: PersonalData,
         val loginCount: Int? = null,
-        val roles: List<String> = emptyList()
+        val roles: List<String> = emptyList(),
+        @Contextual
+        val createdBy: UUID? = null
     ) {
         @Serializable
         data class PersonalData(
@@ -111,7 +105,9 @@ object Auth {
             val email: String,
             val credentials: Credentials,
             val personalData: User.PersonalData,
-            val roles: List<String> = emptyList()
+            val roles: List<String> = emptyList(),
+            @Contextual
+            val createdBy: UUID? = null
         ): Command
 
         @Serializable
@@ -125,9 +121,9 @@ object Auth {
             val passwordHash: ByteString
         ): Command
 
+
     }
 
-    //Nos dice que paso en el sistema
     @Serializable
     sealed interface UserEvent {
 
@@ -207,7 +203,8 @@ object Auth {
                 personalData = command.personalData,
                 credentials = command.credentials,
                 loginCount = 0,
-                roles = command.roles
+                roles = command.roles,
+                createdBy = command.createdBy
             )
 
         !emitEvents(

@@ -3,7 +3,6 @@ package io.kauth.service.organism
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
-import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi
 import io.kauth.service.salt.DeviceProjection
 import kotlinx.datetime.Instant
@@ -22,7 +21,7 @@ object OrganismProjection {
         val name = text("name")
         val tag = text("tag")
         val description = text("description")
-        val createdBy = text("created_by")
+        val createdBy = text("created_by").nullable()
         val createdByEmail = text("created_by_email").nullable()
         val createdAt = timestamp("created_at")
     }
@@ -46,14 +45,14 @@ object OrganismProjection {
         val name: String,
         val tag: String,
         val description: String,
-        val createdBy: String,
+        val createdBy: String?,
         val createdByEmail: String? = null,
         val createdAt: Instant
     )
 
     @Serializable
     data class OrganismUserInfoProjection(
-        val role: Auth.Role,
+        val role: Organism.Role,
         val userId: String,
         val organismId: String,
         val addedBy: String,
@@ -65,7 +64,7 @@ object OrganismProjection {
 
     val ResultRow.toOrganismUserInfoProjection get() =
         OrganismUserInfoProjection(
-            Auth.Role.valueOf(this[OrganismUserInfoTable.role]),
+            Organism.Role.valueOf(this[OrganismUserInfoTable.role]),
             this[OrganismUserInfoTable.userId],
             this[OrganismUserInfoTable.organismId],
             this[OrganismUserInfoTable.addedBy],
@@ -109,13 +108,13 @@ object OrganismProjection {
 
                 state.operators.forEach {
                     operator ->
-                    val addedByState = !AuthApi.Query.readState(operator.addedBy)
+                    val addedByState =  operator.addedBy?.let { !AuthApi.Query.readState(it) }
                     val userState = !AuthApi.Query.readState(operator.id)
                     OrganismUserInfoTable.upsert() {
                         it[userId] = operator.id.toString()
                         it[addedAt] = operator.addedAt
                         it[addedBy] = operator.addedBy.toString()
-                        it[role] = Auth.Role.operators.name
+                        it[role] = Organism.Role.operators.name
                         it[organismId] = entity.toString()
                         it[organismName] = state.name
                         it[userEmail] = userState?.email
@@ -124,13 +123,14 @@ object OrganismProjection {
                 }
 
                 state.supervisors.forEach { supervisor ->
-                    val addedByState = !AuthApi.Query.readState(supervisor.addedBy)
+
+                    val addedByState = supervisor.addedBy?.let { !AuthApi.Query.readState(it) }
                     val userState = !AuthApi.Query.readState(supervisor.id)
                     OrganismUserInfoTable.upsert() {
                         it[userId] = supervisor.id.toString()
                         it[addedAt] = supervisor.addedAt
                         it[addedBy] = supervisor.addedBy.toString()
-                        it[role] = Auth.Role.supervisor.name
+                        it[role] = Organism.Role.supervisor.name
                         it[organismId] = entity.toString()
                         it[organismName] = state.name
                         it[userEmail] = userState?.email

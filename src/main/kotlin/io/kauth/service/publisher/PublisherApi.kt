@@ -3,10 +3,17 @@ package io.kauth.service.publisher
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.abstractions.result.AppResult
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
+import io.kauth.service.auth.AuthApi.appStackAuthValidateAdmin
+import io.kauth.service.publisher.PublisherProjection.toPublisherProjection
+import io.kauth.service.salt.DeviceProjection
+import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.util.not
 import kotlinx.serialization.json.encodeToJsonElement
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 
 
@@ -15,6 +22,17 @@ object PublisherApi {
     fun readState(id: UUID) = AppStack.Do {
         val authService = !getService<PublisherService.Interface>()
         !authService.query.readState(id)
+    }
+
+    fun getByResource(resource: String) = AppStack.Do {
+        //!appStackAuthValidateAdmin
+        !appStackDbQuery {
+            PublisherProjection.Publisher
+                .selectAll()
+                .where { PublisherProjection.Publisher.resource eq resource }
+                .toList()
+                .map { it.toPublisherProjection }
+        }
     }
 
     inline fun <reified T> publish(

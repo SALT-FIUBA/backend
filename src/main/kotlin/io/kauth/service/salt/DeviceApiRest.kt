@@ -5,6 +5,7 @@ import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
 import io.kauth.serializer.UUIDSerializer
 import io.kauth.service.auth.AuthApi.auth
+import io.kauth.service.publisher.PublisherApi
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -27,10 +28,8 @@ object DeviceApiRest {
     @Serializable
     data class MqttCommandRequest(
         @Serializable(UUIDSerializer::class)
-        val deviceId: UUID,
-        @Serializable(UUIDSerializer::class)
         val messageId: UUID,
-        val message: String,
+        val action: Device.Mqtt.SaltAction
     )
 
     val api = AppStack.Do {
@@ -51,36 +50,49 @@ object DeviceApiRest {
                     call.respond(HttpStatusCode.Created, result)
                 }
 
-                post(path = "/command") {
-                    !call.auth
-                    val command = call.receive<MqttCommandRequest>()
-                    val result = !DeviceApi.sendCommand(
-                        command.deviceId,
-                        command.messageId,
-                        command.message,
-                    )
-                    call.respond(HttpStatusCode.Created, result)
-                }
-
                 get("/list") {
                     !call.auth
                     val result = !DeviceApi.Query.list()
                     call.respond(HttpStatusCode.OK, result)
                 }
 
-                get("/state/{id}") {
-                    !call.auth
-                    val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                    val device = !DeviceApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Device not found")
-                    call.respond(HttpStatusCode.OK, device)
+
+                route("{id}") {
+
+                    post(path = "/command") {
+                        !call.auth
+                        val command = call.receive<MqttCommandRequest>()
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val result = !DeviceApi.sendCommand(
+                            UUID.fromString(id),
+                            command.messageId,
+                            command.action
+                        )
+                        call.respond(HttpStatusCode.Created, result)
+                    }
+
+                    get("/state") {
+                        !call.auth
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val device = !DeviceApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Device not found")
+                        call.respond(HttpStatusCode.OK, device)
+                    }
+
+                    get {
+                        !call.auth
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val device = !DeviceApi.Query.get(id) ?: !ApiException("Device not found")
+                        call.respond(HttpStatusCode.OK, device)
+                    }
+
+                    get("messages") {
+                        !call.auth
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val messages = !PublisherApi.getByResource("device-${id}")
+                        call.respond(HttpStatusCode.OK, messages)
+                    }
                 }
 
-                get("/{id}") {
-                    !call.auth
-                    val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                    val device = !DeviceApi.Query.get(id) ?: !ApiException("Device not found")
-                    call.respond(HttpStatusCode.OK, device)
-                }
 
             }
 

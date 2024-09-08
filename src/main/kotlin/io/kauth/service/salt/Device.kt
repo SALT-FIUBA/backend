@@ -27,11 +27,11 @@ object Device {
 
         @Serializable
         enum class SaltAction {
-            SALT_CMD_ORDER_STOP,
-            SALT_CMD_ORDER_DRIFT,
-            SALT_CMD_ORDER_ISOLATED,
-            SALT_CMD_ORDER_AUTOMATIC,
-            SALT_CMD_ORDER_COUNT
+            STOP,
+            DRIFT,
+            ISOLATED,
+            AUTOMATIC,
+            COUNT
         }
 
         @Serializable

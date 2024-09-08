@@ -62,6 +62,8 @@ object OrganismService : AppService {
 
             !OrganismProjection.sqlEventHandler
 
+            !OrganismEventHandler.eventHandler
+
             !OrganismApiRest.api
 
 

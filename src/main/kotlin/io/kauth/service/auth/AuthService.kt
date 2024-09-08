@@ -13,7 +13,9 @@ import java.util.*
 
 object AuthService : AppService {
 
-    val USERS_STREAM_PREFIX = "user-"
+
+    val USERS_STREAM_NAME = "user"
+    val USERS_STREAM_PREFIX = "${USERS_STREAM_NAME}-"
     val USER_SNAPSHOT_STREAM_PREFIX = "user_snapshot-"
     val UUID.streamName get() = USERS_STREAM_PREFIX + this.toString()
     val UUID.snapshotName get() = USER_SNAPSHOT_STREAM_PREFIX + this.toString()

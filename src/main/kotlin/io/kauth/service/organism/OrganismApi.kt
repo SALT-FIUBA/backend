@@ -5,9 +5,7 @@ import io.kauth.exception.ApiException
 import io.kauth.exception.allowIf
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
-import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi.appStackAuthValidateAdmin
-import io.kauth.service.auth.AuthApi.appStackAuthValidateSupervisor
 import io.kauth.service.auth.AuthService
 import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
@@ -25,31 +23,30 @@ object OrganismApi {
 
     object Command {
 
+        //Esto se tiene que ejecutar cada vez que se crea un usuario!!
         fun addUser(
             organism: UUID,
-            role: Auth.Role,
-            user: UUID
+            role: Organism.Role,
+            user: UUID,
+            createdBy: UUID?
         ) = AppStack.Do {
-            val jwt = !authStackJwt
+
+            //TODO: Validate that createdBy belongs to the organism
+
+            val orgRole = Organism.OrganismRole(role, organism)
 
             val service = !getService<OrganismService.Interface>()
-            val organismState = !service.query.readState(organism) ?: !ApiException("Organism does not exists")
-
-            !allowIf(
-                Auth.InternalRole.admin.name in jwt.payload.roles ||
-                        jwt.payload.roles.contains(Auth.Role.supervisor.name) && organismState.supervisors.any { it.id == jwt.payload.uuid }
-            )
-
             val auth = !getService<AuthService.Interface>()
+
             val userData = !auth.query.readState(user) ?: !ApiException("User does not exists")
 
-            if (role.name !in userData.roles) {
+            if (orgRole.string !in userData.roles) {
                 !ApiException("Invalid role for user")
             }
 
             val userInfo = Organism.UserInfo(
                 id = user,
-                addedBy = jwt.payload.uuid,
+                addedBy = createdBy,
                 addedAt = Clock.System.now()
             )
 
@@ -57,8 +54,8 @@ object OrganismApi {
                 .handle(organism)
                 .throwOnFailureHandler(
                     when(role) {
-                        Auth.Role.operators -> Organism.Command.AddOperator(userInfo)
-                        Auth.Role.supervisor -> Organism.Command.AddSupervisor(userInfo)
+                        Organism.Role.operators -> Organism.Command.AddOperator(userInfo)
+                        Organism.Role.supervisor -> Organism.Command.AddSupervisor(userInfo)
                     }
                 )
             userInfo
@@ -77,7 +74,7 @@ object OrganismApi {
                 !ApiException("Invalid name")
             }
 
-            if (Auth.InternalRole.admin.name !in jwt.payload.roles) {
+            if ("admin" !in jwt.payload.roles) {
                !ApiException("Not Authorized")
             }
 
@@ -124,7 +121,7 @@ object OrganismApi {
                         OrganismProjection.OrganismUserInfoTable.selectAll()
                             .where {
                                 (OrganismProjection.OrganismUserInfoTable.organismId eq id.toString()) and
-                                        (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.supervisor.name)
+                                        (OrganismProjection.OrganismUserInfoTable.role eq Organism.Role.supervisor.name)
                             }
                             .map { it.toOrganismUserInfoProjection }
 
@@ -132,7 +129,7 @@ object OrganismApi {
                         OrganismProjection.OrganismUserInfoTable.selectAll()
                             .where {
                                 (OrganismProjection.OrganismUserInfoTable.organismId eq id.toString()) and
-                                        (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.operators.name)
+                                        (OrganismProjection.OrganismUserInfoTable.role eq Organism.Role.operators.name)
                             }
                             .map { it.toOrganismUserInfoProjection}
 
@@ -167,7 +164,7 @@ object OrganismApi {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {
                         (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
-                                (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.supervisor.name)
+                                (OrganismProjection.OrganismUserInfoTable.role eq Organism.Role.supervisor.name)
                     }
                     .map { it.toOrganismUserInfoProjection}
             }
@@ -179,7 +176,7 @@ object OrganismApi {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {
                         (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
-                                (OrganismProjection.OrganismUserInfoTable.role eq Auth.Role.operators.name)
+                                (OrganismProjection.OrganismUserInfoTable.role eq Organism.Role.operators.name)
                     }
                     .map { it.toOrganismUserInfoProjection}
             }

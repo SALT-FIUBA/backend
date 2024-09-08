@@ -13,12 +13,45 @@ import java.util.UUID
 
 object Organism {
 
+    data class OrganismRole(
+        val role: Role,
+        val organismId: UUID
+    ) {
+        val string: String = "${organismId}_$role"
+        companion object {
+            fun formString(organismRole: String) =
+                kotlin.runCatching {
+                    val (organismId, role) = organismRole.split("_")
+                    OrganismRole(
+                        Role.fromString(role) ?: error("Invalid role"),
+                        UUID.fromString(organismId))
+                }.getOrNull()
+        }
+    }
+
+    //EL role podria ser (organismo)-(operador|supervisor)
+    @Serializable
+    enum class Role {
+        supervisor,
+        operators;
+
+        companion object {
+            fun fromString(value: String) =
+                kotlin.runCatching { Role.valueOf(value) }.getOrNull()
+        }
+    }
+
+    @Serializable
+    enum class InternalRole {
+        admin
+    }
+
     @Serializable
     data class State(
         val tag: String,
         val name: String,
         val description: String,
-        val createdBy: String,
+        val createdBy: String?,
         val createdAt: Instant,
         val supervisors: List<UserInfo> = emptyList(),
         val operators: List<UserInfo> = emptyList()
@@ -29,7 +62,7 @@ object Organism {
         @Contextual
         val id: UUID,
         @Contextual
-        val addedBy: UUID,
+        val addedBy: UUID?,
         val addedAt: Instant
     )
 
@@ -41,7 +74,7 @@ object Organism {
             val tag: String,
             val name: String,
             val description: String,
-            val createdBy: String,
+            val createdBy: String?,
             val createdAt: Instant
         ): Command
 
