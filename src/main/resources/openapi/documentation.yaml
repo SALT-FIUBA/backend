@@ -1,0 +1,807 @@
+openapi: "3.1.0"
+info:
+  title: "kauth_event_sourcing API"
+  description: "kauth_event_sourcing API"
+  version: "1.0.0"
+servers:
+- url: "https://kauth_event_sourcing"
+paths:
+  /ping:
+    get:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /organism/{id}:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AggregatedProjection"
+  /organism/{id}/operators:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/OrganismUserInfoProjection"
+  /organism/{id}/supervisors:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/OrganismUserInfoProjection"
+  /organism/create:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/CreateRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /organism/list:
+    get:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/OrganismProjection"
+  /organism/users/create:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/CreateUsersRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /device/{id}:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Projection"
+  /device/{id}/command:
+    post:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/MqttCommandRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+                format: "uuid"
+  /device/{id}/messages:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Projection"
+  /device/{id}/state:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/State"
+  /device/create:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/CreateRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /device/list:
+    get:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Projection"
+  /metrics:
+    get:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /auth/internal/register:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /auth/internal/register/admin:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /auth/login:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+        required: true
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Tokens"
+  /auth/register:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+  /auth/user:
+    get:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Aggregated"
+  /auth/user/{id}:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Aggregated"
+  /auth/user/email/{email}:
+    get:
+      description: ""
+      parameters:
+      - name: "email"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/UserProjection"
+  /auth/user/list:
+    get:
+      description: ""
+      parameters:
+      - name: "role"
+        in: "query"
+        required: false
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/UserProjection"
+  /publisher:
+    get:
+      description: ""
+      parameters:
+      - name: "resource"
+        in: "query"
+        required: false
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Projection"
+  /publisher/{id}:
+    get:
+      description: ""
+      parameters:
+      - name: "id"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/State"
+  /publisher/publish:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/PublishRequest"
+        required: true
+      responses:
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/Unit"
+  /mqtt/subscribe:
+    post:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "object"
+  /mqtt/subscriptions:
+    get:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "array"
+                items:
+                  type: "string"
+  /mqtt/subscription/subscribe:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/SubscribeRequest"
+        required: true
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "object"
+  /mqtt/subscription/unsubscribe:
+    post:
+      description: ""
+      requestBody:
+        content:
+          '*/*':
+            schema:
+              $ref: "#/components/schemas/UnsubscribeRequest"
+        required: true
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "object"
+components:
+  schemas:
+    Instant:
+      type: "object"
+      properties: {}
+    OrganismProjection:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        name:
+          type: "string"
+        tag:
+          type: "string"
+        description:
+          type: "string"
+        createdBy:
+          type: "string"
+        createdByEmail:
+          type: "string"
+        createdAt:
+          $ref: "#/components/schemas/Instant"
+      required:
+      - "id"
+      - "name"
+      - "tag"
+      - "description"
+      - "createdAt"
+    OrganismUserInfoProjection:
+      type: "object"
+      properties:
+        role:
+          type: "string"
+          enum:
+          - "supervisor"
+          - "operators"
+        userId:
+          type: "string"
+        organismId:
+          type: "string"
+        addedBy:
+          type: "string"
+        addedAt:
+          $ref: "#/components/schemas/Instant"
+        organismName:
+          type: "string"
+        userEmail:
+          type: "string"
+        addedByEmail:
+          type: "string"
+      required:
+      - "role"
+      - "userId"
+      - "organismId"
+      - "addedBy"
+      - "addedAt"
+    Projection:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        data:
+          type: "string"
+        resource:
+          type: "string"
+        channel:
+          type: "string"
+        mqttTopic:
+          type: "string"
+        resultSuccess:
+          type: "string"
+        resultError:
+          type: "string"
+      required:
+      - "id"
+      - "data"
+      - "resource"
+      - "channel"
+    AggregatedProjection:
+      type: "object"
+      properties:
+        data:
+          $ref: "#/components/schemas/OrganismProjection"
+        supervisors:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OrganismUserInfoProjection"
+        operators:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OrganismUserInfoProjection"
+        devices:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/Projection"
+      required:
+      - "data"
+      - "supervisors"
+      - "operators"
+      - "devices"
+    CreateRequest:
+      type: "object"
+      properties:
+        organismId:
+          type: "string"
+          format: "uuid"
+        seriesNumber:
+          type: "string"
+        ports:
+          type: "array"
+          items:
+            type: "string"
+        topics:
+          $ref: "#/components/schemas/Topics"
+      required:
+      - "organismId"
+      - "seriesNumber"
+      - "ports"
+      - "topics"
+    PersonalData:
+      type: "object"
+      properties:
+        firstName:
+          type: "string"
+        lastName:
+          type: "string"
+      required:
+      - "firstName"
+      - "lastName"
+    CreateUsersRequest:
+      type: "object"
+      properties:
+        organism:
+          type: "string"
+          format: "uuid"
+        user:
+          type: "string"
+          format: "uuid"
+        role:
+          type: "string"
+          enum:
+          - "supervisor"
+          - "operators"
+        email:
+          type: "string"
+        password:
+          type: "string"
+        personalData:
+          $ref: "#/components/schemas/PersonalData"
+      required:
+      - "organism"
+      - "user"
+      - "role"
+      - "email"
+      - "password"
+      - "personalData"
+    MqttCommandRequest:
+      type: "object"
+      properties:
+        messageId:
+          type: "string"
+          format: "uuid"
+        action:
+          type: "string"
+          enum:
+          - "STOP"
+          - "DRIFT"
+          - "ISOLATED"
+          - "AUTOMATIC"
+          - "COUNT"
+      required:
+      - "messageId"
+      - "action"
+    Topics:
+      type: "object"
+      properties:
+        state:
+          type: "string"
+        command:
+          type: "string"
+        status:
+          type: "string"
+      required:
+      - "state"
+      - "command"
+      - "status"
+    SaltConfig:
+      type: "object"
+      properties:
+        velCtOn:
+          type: "number"
+          format: "double"
+        velCtOff:
+          type: "number"
+          format: "double"
+        velFeOn:
+          type: "number"
+          format: "double"
+        velFeHold:
+          type: "number"
+          format: "double"
+        timeBlinkEnable:
+          type: "boolean"
+        timeBlinkDisable:
+          type: "boolean"
+        blinkPeriod:
+          type: "boolean"
+    SaltState:
+      type: "object"
+      properties:
+        config:
+          $ref: "#/components/schemas/SaltConfig"
+        currentAction:
+          type: "string"
+          enum:
+          - "STOP"
+          - "DRIFT"
+          - "ISOLATED"
+          - "AUTOMATIC"
+          - "COUNT"
+        speed:
+          type: "number"
+          format: "double"
+      required:
+      - "config"
+      - "currentAction"
+    State:
+      type: "object"
+      properties:
+        data:
+          $ref: "#/components/schemas/JsonElement"
+        resource:
+          type: "string"
+        channel:
+          $ref: "#/components/schemas/Channel"
+        result:
+          type: "string"
+      required:
+      - "data"
+      - "resource"
+      - "channel"
+    RegisterRequest:
+      type: "object"
+      properties:
+        email:
+          type: "string"
+        password:
+          type: "string"
+        personalData:
+          $ref: "#/components/schemas/PersonalData"
+        role:
+          type: "string"
+      required:
+      - "email"
+      - "password"
+      - "personalData"
+      - "role"
+    LoginRequest:
+      type: "object"
+      properties:
+        email:
+          type: "string"
+        password:
+          type: "string"
+      required:
+      - "email"
+      - "password"
+    Tokens:
+      type: "object"
+      properties:
+        access:
+          type: "string"
+        refresh:
+          type: "string"
+      required:
+      - "access"
+    UserProjection:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+        firstname:
+          type: "string"
+        lastname:
+          type: "string"
+        email:
+          type: "string"
+        roles:
+          type: "array"
+          items:
+            type: "string"
+      required:
+      - "id"
+      - "firstname"
+      - "lastname"
+      - "email"
+      - "roles"
+    Aggregated:
+      type: "object"
+      properties:
+        data:
+          $ref: "#/components/schemas/UserProjection"
+        userInfo:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OrganismUserInfoProjection"
+      required:
+      - "data"
+      - "userInfo"
+    JsonElement:
+      type: "object"
+      properties: {}
+    Channel:
+      type: "object"
+      properties: {}
+    PublishRequest:
+      type: "object"
+      properties:
+        messageId:
+          type: "string"
+          format: "uuid"
+        data:
+          $ref: "#/components/schemas/JsonElement"
+        resource:
+          type: "string"
+        channel:
+          $ref: "#/components/schemas/Channel"
+      required:
+      - "messageId"
+      - "data"
+      - "resource"
+      - "channel"
+    Unit:
+      type: "object"
+      properties: {}
+    SubscribeRequest:
+      type: "object"
+      properties:
+        topic:
+          type: "string"
+        resource:
+          type: "string"
+      required:
+      - "topic"
+      - "resource"
+    UnsubscribeRequest:
+      type: "object"
+      properties:
+        topics:
+          type: "array"
+          items:
+            type: "string"
+      required:
+      - "topics"

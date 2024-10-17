@@ -12,6 +12,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import sun.security.util.Password
 import java.util.*
 
 object OrganismApiRest {
@@ -24,10 +25,15 @@ object OrganismApiRest {
     )
 
     @Serializable
-    data class UserRequest(
+    data class CreateUsersRequest(
+        @Contextual
+        val organism: UUID,
         @Contextual
         val user: UUID,
         val role: Organism.Role,
+        val email: String,
+        val password: String,
+        val personalData: Auth.User.PersonalData
     )
 
     val api = AppStack.Do {
@@ -45,6 +51,24 @@ object OrganismApiRest {
                         command.description
                     )
                     call.respond(HttpStatusCode.Created, result)
+                }
+
+
+                route("users") {
+
+                    post(path = "/create") {
+                        !call.auth
+                        val command = call.receive<CreateUsersRequest>()
+                        val result = !OrganismApi.Command.createUser(
+                            command.organism,
+                            command.role,
+                            command.email,
+                            command.password,
+                            command.personalData
+                        )
+                        call.respond(HttpStatusCode.Created, result)
+                    }
+
                 }
 
 

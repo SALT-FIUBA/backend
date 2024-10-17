@@ -122,11 +122,4 @@ data class MqttRequesterHiveMQ(
             .await()
     }
 
-    inline fun <reified T> publishIdempotent(
-        topic: String,
-        data: T,
-        idempotence: UUID,
-        retain: Boolean = false
-    ): Async<Unit> = publish(topic, MqttData(data, idempotence), retain)
-
 }

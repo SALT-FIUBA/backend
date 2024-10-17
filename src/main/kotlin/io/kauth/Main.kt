@@ -7,6 +7,7 @@ import io.kauth.monad.stack.*
 import io.kauth.service.auth.AuthService
 import io.kauth.service.salt.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
+import io.kauth.service.mqttdevice.MqttDeviceService
 import io.kauth.service.organism.OrganismService
 import io.kauth.service.ping.PingService
 import io.kauth.service.publisher.PublisherService
@@ -20,7 +21,6 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
-import io.ktor.server.engine.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
@@ -45,7 +45,8 @@ val runServices get() =
         OrganismService,
         DeviceService,
         MqttConnectorService,
-        PublisherService
+        PublisherService,
+        MqttDeviceService
     )
 
 val installKtorPlugins =

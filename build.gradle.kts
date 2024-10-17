@@ -1,9 +1,9 @@
 
 plugins {
     application
-    kotlin("jvm") version "2.0.0"
+    kotlin("jvm") version "2.0.20"
     kotlin("plugin.serialization") version "1.9.0"
-    id("io.ktor.plugin") version "2.3.11"
+    id("io.ktor.plugin") version "3.0.0"
 }
 
 group = "org.example"
@@ -12,7 +12,6 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
 }
-
 
 application {
     mainClass.set("io.kauth.MainKt")
@@ -30,15 +29,16 @@ ktor {
     }
 }
 
-val ktorVersion = "2.3.6"
+val ktorVersion = "3.0.0"
 val logbackVersion = "1.4.14"
 val eventStoreClientVersion = "5.2.0"
-val serializationVersion = "1.6.0"
+val serializationVersion = "1.7.3"
 val dateTimeVersion = "0.4.1"
 val micrometer = "1.12.2"
 val mqttClient = "0.4.6"
 val exposedVersion = "0.50.1"
 val hikaricpVersion = "5.0.1"
+val hivemqMQTT = "1.3.3"
 
 dependencies {
 
@@ -49,11 +49,11 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
-
-    implementation("com.hivemq:hivemq-mqtt-client:1.2.1")
-
     implementation("io.ktor:ktor-server-metrics:$ktorVersion")
     implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+
+    implementation("com.hivemq:hivemq-mqtt-client:$hivemqMQTT")
+
     implementation("io.micrometer:micrometer-registry-prometheus:$micrometer")
 
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
@@ -66,8 +66,8 @@ dependencies {
 
     implementation("com.auth0:java-jwt:4.4.0")
 
-    implementation("io.github.davidepianca98:kmqtt-common-jvm:$mqttClient")
-    implementation("io.github.davidepianca98:kmqtt-client-jvm:$mqttClient")
+    //implementation("io.github.davidepianca98:kmqtt-common-jvm:$mqttClient")
+    //implementation("io.github.davidepianca98:kmqtt-client-jvm:$mqttClient")
 
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
@@ -76,8 +76,8 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-json:$exposedVersion")
 
     implementation("com.zaxxer:HikariCP:$hikaricpVersion")
-    //implementation("org.jooq:jooq:3.19.6")
-    implementation("org.postgresql:postgresql:42.7.0")
+
+    implementation("org.postgresql:postgresql:42.7.2")
 
     testImplementation(kotlin("test"))
 }
@@ -96,7 +96,6 @@ tasks.jar {
 kotlin {
     jvmToolchain(8)
     compilerOptions {
-        //jvmTarget.set(JvmTarget.JVM_17)fdddd
         freeCompilerArgs.add("-Xcontext-receivers")
     }
 }

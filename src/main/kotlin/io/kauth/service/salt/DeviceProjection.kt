@@ -4,10 +4,13 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import io.kauth.service.organism.OrganismApi
+import io.kauth.service.salt.DeviceProjection.DeviceTable.uniqueIndex
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.json.json
 import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
 import org.jetbrains.exposed.sql.upsert
 import java.util.*
@@ -29,6 +32,14 @@ object DeviceProjection {
         val state_topic = text("state_topic").nullable()
     }
 
+    object DeviceCurrentDataTable: Table("devices_data") {
+        val id = text("id").uniqueIndex()
+        val organismId = text("organism_id")
+        val speed = double("device_speed").nullable()
+        val device_config = json<Device.Mqtt.SaltConfig>("device_config", Json).nullable()
+        val current_action = json<Device.Mqtt.SaltAction>("current_action ", Json).nullable()
+    }
+
     @Serializable
     data class Projection(
         val id: String,
@@ -41,7 +52,16 @@ object DeviceProjection {
         val createdAt: Instant,
         val commandTopic: String?,
         val statusTopic: String?,
-        val stateTopic: String?
+        val stateTopic: String?,
+    )
+
+    @Serializable
+    data class DeviceCurrentDataProjection(
+        val id: String,
+        val organismId: String,
+        val speed: Double?,
+        val deviceConfig: Device.Mqtt.SaltConfig?,
+        val deviceCurrentAction: Device.Mqtt.SaltAction?
     )
 
     val ResultRow.toDeviceProjection get() =
@@ -56,7 +76,17 @@ object DeviceProjection {
             this[DeviceTable.createdAt],
             this[DeviceTable.command_topic],
             this[DeviceTable.status_topic],
-            this[DeviceTable.state_topic],
+            this[DeviceTable.state_topic]
+        )
+
+    //DEVICE REAL TIME DATA -> Tiene que ser un stream aparte!
+    val ResultRow.toDeviceCurrentDataProjection get() =
+        DeviceCurrentDataProjection(
+            this[DeviceCurrentDataTable.id],
+            this[DeviceCurrentDataTable.organismId],
+            this[DeviceCurrentDataTable.speed],
+            this[DeviceCurrentDataTable.device_config],
+            this[DeviceCurrentDataTable.current_action],
         )
 
     val sqlEventHandler = appStackSqlProjector<Device.Event>(

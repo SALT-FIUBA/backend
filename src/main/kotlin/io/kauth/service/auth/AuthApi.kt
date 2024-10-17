@@ -32,6 +32,10 @@ object AuthApi {
         createdBy: UUID? = null
     ) = AppStack.Do {
 
+        !allowIf("admin" !in roles) {
+            "Invalid role!"
+        }
+
         val log = !authStackLog
 
         log.info("Register user $email")

@@ -37,7 +37,6 @@ object Publisher {
 
     }
 
-    //SOLO TENGO QUE USAR EVENTOS, Los comando son al pedo ?
     @Serializable
     sealed interface Event {
 

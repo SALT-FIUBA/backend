@@ -5,6 +5,8 @@ import io.kauth.exception.ApiException
 import io.kauth.exception.allowIf
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
+import io.kauth.service.auth.Auth
+import io.kauth.service.auth.AuthApi
 import io.kauth.service.auth.AuthApi.appStackAuthValidateAdmin
 import io.kauth.service.auth.AuthService
 import io.kauth.service.organism.OrganismProjection.OrganismTable
@@ -23,6 +25,36 @@ object OrganismApi {
 
     object Command {
 
+        fun createUser(
+            organism: UUID,
+            role: Organism.Role,
+            email: String,
+            password: String,
+            personalData: Auth.User.PersonalData,
+        ) = AppStack.Do {
+
+            val jwt = !authStackJwt
+
+            val orgRole = Organism.OrganismRole(role, organism)
+            val supervisorRole = Organism.OrganismRole(Organism.Role.supervisor, organism)
+
+            !allowIf(
+                "admin" in jwt.payload.roles ||
+                        (supervisorRole.string in jwt.payload.roles && role != Organism.Role.supervisor)
+            ) {
+                "Not Allowed"
+            }
+
+            !AuthApi.register(
+                email,
+                password,
+                personalData,
+                listOf(orgRole.string),
+                jwt.payload.uuid
+            )
+
+        }
+
         //Esto se tiene que ejecutar cada vez que se crea un usuario!!
         fun addUser(
             organism: UUID,
@@ -31,8 +63,6 @@ object OrganismApi {
             createdBy: UUID?
         ) = AppStack.Do {
 
-            //TODO: Validate that createdBy belongs to the organism
-
             val orgRole = Organism.OrganismRole(role, organism)
 
             val service = !getService<OrganismService.Interface>()
@@ -40,8 +70,8 @@ object OrganismApi {
 
             val userData = !auth.query.readState(user) ?: !ApiException("User does not exists")
 
-            if (orgRole.string !in userData.roles) {
-                !ApiException("Invalid role for user")
+            !allowIf(orgRole.string in userData.roles) {
+                "Invalid role for user"
             }
 
             val userInfo = Organism.UserInfo(
@@ -74,8 +104,8 @@ object OrganismApi {
                 !ApiException("Invalid name")
             }
 
-            if ("admin" !in jwt.payload.roles) {
-               !ApiException("Not Authorized")
+            allowIf("admin" in jwt.payload.roles) {
+                "Not authorized"
             }
 
             val service = !getService<OrganismService.Interface>()

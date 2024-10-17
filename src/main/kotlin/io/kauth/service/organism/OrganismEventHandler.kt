@@ -46,7 +46,7 @@ object OrganismEventHandler {
                     organism = organismRole.organismId,
                     role = organismRole.role,
                     user = userId,
-                    createdBy = null
+                    createdBy = value.user.createdBy
                 )
 
             }

@@ -69,12 +69,14 @@ object AuthApiRest {
                 }
 
                 post(path = "/register") {
+                    val jwt = kotlin.runCatching { !call.auth }.getOrNull()
                     val command = call.receive<RegisterRequest>()
                     val result = !AuthApi.register(
                         command.email,
                         command.password,
                         command.personalData,
-                        listOf(command.role)
+                        listOf(command.role),
+                        jwt?.payload?.uuid
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }

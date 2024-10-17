@@ -7,9 +7,6 @@ import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import kotlinx.serialization.Serializable
-import mqtt.Subscription
-import mqtt.packets.Qos
-import mqtt.packets.mqttv5.SubscriptionOptions
 
 //TIENE SENTIDO MANTENER ESTO ?
 //No puedo computar el estado de la lista te topics a travez del stream ce?
@@ -25,10 +22,6 @@ object Subscription {
     data class State(
         val data: List<SubsData>
     )
-
-    val SubsData.toMqttSubs get() =
-        Subscription(topic, SubscriptionOptions(Qos.AT_LEAST_ONCE))
-
 
     @Serializable
     sealed interface Command {
