@@ -46,6 +46,13 @@ data class AppStack<T>(
     }
 }
 
+fun <T> AppStack<T>.catching(): AppStack<Result<T>> =
+    AppStack.Do {
+        runCatching {
+            !this@catching
+        }
+    }
+
 fun <T> List<AppStack<T>>.sequential(): AppStack<List<T>> =
     AppStack.Do {
         this@sequential.map { !it }

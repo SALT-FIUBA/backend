@@ -40,6 +40,7 @@ object SubscriptionTopic {
         @Serializable
         data class Add(
             val resource: String,
+            val key: String? = null,
             val createdAt: Instant? = null
         ): Command
         @Serializable
@@ -67,7 +68,7 @@ object SubscriptionTopic {
         val state = !getState
 
         if(state != null) {
-            !exit(Failure("Already subscribed"))
+            !exit(Failure("Already subscribed to ${command.key}"))
         }
 
         !emitEvents(Event.Added(command.resource, command.createdAt))

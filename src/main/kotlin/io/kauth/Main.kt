@@ -2,12 +2,13 @@ package io.kauth
 
 import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
+import io.kauth.client.tuya.Tuya
 import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.AuthService
 import io.kauth.service.salt.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
-import io.kauth.service.mqttdevice.MqttDeviceService
+import io.kauth.service.iotdevice.IoTDeviceService
 import io.kauth.service.organism.OrganismService
 import io.kauth.service.ping.PingService
 import io.kauth.service.publisher.PublisherService
@@ -46,7 +47,7 @@ val runServices get() =
         DeviceService,
         MqttConnectorService,
         PublisherService,
-        MqttDeviceService
+        IoTDeviceService
     )
 
 val installKtorPlugins =
@@ -134,6 +135,7 @@ fun Application.kauthApp() {
                 ?.getString()
                 ?: "esdb://localhost:2113?tls=false"
 
+
             //Setup clients
             !registerService(
                 !eventStoreClientNew(eventstoreDbHost, serialization)
@@ -146,6 +148,8 @@ fun Application.kauthApp() {
             !registerService(
                 PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
             )
+
+            !registerService(!Tuya.newClient(ktor))
 
             !setLogbackLevel(LoggerLevel.info)
 

@@ -23,39 +23,26 @@ object PublisherEventHandler {
     }
 
     private fun handlePublishEvent(event: Event<Publisher.Event.Publish>) = AppStack.Do {
-
         val mqtt = !getService<MqttConnectorService.Interface>()
         val log = !authStackLog
         val publishId = UUID.fromString(event.retrieveId("publisher"))
-
         val result = try {
-
             val state = !PublisherApi.readState(publishId)
-
             val topic = event.value.channel as Publisher.Channel.Mqtt
-
             if (state?.result?.data != null) {
                 log.info("Already published $publishId")
                 return@Do
             }
-
-            log.info("Publishing message")
-
-            //SI aca te trabas trabas la lectura de los otros topics
             !mqtt.mqtt.publish(topic.topic, event.value.data)
-
             AppResult("Ok")
-
         } catch (e: Exception) {
             log.error("Publish error", e)
             AppResult(data = null, error = e.message ?: "error")
         }
-
         !PublisherApi.result(
             id = publishId,
             result = result
         )
-
     }
 
 

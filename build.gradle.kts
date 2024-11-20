@@ -39,6 +39,7 @@ val mqttClient = "0.4.6"
 val exposedVersion = "0.50.1"
 val hikaricpVersion = "5.0.1"
 val hivemqMQTT = "1.3.3"
+val pulsarVersion = "4.0.0"
 
 dependencies {
 
@@ -51,6 +52,10 @@ dependencies {
     implementation("io.ktor:ktor-server-cors:$ktorVersion")
     implementation("io.ktor:ktor-server-metrics:$ktorVersion")
     implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+
+    implementation("org.apache.pulsar:pulsar-client:$pulsarVersion")
 
     implementation("com.hivemq:hivemq-mqtt-client:$hivemqMQTT")
 
@@ -65,9 +70,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:$dateTimeVersion")
 
     implementation("com.auth0:java-jwt:4.4.0")
-
-    //implementation("io.github.davidepianca98:kmqtt-common-jvm:$mqttClient")
-    //implementation("io.github.davidepianca98:kmqtt-client-jvm:$mqttClient")
 
     implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")

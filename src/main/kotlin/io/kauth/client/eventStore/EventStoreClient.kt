@@ -1,6 +1,5 @@
 package io.kauth.client.eventStore
 
-import ch.qos.logback.classic.Logger
 import com.eventstore.dbclient.*
 import io.kauth.client.eventStore.model.*
 import io.kauth.client.eventStore.model.ReadResult
@@ -15,10 +14,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.*
-import java.util.concurrent.ExecutionException
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.suspendCoroutine
-import kotlin.math.log
 import kotlin.reflect.jvm.jvmName
 
 data class EventStoreClient(
@@ -32,18 +27,18 @@ data class EventStoreClientPersistenceSubs(
 )
 
 fun eventStoreClientNew(
-    conectionString: String,
+    connectionString: String,
     json: Json
 ) = IO {
-    val config = EventStoreDBConnectionString.parseOrThrow(conectionString)
+    val config = EventStoreDBConnectionString.parseOrThrow(connectionString)
     EventStoreClient(EventStoreDBClient.create(config), json)
 }
 
 fun eventStoreClientPersistenceSubsNew(
-    conectionString: String,
+    connectionString: String,
     json: Json
 ) = IO {
-    val config = EventStoreDBConnectionString.parseOrThrow(conectionString)
+    val config = EventStoreDBConnectionString.parseOrThrow(connectionString)
     EventStoreClientPersistenceSubs(EventStoreDBPersistentSubscriptionsClient.create(config), json)
 }
 

@@ -1,9 +1,13 @@
-
 TODO
 ====
 
-+ Setup secure EventStore to have users and ACL 
-https://developers.eventstore.com/server/v22.10/installation.html#use-docker-compose
+
++ Set up pulsar client
++ Pulsar service parecido a mqtt, subscription service?
++ Enable message service on tuya
+
+
+
 
 
 
@@ -18,6 +22,10 @@ Optimistic updates
 
 Snapshoting
 ===========
+
++ Setup secure EventStore to have users and ACL
+  https://developers.eventstore.com/server/v22.10/installation.html#use-docker-compose
+
 
 https://www.eventstore.com/blog/snapshots-in-event-sourcing
 https://www.eventstore.com/blog/snapshotting-strategies

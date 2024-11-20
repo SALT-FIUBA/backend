@@ -1,4 +1,4 @@
-package io.kauth.service.mqttdevice
+package io.kauth.service.iotdevice
 
 import io.kauth.abstractions.command.CommandHandler
 import io.kauth.abstractions.result.Output
@@ -13,20 +13,20 @@ import io.kauth.service.AppService
 import io.kauth.util.Async
 import java.util.*
 
-object MqttDeviceService : AppService {
+object IoTDeviceService : AppService {
 
-    val STREAM_NAME = "mqttdevice"
+    val STREAM_NAME = "iotdevice"
     val STREAM_PREFIX = "$STREAM_NAME-"
-    val SNAPSHOT_STREAM_PREFIX = "mqttdevice_snapshot-"
+    val SNAPSHOT_STREAM_PREFIX = "iotdevice_snapshot-"
     val UUID.streamName get() = STREAM_PREFIX + this.toString()
     val UUID.snapshotName get() = SNAPSHOT_STREAM_PREFIX + this.toString()
 
     data class Command(
-        val handle: (id: UUID) -> CommandHandler<MqttDevice.Command, Output>
+        val handle: (id: UUID) -> CommandHandler<IoTDevice.Command, Output>
     )
 
     data class Query(
-        val readState: (id: UUID) -> Async<MqttDevice.State?>
+        val readState: (id: UUID) -> Async<IoTDevice.State?>
     )
 
     data class Interface(
@@ -41,15 +41,15 @@ object MqttDeviceService : AppService {
 
             val commands = Command(
                 handle = { id ->
-                    stream<MqttDevice.Event, MqttDevice.State>(client, id.streamName, id.snapshotName)
-                        .commandHandler(MqttDevice.commandStateMachine, MqttDevice.eventReducer)
+                    stream<IoTDevice.Event, IoTDevice.State>(client, id.streamName, id.snapshotName)
+                        .commandHandler(IoTDevice.commandStateMachine, IoTDevice.eventReducer)
                 }
             )
 
             val query = Query(
                 readState = { id ->
-                    stream<MqttDevice.Event, MqttDevice.State>(client, id.streamName, id.snapshotName)
-                        .computeStateResult(MqttDevice.eventReducer)
+                    stream<IoTDevice.Event, IoTDevice.State>(client, id.streamName, id.snapshotName)
+                        .computeStateResult(IoTDevice.eventReducer)
                 }
             )
 
@@ -60,9 +60,11 @@ object MqttDeviceService : AppService {
                 )
             )
 
-            !MqttDeviceApiRest.api
+            !IoTDeviceApiRest.api
 
-            !MqttDeviceEventHandler.start
+            !IoTDeviceEventHandler.start
+
+            !IoTDeviceProjection.sqlEventHandler
 
         }
 }

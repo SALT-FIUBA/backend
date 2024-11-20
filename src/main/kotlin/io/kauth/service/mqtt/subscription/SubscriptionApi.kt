@@ -39,7 +39,7 @@ object SubscriptionApi {
         val service = !getService<SubscriptionService.Interface>()
         !service.command
             .handleTopic(topic)
-            .throwOnFailureHandler(SubscriptionTopic.Command.Add(resource))
+            .throwOnFailureHandler(SubscriptionTopic.Command.Add(resource, topic, Clock.System.now()))
     }
 
     fun subscribedToTopic(

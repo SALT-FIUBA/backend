@@ -10,6 +10,8 @@ import io.kauth.monad.state.CommandMonad
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
+//JsonPublisher
+//Algo mas general recibe como data: ByteArray y un Codec<ByteArray, E> donde E podria ser Json o lo que sea
 object Publisher {
 
     @Serializable
@@ -18,6 +20,12 @@ object Publisher {
         data class Mqtt(
             val topic: String
         ) : Channel()
+
+        @Serializable
+        data class Tuya(
+            val code: String
+        ) : Channel()
+
     }
 
     @Serializable

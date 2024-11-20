@@ -1,0 +1,81 @@
+package io.kauth.service.iotdevice
+
+import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.appStackDbQuery
+import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.monad.stack.authStackJson
+import io.kauth.service.iotdevice.model.iotdevice.Integration
+import kotlinx.datetime.Instant
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
+import org.jetbrains.exposed.sql.upsert
+import java.util.*
+
+object IoTDeviceProjection {
+
+    object IoTDeviceTable : Table("iot_devices") {
+        val id = text("id").uniqueIndex()
+        val name = text("name")
+        val createdAt = timestamp("created_at")
+        val resource = text("resource")
+        val enabled = bool("enabled").nullable()
+        val integration = text("integration")
+        val state = text("state")
+    }
+
+    @Serializable
+    data class Projection(
+        val id: String,
+        val name: String,
+        val resource: String,
+        val createdAt: Instant,
+        val enabled: Boolean?,
+        val integration: Integration,
+        val state: Map<String, IoTDevice.StateData<String>>
+    )
+
+    val ResultRow.toMqttDeviceProjection: AppStack<Projection>
+        get() {
+            val row = this
+            return AppStack.Do {
+                val josn = !authStackJson
+                Projection(
+                    row[IoTDeviceTable.id],
+                    row[IoTDeviceTable.name],
+                    row[IoTDeviceTable.resource],
+                    row[IoTDeviceTable.createdAt],
+                    row[IoTDeviceTable.enabled],
+                    row[IoTDeviceTable.integration].let { josn.decodeFromString(it) },
+                    row[IoTDeviceTable.state].let { josn.decodeFromString(it)  }
+                )
+
+            }
+        }
+
+
+    val sqlEventHandler = appStackSqlProjector<IoTDevice.Event>(
+        streamName = "\$ce-${IoTDeviceService.STREAM_NAME}",
+        consumerGroup = "iotdevice-sql-projection",
+        tables = listOf(IoTDeviceTable)
+    ) { event ->
+        AppStack.Do {
+            val entity = UUID.fromString(event.retrieveId(IoTDeviceService.STREAM_NAME))
+            val actualState = !IoTDeviceApi.Query.readState(entity) ?: return@Do
+            val json = !authStackJson
+            !appStackDbQuery {
+                IoTDeviceTable.upsert() { it ->
+                    it[id] = entity.toString()
+                    it[name] = actualState.name
+                    it[resource] = actualState.resource
+                    it[createdAt] = actualState.createdAt
+                    it[enabled] = actualState.enabled
+                    it[integration] = json.encodeToString(actualState.integration)
+                    it[state] = json.encodeToString(actualState.capabilitiesValues)
+                }
+            }
+        }
+    }
+}

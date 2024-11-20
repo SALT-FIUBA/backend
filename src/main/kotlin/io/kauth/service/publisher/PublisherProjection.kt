@@ -62,6 +62,7 @@ object PublisherProjection {
                     it[resource] = state.resource
                     it[channel] = when(state.channel) {
                         is Mqtt -> "mqtt"
+                        is io.kauth.service.publisher.Publisher.Channel.Tuya -> TODO()
                     }
                     it[mqttTopic] = (state.channel as Mqtt?)?.topic
                     it[resultSuccess] = state.result?.data

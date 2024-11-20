@@ -1,4 +1,4 @@
-package io.kauth.service.mqttdevice
+package io.kauth.service.iotdevice
 
 import io.kauth.abstractions.reducer.Reducer
 import io.kauth.abstractions.reducer.reducerOf
@@ -6,28 +6,27 @@ import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
+import io.kauth.service.iotdevice.model.iotdevice.Integration
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
-object MqttDevice {
-
-    @Serializable
-    data class Topics(
-        val state: String,
-        val command: String,
-        val status: String, //En general Online|Offline
-        val telemetry: String
-    )
+object IoTDevice {
 
     @Serializable
     data class State(
         val name: String,
-        val status: String?,
-        val state: String?,
         val createdAt: Instant,
-        val topics: Topics,
         val createdBy: String,
-        val resource: String = "",
+        val resource: String,
+        val enabled: Boolean,
+        val integration: Integration,
+        val capabilitiesValues: Map<String, StateData<String>>
+    )
+
+    @Serializable
+    data class StateData<T>(
+        val value: T,
+        val updatedAt: Instant
     )
 
     @Serializable
@@ -35,31 +34,29 @@ object MqttDevice {
 
         @Serializable
         data class Register(
+            val name: String,
             val resource: String,
-            val topics: Topics,
             val createdAt: Instant,
             val createdBy: String,
-            val name: String
+            val integration: Integration
         ): Command
 
         @Serializable
-        data class SetStatus(
-            val status: String
-        ): Command
-
-        @Serializable
-        data class SetState(
-            val status: String
-        ): Command
-
-        @Serializable
-        data class Telemetry(
-            val data: String
+        data class SetCapabilityValue(
+            val key: String,
+            val value: String,
+            val at: Instant
         ): Command
 
         @Serializable
         data class SendCommand(
-            val data: String
+            val data: String,
+            val key: String
+        ): Command
+
+        @Serializable
+        data class SetEnabled(
+            val enabled: Boolean
         ): Command
 
     }
@@ -70,20 +67,23 @@ object MqttDevice {
         data class Registered(
             val device: State
         ): Event
-        @Serializable
-        data class StatusSet(
-            val status: String
-        ): Event
 
         @Serializable
-        data class StateSet(
-            val state: String
+        data class CapabilitySet(
+            val key: String,
+            val value: String,
+            val at: Instant
         ): Event
 
         @Serializable
         data class SendCommand(
             val command: String,
-            val topic: String
+            val uri: String
+        ): Event
+
+        @Serializable
+        data class EnabledSet(
+            val enabled: Boolean
         ): Event
 
     }
@@ -98,12 +98,14 @@ object MqttDevice {
         event.device
     }
 
-    val statusSetEventHandler get() = Reducer<State?, Event.StatusSet> { state, event ->
-        state?.copy(status = event.status)
+    val enabledSetEventHandler get() = Reducer<State?, Event.EnabledSet> { state, event ->
+        state?.copy(enabled = event.enabled)
     }
 
-    val setState get() = Reducer<State?, Event.StateSet> { state, event ->
-        state?.copy(state = event.state)
+    val capabilityValueEventHandler get() = Reducer<State?, Event.CapabilitySet> { state, event ->
+        val oldValues = state?.capabilitiesValues ?: emptyMap()
+        state?.copy(capabilitiesValues = oldValues.plus(event.key to StateData(value = event.value, updatedAt = event.at)))
+
     }
 
     val sendCommandHandler get() = CommandMonad.Do<Command.SendCommand, State?, Event, Output> { exit ->
@@ -113,29 +115,33 @@ object MqttDevice {
             !emitEvents(Error.UnknownError("Device does not exists!"))
             !exit(Failure("Device already exists"))
         }
-        !emitEvents(Event.SendCommand(command.data, state.topics.command))
+        val uri = when (state.integration) {
+            is Integration.Tasmota -> command.key
+            is Integration.Tuya -> command.key
+        }
+        !emitEvents(Event.SendCommand(command.data, uri))
         Ok
     }
 
-    val setStatusHandler get() = CommandMonad.Do<Command.SetStatus, State?, Event, Output> { exit ->
+    val setCapValueHandler get() = CommandMonad.Do<Command.SetCapabilityValue, State?, Event, Output> { exit ->
         val state = !getState
         val command = !getCommand
         if (state == null) {
             !emitEvents(Error.UnknownError("Device does not exists!"))
             !exit(Failure("Device already exists"))
         }
-        !emitEvents(Event.StatusSet(command.status))
+        !emitEvents(Event.CapabilitySet(command.key, command.value, command.at))
         Ok
     }
 
-    val setStateHandler get() = CommandMonad.Do<Command.SetState, State?, Event, Output> { exit ->
+    val setEnabled get() = CommandMonad.Do<Command.SetEnabled, State?, Event, Output> { exit ->
         val state = !getState
         val command = !getCommand
         if (state == null) {
             !emitEvents(Error.UnknownError("Device does not exists!"))
             !exit(Failure("Device already exists"))
         }
-        !emitEvents(Event.StateSet(command.status))
+        !emitEvents(Event.EnabledSet(command.enabled))
         Ok
     }
 
@@ -149,13 +155,13 @@ object MqttDevice {
         }
         val data =
             State(
-                status = null,
-                state = null,
                 createdBy = command.createdBy,
                 createdAt = command.createdAt,
-                topics = command.topics,
                 name = command.name,
-                resource = command.resource
+                resource = command.resource,
+                integration = command.integration,
+                enabled = true,
+                capabilitiesValues = emptyMap()
             )
         !emitEvents(Event.Registered(data))
         Ok
@@ -166,18 +172,17 @@ object MqttDevice {
             val command = !getCommand
             when(command) {
                 is Command.Register -> !createCommandHandler
-                is Command.SetStatus -> !setStatusHandler
                 is Command.SendCommand -> !sendCommandHandler
-                is Command.SetState -> !setStateHandler
-                is Command.Telemetry -> TODO()
+                is Command.SetEnabled -> !setEnabled
+                is Command.SetCapabilityValue -> !setCapValueHandler
             }
         }
 
     val eventReducer get() =
         reducerOf(
             Event.Registered::class to createdEventHandler,
-            Event.StatusSet::class to statusSetEventHandler,
-            Event.StateSet::class to setState
+            Event.EnabledSet::class to enabledSetEventHandler,
+            Event.CapabilitySet::class to capabilityValueEventHandler,
         )
 
 }
