@@ -1,6 +1,8 @@
 package io.kauth.service.reservation
 
 import io.kauth.abstractions.command.throwOnFailureHandler
+import io.kauth.exception.ApiException
+import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
@@ -28,6 +30,14 @@ object ReservationApi {
     fun readState(id: String) = AppStack.Do {
         val service = !getService<ReservationService.Interface>()
         !service.query.readState(id)
+    }
+
+    fun readIfTaken(id: String) = AppStack.Do {
+        val state = !readState(id) ?: return@Do null
+        if (!state.taken) {
+            !ApiException("Resource not taken ${id}")
+        }
+        return@Do state.ownerId
     }
 
     fun takeIfNotTaken(

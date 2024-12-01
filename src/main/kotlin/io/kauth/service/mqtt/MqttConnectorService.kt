@@ -1,5 +1,6 @@
 package io.kauth.service.mqtt
 
+import io.kauth.abstractions.forever
 import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.append
 import io.kauth.client.eventStore.model.StreamRevision
@@ -79,7 +80,7 @@ object MqttConnectorService : AppService {
                         log.error("MQTT subscription loop error", e)
                     }
                 }
-            }
+            }.forever
 
             !MqttProjection.sqlEventHandler
 

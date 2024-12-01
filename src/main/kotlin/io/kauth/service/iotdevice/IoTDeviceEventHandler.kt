@@ -3,24 +3,26 @@ package io.kauth.service.iotdevice
 import io.kauth.client.eventStore.model.retrieveId
 import io.kauth.client.pulsar.auth.MqAuth
 import io.kauth.client.tuya.Tuya
+import io.kauth.client.tuya.queryProperties
 import io.kauth.client.tuya.sendCommand
 import io.kauth.monad.stack.*
 import io.kauth.service.iotdevice.decryptor.decrypt
 import io.kauth.service.iotdevice.model.iotdevice.CapabilitySchema
 import io.kauth.service.iotdevice.model.iotdevice.Integration
 import io.kauth.service.iotdevice.model.tuya.EncryptModel
+import io.kauth.service.iotdevice.model.tuya.TuyaEvent
 import io.kauth.service.iotdevice.model.tuya.TuyaPulsarMessage
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.mqtt.subscription.SubscriptionApi
 import io.kauth.service.publisher.Publisher
 import io.kauth.service.publisher.PublisherApi
+import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.not
 import kotlinx.coroutines.future.await
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import org.apache.pulsar.client.api.PulsarClient
 import org.apache.pulsar.client.api.SubscriptionType
@@ -67,8 +69,28 @@ object IoTDeviceEventHandler {
                 val tuyaMessage = json.decodeFromString<TuyaPulsarMessage>(message.data.toString(charset = Charsets.UTF_8))
                 val model = EncryptModel.fromString(encryptModel) ?: break
                 val data = model.decrypt(tuyaMessage.data, accessKey.substring(8, 24))
-                logger.info(data)
+
+                val tuyaEvent = json.decodeFromString<TuyaEvent>(data)
+                logger.info(tuyaEvent.toString())
+
+                val tuyaClient = !getService<Tuya.Client>()
+
+                val status = !tuyaClient.queryProperties(tuyaEvent.devId)
+
+                val iotDevice = !ReservationApi.readIfTaken("device-${tuyaEvent.devId}")
+
+                if (iotDevice == null) {
+                    logger.info(status.toString())
+                    return@launch
+                }
+
+                !IoTDeviceApi.setCapValues(
+                    UUID.fromString(iotDevice),
+                    status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
+                )
+
                 consumer.acknowledgeAsync(message).await()
+
             }
 
             logger.info("DONE LISTENING")
@@ -138,7 +160,7 @@ object IoTDeviceEventHandler {
 
                 if (event.value is IoTDevice.Event.Registered) {
                     val topics =
-                        state.integration.capsSchema.filter { it.permission == CapabilitySchema.Permission.read }.map { it.key }
+                        state.integration.capsSchema.entries.filter{ it.value.access == CapabilitySchema.Access.readonly }.map { it.key }
                             .plus(state.integration.topics.status)
                             .plus(state.integration.topics.state)
                     !topics

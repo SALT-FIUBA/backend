@@ -6,14 +6,18 @@ import kotlinx.coroutines.delay
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.seconds
 
-fun forever(action: Async<Any?>): Async<Unit> = Async {
+fun <T> forever(action: Async<T>): Async<T> = Async {
     while (true) {
         try {
-            !action
+            return@Async !action
         } catch (e: CancellationException) {
+            println("Cancelation exception error")
             throw e
         } catch (e: Throwable) {
+            println("ERROR ${e.message} retrying in 10 seconds")
             delay(10.seconds)
         }
     }
+    error("Unreachable")
 }
+val <T> Async<T>.forever: Async<T> get() = forever(this)

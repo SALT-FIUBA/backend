@@ -21,7 +21,7 @@ object IoTDeviceApiRest {
         val name: String,
         val resource: String,
         val topics: TasmotaTopics,
-        val caps: List<CapabilitySchema<TasmotaCapability>>
+        val caps: Map<String, CapabilitySchema<TasmotaCapability>>
     )
 
     @Serializable
@@ -52,6 +52,7 @@ object IoTDeviceApiRest {
         ktor.routing {
 
             route("iotdevice") {
+
 
                 get(path = "/list") {
                     !call.auth
@@ -84,6 +85,15 @@ object IoTDeviceApiRest {
 
                 route("{id}") {
 
+                    get {
+                        !call.auth
+                        val deviceId = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val result = !IoTDeviceApi.Query.get(deviceId)
+                        if (result == null)
+                            call.respond(HttpStatusCode.NotFound)
+                        else
+                            call.respond(HttpStatusCode.OK, result)
+                    }
 
                     post(path = "/command") {
                         !call.auth

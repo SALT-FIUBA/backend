@@ -49,6 +49,12 @@ object IoTDevice {
         ): Command
 
         @Serializable
+        data class SetCapabilityValues(
+            val at: Instant,
+            val caps: List<Pair<String, String>>
+        ): Command
+
+        @Serializable
         data class SendCommand(
             val data: String,
             val key: String
@@ -134,6 +140,18 @@ object IoTDevice {
         Ok
     }
 
+    val setCapValuesHandler get() = CommandMonad.Do<Command.SetCapabilityValues, State?, Event, Output> { exit ->
+        val state = !getState
+        val command = !getCommand
+        if (state == null) {
+            !emitEvents(Error.UnknownError("Device does not exists!"))
+            !exit(Failure("Device already exists"))
+        }
+
+        !emitEvents(*command.caps.map { Event.CapabilitySet(it.first, it.second, command.at) }.toTypedArray())
+        Ok
+    }
+
     val setEnabled get() = CommandMonad.Do<Command.SetEnabled, State?, Event, Output> { exit ->
         val state = !getState
         val command = !getCommand
@@ -153,6 +171,7 @@ object IoTDevice {
             !emitEvents(Error.UnknownError("Device already exists"))
             !exit(Failure("Device already exists"))
         }
+
         val data =
             State(
                 createdBy = command.createdBy,
@@ -175,6 +194,7 @@ object IoTDevice {
                 is Command.SendCommand -> !sendCommandHandler
                 is Command.SetEnabled -> !setEnabled
                 is Command.SetCapabilityValue -> !setCapValueHandler
+                is Command.SetCapabilityValues -> !setCapValuesHandler
             }
         }
 

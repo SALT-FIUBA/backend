@@ -3,6 +3,7 @@ package io.kauth.client.tuya
 import io.kauth.util.Async
 import io.kauth.util.not
 import io.ktor.http.*
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
@@ -126,25 +127,56 @@ data class DeviceModel(
         @Serializable
         data class Property(
             val abilityId: Int,
-            val accessMode: String,
+            val accessMode: AccessMode,
             val code: String,
             val description: String,
             val name: String,
-            val typeSpec: TypeSpec,
+            val typeSpec: TypeSpecification,
             val extensions: Extensions? = null
         ) {
             @Serializable
-            data class TypeSpec(
-                val type: String,
-                val label: List<String>? = null,
-                val maxlen: Int? = null,
-                val range: List<String>? = null,
-                val max: Int? = null,
-                val min: Int? = null,
-                val scale: Int? = null,
-                val step: Int? = null,
-                val unit: String? = null
-            )
+            enum class AccessMode {
+                rw,
+                ro,
+            }
+
+            @Serializable
+            sealed class TypeSpecification {
+
+                @Serializable
+                @SerialName("bool")
+                data object Bool : TypeSpecification()
+
+                @Serializable
+                @SerialName("bitmap")
+                data class BitMap(
+                    val label: List<String>,
+                    val maxlen: Int
+                ) : TypeSpecification()
+
+                @Serializable
+                @SerialName("enum")
+                data class Enumerative(
+                    val range: List<String>
+                ) : TypeSpecification()
+
+                @Serializable
+                @SerialName("value")
+                data class Value(
+                    val max: Int,
+                    val min: Int,
+                    val scale: Int,
+                    val step: Int,
+                    val unit: String
+                ): TypeSpecification()
+
+                @Serializable
+                @SerialName("string")
+                data class StringValue(
+                    val maxlen: Int
+                ): TypeSpecification()
+
+            }
 
             @Serializable
             data class Extensions(

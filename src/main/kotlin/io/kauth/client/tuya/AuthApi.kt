@@ -59,10 +59,15 @@ fun main() {
 
         val model = !client.queryDataModel("eb906f4ba762eb801da5ii")
 
+        println(model)
+
+
         /*
         val status = !client.queryProperties("eb906f4ba762eb801da5ii")
         println(status)
+         */
 
+        /*
 
         //Esta es otra forma de controlar al device
         val command = !client.sendProperties(

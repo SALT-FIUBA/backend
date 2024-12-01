@@ -9,14 +9,14 @@ sealed interface Integration {
     @SerialName("Tasmota")
     data class Tasmota(
         val topics: TasmotaTopics,
-        val capsSchema: List<CapabilitySchema<TasmotaCapability>>
+        val capsSchema: Map<String, CapabilitySchema<TasmotaCapability>>
     ) : Integration
 
     @Serializable
     @SerialName("Tuya")
     data class Tuya(
         val deviceId: String,
-        val capsSchema: List<CapabilitySchema<TuyaCapabilityType>>
+        val capsSchema: Map<String, CapabilitySchema<TuyaCapabilityType>>
     ) : Integration
 }
 
@@ -25,15 +25,14 @@ sealed interface IntegrationCapability
 
 @Serializable
 data class CapabilitySchema<out E : IntegrationCapability>(
-    val key: String, //Topic, Code, etc
-    val cap: E,
+    val cap: E, //type!
+    //Cosas que estan en todas las Capabilties
     val name: String,
-    val permission: Permission
+    val access: Access
 ) {
     @Serializable
-    enum class Permission {
-        write,
-        read,
+    enum class Access {
+        writeread,
         writeonly,
         readonly
     }
@@ -58,14 +57,17 @@ sealed interface TuyaCapabilityType : IntegrationCapability {
     @SerialName("BooleanCap")
     object BooleanCap : TuyaCapabilityType
     @Serializable
-    @SerialName("IntegerCap")
-    object IntegerCap : TuyaCapabilityType
+    @SerialName("ValueCap")
+    data class ValueCap(val unit: String, val step: Int, val max: Int, val min: Int) : TuyaCapabilityType
     @Serializable
     @SerialName("EnumCap")
     data class EnumCap(val values: List<String>) : TuyaCapabilityType
     @Serializable
     @SerialName("BitMapCap")
     data class BitMapCap(val values: List<String>) : TuyaCapabilityType
+    @Serializable
+    @SerialName("StringCap")
+    data class StringCap(val maxLen: Int) : TuyaCapabilityType
 }
 
 @Serializable

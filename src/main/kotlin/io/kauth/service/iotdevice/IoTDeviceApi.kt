@@ -1,9 +1,7 @@
 package io.kauth.service.iotdevice
 
 import io.kauth.abstractions.command.throwOnFailureHandler
-import io.kauth.client.tuya.SpecificationResponse
-import io.kauth.client.tuya.Tuya
-import io.kauth.client.tuya.querySpecification
+import io.kauth.client.tuya.*
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.*
@@ -13,7 +11,6 @@ import io.kauth.service.iotdevice.model.iotdevice.*
 import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.not
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 
@@ -23,7 +20,7 @@ object IoTDeviceApi {
         name: String,
         resource: String,
         topics: TasmotaTopics,
-        caps: List<CapabilitySchema<TasmotaCapability>>
+        caps: Map<String, CapabilitySchema<TasmotaCapability>>
     ) = AppStack.Do {
         //TODO Check on subscription api that topic is not in use!
         val jwt = !authStackJwt
@@ -55,64 +52,74 @@ object IoTDeviceApi {
         val deviceId = !ReservationApi.takeIfNotTaken("device-tuya-${name}") { UUID.randomUUID().toString() }
 
         //Index tuyaDeviceId -> deviceId
-        //esta bien aca? se puede crear desde un evento
+        //esta bien aca? se puede crear desde un evento ?
+
+        val tuyaId = !ReservationApi.readState("device-${tuyaDeviceId}")
+
+        if (tuyaId != null && tuyaId.taken) {
+            val owner = !Query.readState(UUID.fromString(tuyaId.ownerId))
+            !ApiException("Device ID $tuyaDeviceId already taken by ${owner?.name}")
+        }
+
         !ReservationApi.takeIfNotTaken("device-${tuyaDeviceId}") { deviceId }
 
         val tuyaClient = !getService<Tuya.Client>()
 
-        val deviceSpecification = !tuyaClient.querySpecification(tuyaDeviceId)
+        val dataModel = !tuyaClient.queryDataModel(tuyaDeviceId)
 
-        if (!deviceSpecification.success) {
-            !ApiException("Tuya Client error " + deviceSpecification.msg)
-        }
+        val capabilities = dataModel.result
+            ?.services
+            ?.firstOrNull()
+            ?.properties ?: emptyList()
 
-        val result = deviceSpecification.result ?: !ApiException("Tuya Client error, no result")
+        //TODO user queryDataModel
+        /*
+        val model = !client.queryDataModel("eb906f4ba762eb801da5ii")
+        println(model)
+         */
 
-        val writeCaps = result.functions.map { func ->
-            CapabilitySchema(
-                permission = CapabilitySchema.Permission.write,
-                key = func.code,
-                name = func.name,
-                cap = when (func.type) {
-                    "Integer" -> TuyaCapabilityType.IntegerCap
-                    "Enum" -> TuyaCapabilityType.EnumCap(
-                        json.decodeFromString<SpecificationResponse.EnumValues>(func.values).range
-                    )
-
-                    "Boolean" -> TuyaCapabilityType.BooleanCap
-                    "Bitmap" -> TuyaCapabilityType.BitMapCap(
-                        json.decodeFromString<SpecificationResponse.BitMapValues>(func.values).label
-                    )
-
-                    else -> !ApiException("Unknown tuya type")
-                }
-            )
-        }
-
-        val readCaps = result.status.map { func ->
-            CapabilitySchema(
-                permission = CapabilitySchema.Permission.read,
-                key = func.code,
-                name = func.name,
-                cap = when (func.type) {
-                    "Integer" -> TuyaCapabilityType.IntegerCap
-                    "Enum" -> TuyaCapabilityType.EnumCap(
-                        json.decodeFromString<SpecificationResponse.EnumValues>(func.values).range
-                    )
-
-                    "Boolean" -> TuyaCapabilityType.BooleanCap
-                    "Bitmap" -> TuyaCapabilityType.BitMapCap(
-                        json.decodeFromString<SpecificationResponse.BitMapValues>(func.values).label
-                    )
-
-                    else -> !ApiException("Unknown tuya type")
-                }
-            )
+        if (capabilities.isEmpty()) {
+            !ApiException("Tuya Client error " + dataModel.msg)
         }
 
         val integration = Integration.Tuya(
             deviceId = tuyaDeviceId,
-            capsSchema = writeCaps + readCaps
+            capsSchema = capabilities
+                .groupBy { it.code }
+                .mapValues {
+                    it.value.first().let {
+                        CapabilitySchema(
+                            name = it.name,
+                            access =
+                            when (it.accessMode) {
+                                DeviceModel.Service.Property.AccessMode.ro -> CapabilitySchema.Access.readonly
+                                DeviceModel.Service.Property.AccessMode.rw -> CapabilitySchema.Access.writeread
+                            },
+                            cap = when (it.typeSpec) {
+                                is DeviceModel.Service.Property.TypeSpecification.BitMap -> TuyaCapabilityType.BitMapCap(
+                                    it.typeSpec.label
+                                )
+
+                                DeviceModel.Service.Property.TypeSpecification.Bool -> TuyaCapabilityType.BooleanCap
+                                is DeviceModel.Service.Property.TypeSpecification.Enumerative -> TuyaCapabilityType.EnumCap(
+                                    it.typeSpec.range
+                                )
+
+                                is DeviceModel.Service.Property.TypeSpecification.StringValue -> TuyaCapabilityType.StringCap(
+                                    it.typeSpec.maxlen
+                                )
+
+                                is DeviceModel.Service.Property.TypeSpecification.Value -> TuyaCapabilityType.ValueCap(
+                                    it.typeSpec.unit,
+                                    it.typeSpec.step,
+                                    it.typeSpec.max,
+                                    it.typeSpec.min
+                                )
+                            }
+                        )
+
+                    }
+                }
         )
 
         !register(
@@ -176,6 +183,19 @@ object IoTDeviceApi {
         deviceId
     }
 
+    fun setCapValues(deviceId: UUID, caps: List<Pair<String, String>>) = AppStack.Do {
+        val service = !getService<IoTDeviceService.Interface>()
+        !service.command
+            .handle(deviceId)
+            .throwOnFailureHandler(
+                IoTDevice.Command.SetCapabilityValues(
+                    caps = caps,
+                    at = Clock.System.now()
+                ),
+            )
+        deviceId
+    }
+
     fun setEnabled(deviceId: UUID, enabled: Boolean) = AppStack.Do {
         val service = !getService<IoTDeviceService.Interface>()
         !service.command
@@ -208,11 +228,11 @@ object IoTDeviceApi {
         }
 
         fun list() = AppStack.Do {
-            !appStackAuthValidateAdmin
+            //!appStackAuthValidateAdmin
             !appStackDbQuery {
                 IoTDeviceProjection.IoTDeviceTable.selectAll()
                     .map { !it.toMqttDeviceProjection }
-                    .filter { it.enabled ?: true }
+                    //.filter { it.enabled ?: true }
             }
 
         }
