@@ -5,6 +5,7 @@ import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
 import io.kauth.service.auth.AuthApi.auth
 import io.kauth.service.iotdevice.model.iotdevice.CapabilitySchema
+import io.kauth.service.iotdevice.model.iotdevice.DeviceCommand
 import io.kauth.service.iotdevice.model.iotdevice.TasmotaCapability
 import io.kauth.service.iotdevice.model.iotdevice.TasmotaTopics
 import io.ktor.http.*
@@ -32,14 +33,8 @@ object IoTDeviceApiRest {
     )
 
     @Serializable
-    data class CommandRequest(
-        val message: String
-    )
-
-    @Serializable
     data class TuyaCommandRequest(
-        val code: String,
-        val value: String
+        val commands: List<DeviceCommand>
     )
 
     @Serializable
@@ -100,8 +95,7 @@ object IoTDeviceApiRest {
                         val command = call.receive<TuyaCommandRequest>()
                         val result = !IoTDeviceApi.sendCommand(
                             deviceId = UUID.fromString(call.parameters["id"] ?: !ApiException("Id Not found")),
-                            data = command.value,
-                            code = command.code
+                            cmds = command.commands
                         )
                         call.respond(HttpStatusCode.Created, result)
                     }

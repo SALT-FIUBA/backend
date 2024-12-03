@@ -5,6 +5,7 @@ import io.kauth.client.pulsar.auth.MqAuth
 import io.kauth.client.tuya.Tuya
 import io.kauth.client.tuya.queryProperties
 import io.kauth.client.tuya.sendCommand
+import io.kauth.client.tuya.sendProperties
 import io.kauth.monad.stack.*
 import io.kauth.service.iotdevice.decryptor.decrypt
 import io.kauth.service.iotdevice.model.iotdevice.CapabilitySchema
@@ -60,27 +61,26 @@ object IoTDeviceEventHandler {
 
         ktor.launch {
             while (isActive) {
-                logger.info("LISTENING!")
+                logger.info("Waiting for tuya events!")
+
                 val message = consumer.receiveAsync().await()
-                //aca voy a tener un tuyaDeviceId y voy a tener que buscar el device
-                //tonces tengo que tener un index tuyaDevice -> deviceId
-                //ReservationApi.readState("device-${tuyaDeviceId}")
                 val encryptModel = message.getProperty("em")
                 val tuyaMessage = json.decodeFromString<TuyaPulsarMessage>(message.data.toString(charset = Charsets.UTF_8))
                 val model = EncryptModel.fromString(encryptModel) ?: break
                 val data = model.decrypt(tuyaMessage.data, accessKey.substring(8, 24))
 
                 val tuyaEvent = json.decodeFromString<TuyaEvent>(data)
-                logger.info(tuyaEvent.toString())
 
                 val tuyaClient = !getService<Tuya.Client>()
 
-                val status = !tuyaClient.queryProperties(tuyaEvent.devId)
+                val devId = tuyaEvent.devId ?: tuyaEvent.bizData?.devId ?: error("Unknown tuya event")
 
-                val iotDevice = !ReservationApi.readIfTaken("device-${tuyaEvent.devId}")
+                val status = !tuyaClient.queryProperties(devId)
+
+                val iotDevice = !ReservationApi.readIfTaken("device-${devId}")
 
                 if (iotDevice == null) {
-                    logger.info(status.toString())
+                    logger.error(status.toString())
                     return@launch
                 }
 
@@ -146,11 +146,10 @@ object IoTDeviceEventHandler {
                 val tuyaClient = !getService<Tuya.Client>()
                 val deviceId = state.integration.deviceId
                 if (event.value is IoTDevice.Event.SendCommand) {
-                    //TODO: Aca podria usar el publisher
-                    !tuyaClient.sendCommand(
+                    !tuyaClient.sendProperties(
                         deviceId,
-                        event.value.uri,
-                        json.decodeFromString(event.value.command)
+                        event.value.commands.groupBy { it.uri }
+                            .mapValues { json.decodeFromString(it.value.first().command) }
                     )
                 }
             }
@@ -175,11 +174,16 @@ object IoTDeviceEventHandler {
 
                 if (event.value is IoTDevice.Event.SendCommand) {
                     //TODO: Aca podria usar el publisher
+                    //El publisher podria tener batchSend
+                    if (event.value.commands.isEmpty()) {
+                        return@Do
+                    }
+                    val fst = event.value.commands.get(0)
                     !PublisherApi.publish(
                         messageId = event.id,
-                        message = json.encodeToJsonElement(event.value.command),
+                        message = json.encodeToJsonElement(fst.command),
                         resource = event.streamName,
-                        channel = Publisher.Channel.Mqtt(event.value.uri)
+                        channel = Publisher.Channel.Mqtt(fst.uri)
                     )
                 }
 

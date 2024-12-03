@@ -48,6 +48,10 @@ sealed interface TasmotaCapability : IntegrationCapability {
     @Serializable
     @SerialName("Relay")
     data object Relay: TasmotaCapability
+
+    @Serializable
+    @SerialName("Status")
+    data object Status: TasmotaCapability
 }
 
 @Serializable

@@ -6,6 +6,7 @@ import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
+import io.kauth.service.iotdevice.model.iotdevice.DeviceCommand
 import io.kauth.service.iotdevice.model.iotdevice.Integration
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
@@ -56,8 +57,7 @@ object IoTDevice {
 
         @Serializable
         data class SendCommand(
-            val data: String,
-            val key: String
+            val data: List<DeviceCommand>
         ): Command
 
         @Serializable
@@ -83,8 +83,7 @@ object IoTDevice {
 
         @Serializable
         data class SendCommand(
-            val command: String,
-            val uri: String
+            val commands: List<DeviceCommand>
         ): Event
 
         @Serializable
@@ -121,11 +120,7 @@ object IoTDevice {
             !emitEvents(Error.UnknownError("Device does not exists!"))
             !exit(Failure("Device already exists"))
         }
-        val uri = when (state.integration) {
-            is Integration.Tasmota -> command.key
-            is Integration.Tuya -> command.key
-        }
-        !emitEvents(Event.SendCommand(command.data, uri))
+        !emitEvents(Event.SendCommand(command.data))
         Ok
     }
 

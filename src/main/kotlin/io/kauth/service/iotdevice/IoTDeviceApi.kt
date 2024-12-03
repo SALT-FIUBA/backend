@@ -27,7 +27,14 @@ object IoTDeviceApi {
         val log = !authStackLog
         log.info("Create device $resource")
         val deviceId = !ReservationApi.takeIfNotTaken("device-tasmota-${name}") { UUID.randomUUID().toString() }
-        val integration = Integration.Tasmota(topics = topics, capsSchema = caps)
+        val integration = Integration.Tasmota(
+            topics = topics,
+            capsSchema = caps + (topics.status to CapabilitySchema(
+                TasmotaCapability.Status,
+                "Status",
+                CapabilitySchema.Access.readonly
+            ))
+        )
         !register(
             deviceId,
             name,
@@ -156,15 +163,12 @@ object IoTDeviceApi {
     }
 
     //TODO: List de commands!
-    fun sendCommand(deviceId: UUID, data: String, code: String) = AppStack.Do {
+    fun sendCommand(deviceId: UUID, cmds: List<DeviceCommand>) = AppStack.Do {
         val service = !getService<IoTDeviceService.Interface>()
         !service.command
             .handle(deviceId)
             .throwOnFailureHandler(
-                IoTDevice.Command.SendCommand(
-                    data = data,
-                    key = code
-                ),
+                IoTDevice.Command.SendCommand(cmds),
             )
         deviceId
     }
