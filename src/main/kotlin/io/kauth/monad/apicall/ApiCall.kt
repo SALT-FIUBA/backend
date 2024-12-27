@@ -3,6 +3,7 @@ package io.kauth.monad.apicall
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.kauth.exception.ApiException
+import io.kauth.exception.allowIf
 import io.kauth.exception.not
 import io.kauth.monad.stack.AppContext
 import io.kauth.monad.stack.AppStack
@@ -119,8 +120,9 @@ fun <T> KtorCall.runApiCall(call: ApiCall<T>) = Async {
     !call.run(ApiCallContext(ctx, mutableJwt))
 }
 
-fun <T> KtorCall.runAuthenticated(call: ApiCall<T>) =
+fun <T> KtorCall.runAdminCall(call: ApiCall<T>) =
     runApiCall(ApiCall.Do {
-        jwt ?: !ApiException("Un Authorized")
+        val token = jwt ?: !ApiException("Un Authorized")
+        !allowIf("admin" in token.payload.roles)
         !call
     })
