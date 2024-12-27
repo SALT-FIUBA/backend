@@ -15,6 +15,9 @@ import java.util.*
 
 object DeviceProjectService : AppService {
 
+    override val name: String
+        get() = "deviceproject"
+
     val STREAM_NAME = "deviceproject"
     val STREAM_PREFIX = "$STREAM_NAME-"
     val SNAPSHOT_STREAM_PREFIX = "deviceproject_snapshot-"

@@ -11,6 +11,8 @@ import io.kauth.util.Async
 
 object ReservationService : AppService {
 
+    override val name: String = "reservation"
+
     val USERS_STREAM_PREFIX = "reservation-"
     val USER_SNAPSHOT_STREAM_PREFIX = "reservation_snapshot-"
     val String.streamName get() = USERS_STREAM_PREFIX + this.toString()

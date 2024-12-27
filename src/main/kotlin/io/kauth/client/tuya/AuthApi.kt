@@ -39,6 +39,7 @@ fun main() {
 
     runBlocking {
 
+        /*
         val client = !Tuya.newClient(this)
 
         delay(5.seconds)
@@ -61,6 +62,8 @@ fun main() {
 
         println(model)
 
+
+         */
 
         /*
         val status = !client.queryProperties("eb906f4ba762eb801da5ii")

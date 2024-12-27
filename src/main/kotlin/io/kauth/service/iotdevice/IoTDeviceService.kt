@@ -6,14 +6,22 @@ import io.kauth.client.eventStore.EventStoreClient
 import io.kauth.client.eventStore.commandHandler
 import io.kauth.client.eventStore.computeStateResult
 import io.kauth.client.eventStore.stream
+import io.kauth.client.tuya.Tuya
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.findConfig
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
+import io.kauth.service.auth.AuthConfig
+import io.kauth.service.auth.AuthService
 import io.kauth.util.Async
+import io.kauth.util.not
 import java.util.*
 
 object IoTDeviceService : AppService {
+
+    override val name: String
+        get() = "iotdevice"
 
     val STREAM_NAME = "iotdevice"
     val STREAM_PREFIX = "$STREAM_NAME-"
@@ -37,7 +45,11 @@ object IoTDeviceService : AppService {
     override val start =
         AppStack.Do {
 
+            val config = !findConfig<IotDeviceConfig>(name) ?: return@Do
+
             val client = !getService<EventStoreClient>()
+
+            !registerService(!Tuya.newClient(ktor, config.tuya.clientId, config.tuya.clientSecret))
 
             val commands = Command(
                 handle = { id ->

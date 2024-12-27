@@ -5,8 +5,10 @@ import io.kauth.client.eventStore.model.Event
 import io.kauth.client.eventStore.subscribeToStream
 import io.kauth.serializer.UUIDSerializer
 import io.kauth.serializer.UnitSerializer
+import io.kauth.service.auth.AuthConfig
 import io.kauth.service.auth.AuthService
 import io.kauth.service.auth.jwt.Jwt
+import io.kauth.service.config.AppConfig
 import io.kauth.util.AppLogger
 import io.kauth.util.Async
 import io.kauth.util.MutableClassMap
@@ -16,7 +18,7 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.*
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.contextual
 import org.jetbrains.exposed.sql.Database
@@ -86,6 +88,11 @@ val authStackMetrics = AppStack.Do {
     !getService<PrometheusMeterRegistry>()
 }
 
+inline fun <reified T> findConfig(name: String) = AppStack.Do {
+    val config = appConfig.services.firstOrNull { it.name == name } ?: return@Do null
+    serialization.decodeFromJsonElement<T>(config.config)
+}
+
 val authStackLog = AppStack.Do {
     !getService<AppLogger>()
 }
@@ -130,34 +137,42 @@ inline fun <reified T> appStackEventHandler(
     }
 }
 
+fun readFromResources(fileName: String): String {
+    val classLoader = Thread.currentThread().contextClassLoader
+    val inputStream = classLoader.getResourceAsStream(fileName)
+        ?: throw IllegalArgumentException("File not found: $fileName")
+    return inputStream.bufferedReader().use { it.readText() }
+}
+
 fun Application.runAppStack(stack: AppStack<*>) {
 
-    val dbHost = environment
-        .config
-        .propertyOrNull("postgres.host")
-        ?.getString()
-        ?: "localhost:5432/salt"
+    val json = Json {
+        prettyPrint = true
+        ignoreUnknownKeys = true
+        serializersModule = SerializersModule {
+            contextual(UUIDSerializer)
+            contextual(UnitSerializer)
+        }
+    }
+
+    val config = json.decodeFromString<AppConfig>(readFromResources("config/config.json"))
+
+    val dbConfig = config.infra.db.postgres
 
     //Beans
     val db = Database.connect(
-        url = "jdbc:postgresql://$dbHost",
-        driver = "org.postgresql.Driver",
-        user = "salt",
-        password = "1234"
+        url = dbConfig.host,
+        driver = dbConfig.driver,
+        user = dbConfig.user,
+        password = dbConfig.password,
     )
 
     val context = AppContext(
         ktor = this,
-        serialization = Json {
-            prettyPrint = true
-            ignoreUnknownKeys = true
-            serializersModule = SerializersModule {
-                contextual(UUIDSerializer)
-                contextual(UnitSerializer)
-            }
-        },
+        serialization = json,
         services = !MutableClassMap.new,
-        db = db
+        db = db,
+        appConfig = config
     )
 
     runBlocking(coroutineContext) {

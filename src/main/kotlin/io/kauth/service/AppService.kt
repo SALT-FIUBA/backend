@@ -8,7 +8,7 @@ interface AppService {
 }
 
 fun runServices(vararg services: AppService): AppStack<*> = AppStack.Do {
-    services.forEach {
+    services.filter { it.name in appConfig.services.map { it.name } }.forEach {
         !it.start
     }
 }

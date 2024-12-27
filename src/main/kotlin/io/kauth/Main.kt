@@ -130,31 +130,14 @@ fun Application.kauthApp() {
     runAppStack(
         AppStack.Do {
 
-            println(environment.config.toMap())
+            !setLogbackLevel(appConfig.log.level)
 
-            val eventstoreDbHost = environment.config
-                .propertyOrNull("eventstoredb.host")
-                ?.getString()
-                ?: "esdb://localhost:2113?tls=false"
+            val eventstoreDbHost = appConfig.infra.db.eventstore.host
 
-
-            //Setup clients
-            !registerService(
-                !eventStoreClientNew(eventstoreDbHost, serialization)
-            )
-
-            !registerService(
-                !eventStoreClientPersistenceSubsNew(eventstoreDbHost, serialization)
-            )
-
-            !registerService(
-                PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-            )
-
-            !registerService(!Tuya.newClient(ktor))
-
-            !setLogbackLevel(LoggerLevel.info)
-
+            //Root services (?
+            !registerService(!eventStoreClientNew(eventstoreDbHost, serialization))
+            !registerService(!eventStoreClientPersistenceSubsNew(eventstoreDbHost, serialization))
+            !registerService(PrometheusMeterRegistry(PrometheusConfig.DEFAULT))
             !registerService(AppLogger(log))
 
             !installKtorPlugins

@@ -33,27 +33,28 @@ import java.util.*
 object IoTDeviceEventHandler {
     //Pulsar event listener
     val pulsarEventHandler = AppStack.Do {
+
+        val config = !findConfig<IotDeviceConfig>(IoTDeviceService.name) ?: return@Do
+
         val logger = !authStackLog
         val json = !authStackJson
 
-        val accessKey = "fd5b028d05b949038a9fd109b45ca534"
-
         //Este cliente es una dependencia!
         val client = PulsarClient.builder()
-            .serviceUrl("pulsar+ssl://mqe.tuyaus.com:7285/")
+            .serviceUrl(config.tuya.pulsarHost)
             .allowTlsInsecureConnection(true)
             .authentication(
                 MqAuth(
-                    "gh9cknxh5ryxferdnrkc",
-                    accessKey
+                    config.tuya.clientId,
+                    config.tuya.clientSecret
 
             ))
             .build()
 
         //Aca creo el consumer y me pongo a escuchar
         val consumer = client.newConsumer()
-            .subscriptionName("gh9cknxh5ryxferdnrkc-sub")
-            .topic("gh9cknxh5ryxferdnrkc/out/event-test")
+            .subscriptionName("${config.tuya.clientId}-sub")
+            .topic("${config.tuya.clientId}/out/event-test")
             .subscriptionType(SubscriptionType.Failover)
             .autoUpdatePartitions(false)
             .subscribeAsync()
@@ -67,7 +68,7 @@ object IoTDeviceEventHandler {
                 val encryptModel = message.getProperty("em")
                 val tuyaMessage = json.decodeFromString<TuyaPulsarMessage>(message.data.toString(charset = Charsets.UTF_8))
                 val model = EncryptModel.fromString(encryptModel) ?: break
-                val data = model.decrypt(tuyaMessage.data, accessKey.substring(8, 24))
+                val data = model.decrypt(tuyaMessage.data, config.tuya.clientSecret.substring(8, 24))
 
                 val tuyaEvent = json.decodeFromString<TuyaEvent>(data)
 

@@ -2,8 +2,10 @@ package io.kauth.util
 
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.Logger
+import kotlinx.serialization.Serializable
 import org.slf4j.LoggerFactory
 
+@Serializable
 enum class LoggerLevel {
     debug,
     error,
