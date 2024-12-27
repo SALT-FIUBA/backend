@@ -9,7 +9,6 @@ import io.kauth.util.not
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -24,6 +23,11 @@ object DeviceProjectApiRest {
     data class TuyaDeviceCreateRequest(
         val name: String,
         val tuyaId: String
+    )
+
+    @Serializable
+    data class EnabledRequest(
+        val enabled: Boolean
     )
 
     val api = AppStack.Do {
@@ -52,6 +56,19 @@ object DeviceProjectApiRest {
                                 uuid,
                                 command.name,
                                 command.tuyaId
+                            )
+                        )
+                        call.respond(response)
+                    }
+
+                    post(path = "enabled") {
+                        val projectId = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val uuid = UUID.fromString(projectId)
+                        val command = call.receive<EnabledRequest>()
+                        val response = !KtorCall(this@Do.ctx, call).runApiCall(
+                            DeviceProjectApi.setEnable(
+                                uuid,
+                                command.enabled
                             )
                         )
                         call.respond(response)

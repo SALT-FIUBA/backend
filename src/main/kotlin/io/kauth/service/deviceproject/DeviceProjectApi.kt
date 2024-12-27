@@ -18,7 +18,9 @@ import io.kauth.util.not
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.json.contains
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 
@@ -41,6 +43,24 @@ object DeviceProjectApi {
             )
             .toApiCall()
         id
+    }
+
+    fun setEnable(projectId: UUID, enabled: Boolean) = ApiCall.Do {
+        val jwt = !apiCallJwt
+        val project = !Query.readState(projectId).toApiCall() ?: !ApiException("Project does not exists")
+        if (jwt.payload.id !in project.owners) {
+            !ApiException("Invalid user!")
+        }
+        val service = !apiCallGetService<DeviceProjectService.Interface>()
+        !service.command
+            .handle(projectId)
+            .throwOnFailureHandler(
+                DeviceProject.Command.SetEnabled(
+                    enabled = enabled
+                ),
+            )
+            .toApiCall()
+        projectId.toString()
     }
 
     fun addTuyaDevice(projectId: UUID, name: String, tuyaId: String) = ApiCall.Do {
@@ -69,7 +89,8 @@ object DeviceProjectApi {
             !apiCallStackDbQuery {
                 DeviceProjectProjection.DeviceProjectTable.selectAll()
                     .where {
-                        DeviceProjectProjection.DeviceProjectTable.owners.inList(listOf(listOf(jwt.payload.id)))
+                        DeviceProjectProjection.DeviceProjectTable.owners.inList(listOf(listOf(jwt.payload.id))) and
+                                (DeviceProjectProjection.DeviceProjectTable.enabled.eq(true) or DeviceProjectProjection.DeviceProjectTable.enabled.isNull())
                     }
                     .map { it.toDeviceProjectProjection }
             }
