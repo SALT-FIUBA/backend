@@ -94,7 +94,7 @@ object IoTDeviceApiRest {
 
                     post(path = "/command") {
                         val command = call.receive<TuyaCommandRequest>()
-                        val result = !KtorCall(this@Do.ctx, call).runAdminCall(
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
                             IoTDeviceApi.sendCommand(
                                 deviceId = UUID.fromString(call.parameters["id"] ?: !ApiException("Id Not found")),
                                 cmds = command.commands

@@ -54,7 +54,10 @@ object IoTDeviceEventHandler {
         //Aca creo el consumer y me pongo a escuchar
         val consumer = client.newConsumer()
             .subscriptionName("${config.tuya.clientId}-sub")
-            .topic("${config.tuya.clientId}/out/event-test")
+            .topic(
+                "${config.tuya.clientId}/out/event-test",
+                "${config.tuya.clientId}/out/event"
+            )
             .subscriptionType(SubscriptionType.Failover)
             .autoUpdatePartitions(false)
             .subscribeAsync()
