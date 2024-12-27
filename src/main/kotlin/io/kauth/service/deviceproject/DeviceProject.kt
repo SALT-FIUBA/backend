@@ -9,8 +9,6 @@ import io.kauth.monad.state.CommandMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 
-//CreateProjcet
-
 object DeviceProject {
 
     @Serializable
@@ -19,6 +17,7 @@ object DeviceProject {
         val createdBy: String,
         val owners: List<String>,
         val createdAt: Instant,
+        val enabled: Boolean = true
     )
 
     @Serializable
@@ -32,12 +31,20 @@ object DeviceProject {
             val owners: List<String> //Acessos?
         ) : Command
 
+        @Serializable
+        data class SetEnabled(
+            val enabled: Boolean
+        ) : Command
+
     }
 
     @Serializable
     sealed interface Event {
         @Serializable
         data class ProjectCreated(val init: State) : Event
+
+        @Serializable
+        data class EnabledSet(val enabled: Boolean) : Event
     }
 
     @Serializable
@@ -48,6 +55,10 @@ object DeviceProject {
 
     val createdEventHandler get() = Reducer<State?, Event.ProjectCreated> { _, event ->
         event.init
+    }
+
+    val enabledEventHandler get() = Reducer<State?, Event.EnabledSet> { state, event ->
+        state?.copy(enabled = event.enabled)
     }
 
     val createHandler get() = CommandMonad.Do<Command.CreateProject, State?, Event, Output> { exit ->
@@ -67,17 +78,30 @@ object DeviceProject {
         Ok
     }
 
+    val enabledHandler get() = CommandMonad.Do<Command.SetEnabled, State?, Event, Output> { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.UnknownError("Project does not exists"))
+            !exit(Failure("Project does not exists"))
+        }
+        val command = !getCommand
+        !emitEvents(Event.EnabledSet(command.enabled))
+        Ok
+    }
+
     val commandStateMachine get() =
         CommandMonad.Do<Command, State?, Event, Output> {
             val command = !getCommand
             when(command) {
                 is Command.CreateProject -> !createHandler
+                is Command.SetEnabled -> !enabledHandler
             }
         }
 
     val eventReducer get(): Reducer<State?, Event> =
         reducerOf(
-            Event.ProjectCreated::class to createdEventHandler
+            Event.ProjectCreated::class to createdEventHandler,
+            Event.EnabledSet::class to enabledEventHandler,
         )
 
 }

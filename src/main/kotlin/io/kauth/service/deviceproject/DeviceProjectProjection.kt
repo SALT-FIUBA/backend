@@ -21,6 +21,7 @@ object DeviceProjectProjection {
         val owners = array<String>("owners")
         val createdAt = timestamp("created_at")
         val createdBy = text("created_by")
+        val enabled = bool("enabled").nullable()
     }
 
     @Serializable
@@ -29,7 +30,8 @@ object DeviceProjectProjection {
         val name: String,
         val createdAt: Instant,
         val createdBy: String,
-        val owners: List<String>
+        val owners: List<String>,
+        val enabled: Boolean?
     )
 
     val ResultRow.toDeviceProjectProjection: Projection
@@ -41,6 +43,7 @@ object DeviceProjectProjection {
                 row[DeviceProjectTable.createdAt],
                 row[DeviceProjectTable.createdBy],
                 row[DeviceProjectTable.owners],
+                row[DeviceProjectTable.enabled],
             )
         }
 
@@ -60,6 +63,7 @@ object DeviceProjectProjection {
                     it[createdAt] = actualState.createdAt
                     it[owners] = actualState.owners
                     it[createdBy] = actualState.createdBy
+                    it[enabled] = actualState.enabled
                 }
             }
         }
