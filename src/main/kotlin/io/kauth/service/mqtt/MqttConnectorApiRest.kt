@@ -5,7 +5,6 @@ import io.kauth.monad.stack.getService
 import io.kauth.service.mqtt.subscription.SubscriptionApi
 import io.kauth.util.not
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
