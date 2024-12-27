@@ -3,6 +3,9 @@ package io.kauth.service.reservation
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
+import io.kauth.monad.apicall.ApiCall
+import io.kauth.monad.apicall.apiCallGetService
+import io.kauth.monad.apicall.apiCallLog
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService

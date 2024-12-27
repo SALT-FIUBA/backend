@@ -4,10 +4,10 @@ import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.exception.ApiException
 import io.kauth.exception.allowIf
 import io.kauth.exception.not
+import io.kauth.monad.apicall.ApiCall
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi
-import io.kauth.service.auth.AuthApi.appStackAuthValidateAdmin
 import io.kauth.service.auth.AuthService
 import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
@@ -31,9 +31,9 @@ object OrganismApi {
             email: String,
             password: String,
             personalData: Auth.User.PersonalData,
-        ) = AppStack.Do {
+        ) = ApiCall.Do {
 
-            val jwt = !authStackJwt
+            val jwt = jwt ?: !ApiException("UnAuth")
 
             val orgRole = Organism.OrganismRole(role, organism)
             val supervisorRole = Organism.OrganismRole(Organism.Role.supervisor, organism)
@@ -49,8 +49,7 @@ object OrganismApi {
                 email,
                 password,
                 personalData,
-                listOf(orgRole.string),
-                jwt.payload.uuid
+                listOf(orgRole.string)
             )
 
         }
@@ -181,7 +180,6 @@ object OrganismApi {
         }
 
         fun organismsList() = AppStack.Do {
-            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 OrganismTable.selectAll()
                     .map { it.toOrganismProjection }
@@ -189,7 +187,6 @@ object OrganismApi {
         }
 
         fun supervisorList(organism: UUID) = AppStack.Do {
-            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {
@@ -201,7 +198,6 @@ object OrganismApi {
         }
 
         fun operatorList(organism: UUID) = AppStack.Do {
-            !appStackAuthValidateAdmin
             !appStackDbQuery {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {

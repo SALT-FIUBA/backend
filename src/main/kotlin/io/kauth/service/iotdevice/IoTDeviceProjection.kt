@@ -1,5 +1,7 @@
 package io.kauth.service.iotdevice
 
+import io.kauth.monad.apicall.ApiCall
+import io.kauth.monad.apicall.apiCallJson
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
@@ -45,11 +47,11 @@ object IoTDeviceProjection {
         Offline
     }
 
-    val ResultRow.toMqttDeviceProjection: AppStack<Projection>
+    val ResultRow.toMqttDeviceProjection: ApiCall<Projection>
         get() {
             val row = this
-            return AppStack.Do {
-                val josn = !authStackJson
+            return ApiCall.Do {
+                val josn = !apiCallJson
                 Projection(
                     row[IoTDeviceTable.id],
                     row[IoTDeviceTable.name],

@@ -2,12 +2,14 @@ package io.kauth.service.iotdevice
 
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
+import io.kauth.monad.apicall.KtorCall
+import io.kauth.monad.apicall.runApiCall
 import io.kauth.monad.stack.AppStack
-import io.kauth.service.auth.AuthApi.auth
 import io.kauth.service.iotdevice.model.iotdevice.CapabilitySchema
 import io.kauth.service.iotdevice.model.iotdevice.DeviceCommand
 import io.kauth.service.iotdevice.model.iotdevice.TasmotaCapability
 import io.kauth.service.iotdevice.model.iotdevice.TasmotaTopics
+import io.kauth.util.not
 import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -50,30 +52,31 @@ object IoTDeviceApiRest {
 
 
                 get(path = "/list") {
-                    !call.auth
-                    val result = !IoTDeviceApi.Query.list()
+                    val result = !KtorCall(this@Do.ctx, call).runApiCall(IoTDeviceApi.Query.list())
                     call.respond(HttpStatusCode.OK, result)
                 }
 
                 post(path = "/register/tuya") {
-                    !call.auth
                     val command = call.receive<RegisterTuyaRequest>()
-                    val result = !IoTDeviceApi.registerTuyaIntegration(
-                        name = command.name,
-                        resource = command.resource,
-                        tuyaDeviceId = command.deviceId
+                    val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                        IoTDeviceApi.registerTuyaIntegration(
+                            name = command.name,
+                            resource = command.resource,
+                            tuyaDeviceId = command.deviceId
+                        )
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }
 
                 post(path = "/register/tasmota") {
-                    !call.auth
                     val command = call.receive<RegisterRequest>()
-                    val result = !IoTDeviceApi.registerTasmotaIntegration(
-                        name = command.name,
-                        resource = command.resource,
-                        topics = command.topics,
-                        caps = command.caps
+                    val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                        IoTDeviceApi.registerTasmotaIntegration(
+                            name = command.name,
+                            resource = command.resource,
+                            topics = command.topics,
+                            caps = command.caps
+                        )
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }
@@ -81,9 +84,8 @@ object IoTDeviceApiRest {
                 route("{id}") {
 
                     get {
-                        !call.auth
                         val deviceId = call.parameters["id"] ?: !ApiException("Id Not found")
-                        val result = !IoTDeviceApi.Query.get(deviceId)
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(IoTDeviceApi.Query.get(deviceId))
                         if (result == null)
                             call.respond(HttpStatusCode.NotFound)
                         else
@@ -91,30 +93,28 @@ object IoTDeviceApiRest {
                     }
 
                     post(path = "/command") {
-                        !call.auth
                         val command = call.receive<TuyaCommandRequest>()
-                        val result = !IoTDeviceApi.sendCommand(
-                            deviceId = UUID.fromString(call.parameters["id"] ?: !ApiException("Id Not found")),
-                            cmds = command.commands
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            IoTDeviceApi.sendCommand(
+                                deviceId = UUID.fromString(call.parameters["id"] ?: !ApiException("Id Not found")),
+                                cmds = command.commands
+                            )
                         )
                         call.respond(HttpStatusCode.Created, result)
                     }
 
 
                     post(path = "/enabled") {
-                        !call.auth
                         val command = call.receive<EnabledRequest>()
-                        val result = !IoTDeviceApi.setEnabled(
-                            deviceId = UUID.fromString(call.parameters["id"] ?: !ApiException("Id Not found")),
-                            enabled = command.enabled
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            IoTDeviceApi.setEnabled(
+                                deviceId = UUID.fromString(call.parameters["id"] ?: !ApiException("Id Not found")),
+                                enabled = command.enabled
+                            )
                         )
                         call.respond(HttpStatusCode.Created, result)
                     }
-
-
                 }
-
-
             }
         }
     }

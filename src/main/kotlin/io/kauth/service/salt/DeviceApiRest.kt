@@ -4,7 +4,6 @@ import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
 import io.kauth.serializer.UUIDSerializer
-import io.kauth.service.auth.AuthApi.auth
 import io.kauth.service.publisher.PublisherApi
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -39,7 +38,6 @@ object DeviceApiRest {
             route("device")  {
 
                 post(path = "/create") {
-                    !call.auth
                     val command = call.receive<CreateRequest>()
                     val result = !DeviceApi.create(
                         command.organismId,
@@ -51,7 +49,6 @@ object DeviceApiRest {
                 }
 
                 get("/list") {
-                    !call.auth
                     val result = !DeviceApi.Query.list()
                     call.respond(HttpStatusCode.OK, result)
                 }
@@ -60,7 +57,6 @@ object DeviceApiRest {
                 route("{id}") {
 
                     post(path = "/command") {
-                        !call.auth
                         val command = call.receive<MqttCommandRequest>()
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val result = !DeviceApi.sendCommand(
@@ -72,21 +68,18 @@ object DeviceApiRest {
                     }
 
                     get("/state") {
-                        !call.auth
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val device = !DeviceApi.Query.readState(UUID.fromString(id)) ?: !ApiException("Device not found")
                         call.respond(HttpStatusCode.OK, device)
                     }
 
                     get {
-                        !call.auth
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val device = !DeviceApi.Query.get(id) ?: !ApiException("Device not found")
                         call.respond(HttpStatusCode.OK, device)
                     }
 
                     get("messages") {
-                        !call.auth
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val messages = !PublisherApi.getByResource("device-${id}")
                         call.respond(HttpStatusCode.OK, messages)

@@ -2,17 +2,17 @@ package io.kauth.service.organism
 
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
+import io.kauth.monad.apicall.KtorCall
+import io.kauth.monad.apicall.runApiCall
 import io.kauth.monad.stack.AppStack
 import io.kauth.service.auth.Auth
-import io.kauth.service.auth.AuthApi.auth
+import io.kauth.util.not
 import io.ktor.http.*
-import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import sun.security.util.Password
 import java.util.*
 
 object OrganismApiRest {
@@ -43,7 +43,6 @@ object OrganismApiRest {
             route("organism")  {
 
                 post(path = "/create") {
-                    !call.auth
                     val command = call.receive<CreateRequest>()
                     val result = !OrganismApi.Command.create(
                         command.tag,
@@ -57,14 +56,15 @@ object OrganismApiRest {
                 route("users") {
 
                     post(path = "/create") {
-                        !call.auth
                         val command = call.receive<CreateUsersRequest>()
-                        val result = !OrganismApi.Command.createUser(
-                            command.organism,
-                            command.role,
-                            command.email,
-                            command.password,
-                            command.personalData
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            OrganismApi.Command.createUser(
+                                command.organism,
+                                command.role,
+                                command.email,
+                                command.password,
+                                command.personalData
+                            )
                         )
                         call.respond(HttpStatusCode.Created, result)
                     }
@@ -73,7 +73,6 @@ object OrganismApiRest {
 
 
                 get("/list") {
-                    !call.auth
                     val result = !OrganismApi.Query.organismsList()
                     call.respond(HttpStatusCode.OK, result)
                 }
@@ -81,21 +80,18 @@ object OrganismApiRest {
                 route("{id}") {
 
                     get() {
-                        !call.auth
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val organism = !OrganismApi.Query.organism(UUID.fromString(id)) ?: !ApiException("Organism not found")
                         call.respond(HttpStatusCode.OK, organism)
                     }
 
                     get("/supervisors") {
-                        !call.auth
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val result = !OrganismApi.Query.supervisorList(UUID.fromString(id))
                         call.respond(HttpStatusCode.OK, result)
                     }
 
                     get("/operators") {
-                        !call.auth
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val result = !OrganismApi.Query.operatorList(UUID.fromString(id))
                         call.respond(HttpStatusCode.OK, result)

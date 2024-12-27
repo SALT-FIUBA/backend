@@ -180,7 +180,7 @@ data class DeviceModel(
 
             @Serializable
             data class Extensions(
-                val scope: String
+                val scope: String? = null
             )
         }
     }

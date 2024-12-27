@@ -6,6 +6,7 @@ import io.kauth.client.tuya.Tuya
 import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.AuthService
+import io.kauth.service.deviceproject.DeviceProjectService
 import io.kauth.service.salt.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.iotdevice.IoTDeviceService
@@ -47,7 +48,8 @@ val runServices get() =
         DeviceService,
         MqttConnectorService,
         PublisherService,
-        IoTDeviceService
+        IoTDeviceService,
+        DeviceProjectService
     )
 
 val installKtorPlugins =

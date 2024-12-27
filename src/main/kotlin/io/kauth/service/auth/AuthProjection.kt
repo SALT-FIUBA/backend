@@ -53,7 +53,7 @@ object AuthProjection {
         AppStack.Do {
 
             val userId = UUID.fromString(event.retrieveId("user"))
-            val state = !AuthApi.Query.readState(userId) ?: return@Do
+            val state = !AuthApi.Query.readState(userId)?: return@Do
 
             !appStackDbQuery {
                 User.upsert() {

@@ -6,13 +6,9 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.getService
-import io.kauth.service.auth.AuthApi.appStackAuthValidateAdmin
 import io.kauth.service.publisher.PublisherProjection.toPublisherProjection
-import io.kauth.service.salt.DeviceProjection
-import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.util.not
 import kotlinx.serialization.json.encodeToJsonElement
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 

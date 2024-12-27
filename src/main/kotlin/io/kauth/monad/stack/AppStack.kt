@@ -138,6 +138,7 @@ fun Application.runAppStack(stack: AppStack<*>) {
         ?.getString()
         ?: "localhost:5432/salt"
 
+    //Beans
     val db = Database.connect(
         url = "jdbc:postgresql://$dbHost",
         driver = "org.postgresql.Driver",

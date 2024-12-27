@@ -2,6 +2,7 @@ package io.kauth.abstractions.command
 
 import io.kauth.abstractions.result.Output
 import io.kauth.abstractions.result.throwOnFailure
+import io.kauth.monad.apicall.ApiCall
 import io.kauth.monad.stack.AppStack
 import java.util.UUID
 

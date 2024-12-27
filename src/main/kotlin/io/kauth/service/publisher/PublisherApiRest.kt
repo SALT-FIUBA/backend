@@ -3,7 +3,6 @@ package io.kauth.service.publisher
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.stack.AppStack
-import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -32,7 +31,6 @@ object PublisherApiRest {
             route("publisher")  {
 
                 post(path = "/publish") {
-                    !call.auth
                     val command = call.receive<PublishRequest>()
                     val result = !PublisherApi.publish(
                         command.messageId,
@@ -45,14 +43,12 @@ object PublisherApiRest {
 
 
                 get("{id}") {
-                    !call.auth
                     val id = call.parameters["id"] ?: !ApiException("Id Not found")
                     val organism = !PublisherApi.readState(UUID.fromString(id)) ?: !ApiException("Message not found")
                     call.respond(HttpStatusCode.OK, organism)
                 }
 
                 get {
-                    !call.auth
                     val resource = call.request.queryParameters["resource"] ?: !ApiException("Invalid resource")
                     val messages = !PublisherApi.getByResource(resource) ?: !ApiException("Message not found")
                     call.respond(HttpStatusCode.OK, messages)

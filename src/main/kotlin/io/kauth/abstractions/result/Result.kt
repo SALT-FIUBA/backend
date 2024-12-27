@@ -2,6 +2,7 @@ package io.kauth.abstractions.result
 
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
+import io.kauth.monad.apicall.ApiCall
 import io.kauth.monad.stack.AppStack
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.SerialName

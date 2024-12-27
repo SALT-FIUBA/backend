@@ -2,7 +2,6 @@ package io.kauth.service.mqtt.subscription
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.sequential
-import io.kauth.service.auth.AuthApi.auth
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -30,14 +29,12 @@ object SubscriptionApiRest {
             route("mqtt/subscription")  {
 
                 post("subscribe") {
-                    !call.auth
                     val command = call.receive<SubscribeRequest>()
                     !SubscriptionApi.subscribeToTopic(command.topic, command.resource)
                     call.respond(HttpStatusCode.OK)
                 }
 
                 post("unsubscribe") {
-                    !call.auth
                     val command = call.receive<UnsubscribeRequest>()
                     !command.topics
                         .map { SubscriptionApi.unsubscribeToTopic(it) }
