@@ -8,11 +8,14 @@ import io.kauth.service.AppService
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.findConfig
+import kotlinx.serialization.json.decodeFromJsonElement
 import java.util.*
 
 
 object AuthService : AppService {
 
+    override val name = "auth"
 
     val USERS_STREAM_NAME = "user"
     val USERS_STREAM_PREFIX = "${USERS_STREAM_NAME}-"
@@ -37,6 +40,8 @@ object AuthService : AppService {
     override val start =
         AppStack.Do {
 
+            val authConfig = !findConfig<AuthConfig>(name) ?: return@Do
+
             val client = !getService<EventStoreClient>()
 
             val commands = Command(
@@ -59,7 +64,7 @@ object AuthService : AppService {
                     command = commands,
                     config = Config(
                         hashAlgorithm = Auth.HashAlgorithm.Pbkdf2Sha256(iterations = 27500),
-                        secret = "supermegasecret"
+                        secret = authConfig.secret
                     )
                 )
             )

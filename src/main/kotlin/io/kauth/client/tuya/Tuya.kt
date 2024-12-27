@@ -27,10 +27,11 @@ object Tuya {
         val refresh: String
     )
 
-    fun newClient(scope: CoroutineScope): IO<Client> = IO {
-
-        val clientId = "gh9cknxh5ryxferdnrkc"
-        val clientSecret = "fd5b028d05b949038a9fd109b45ca534"
+    fun newClient(
+        scope: CoroutineScope,
+        clientId: String,
+        clientSecret: String
+    ): IO<Client> = IO {
 
         val state = !varNew<Credentials?>(null)
 
