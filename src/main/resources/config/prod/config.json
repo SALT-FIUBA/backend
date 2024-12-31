@@ -1,0 +1,56 @@
+{
+  "infra": {
+    "db": {
+      "postgres": {
+        "host": "jdbc:postgresql://postgres:5432/salt",
+        "driver": "org.postgresql.Driver",
+        "user": "salt",
+        "password": "1234"
+      },
+      "eventstore": {
+        "host": "esdb://eventstore.db:2113?tls=false"
+      }
+    }
+  },
+  "log": {
+    "level": "info"
+  },
+  "services": [
+    {
+      "name": "mqtt",
+      "config": {
+        "broker": {
+          "host": "007f5e0286aa4c36ba410312d36d42f0.s1.eu.hivemq.cloud",
+          "port": 8883,
+          "clientId": "tasmota",
+          "username": "tasmota",
+          "password": "Password123"
+        }
+      }
+    },
+    {
+      "name": "auth",
+      "config": {
+        "secret": "supermegasecret"
+      }
+    },
+    {
+      "name": "iotdevice",
+      "config": {
+        "tuya": {
+          "clientId": "gh9cknxh5ryxferdnrkc",
+          "clientSecret": "fd5b028d05b949038a9fd109b45ca534",
+          "pulsarHost": "pulsar+ssl://mqe.tuyaus.com:7285"
+        }
+      }
+    },
+    {
+      "name": "deviceproject",
+      "config": {}
+    },
+    {
+      "name": "reservation",
+      "config": {}
+    }
+  ]
+}

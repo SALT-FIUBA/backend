@@ -29,7 +29,7 @@ ktor {
     }
 }
 
-val ktorVersion = "3.0.0"
+val ktorVersion = "3.0.3"
 val logbackVersion = "1.4.14"
 val eventStoreClientVersion = "5.2.0"
 val serializationVersion = "1.7.3"

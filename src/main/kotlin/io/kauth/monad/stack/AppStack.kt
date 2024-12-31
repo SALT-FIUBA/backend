@@ -155,7 +155,9 @@ fun Application.runAppStack(stack: AppStack<*>) {
         }
     }
 
-    val config = json.decodeFromString<AppConfig>(readFromResources("config/config.json"))
+    val env = System.getenv("environment") ?: "local"
+
+    val config = json.decodeFromString<AppConfig>(readFromResources("config/${env}/config.json"))
 
     val dbConfig = config.infra.db.postgres
 
