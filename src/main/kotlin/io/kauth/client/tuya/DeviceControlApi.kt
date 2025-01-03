@@ -167,7 +167,7 @@ data class DeviceModel(
                     val min: Int,
                     val scale: Int,
                     val step: Int,
-                    val unit: String?
+                    val unit: String = ""
                 ): TypeSpecification()
 
                 @Serializable
