@@ -120,7 +120,7 @@ object IoTDeviceApi {
                                 )
 
                                 is DeviceModel.Service.Property.TypeSpecification.Value -> TuyaCapabilityType.ValueCap(
-                                    it.typeSpec.unit,
+                                    it.typeSpec.unit ?: "",
                                     it.typeSpec.step,
                                     it.typeSpec.max,
                                     it.typeSpec.min

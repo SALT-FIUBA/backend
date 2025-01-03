@@ -1,16 +1,11 @@
 package io.kauth.client.tuya
 
 import io.kauth.util.not
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
 import io.ktor.http.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.decodeFromJsonElement
 import kotlin.time.Duration.Companion.seconds
 
 @Serializable
