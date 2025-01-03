@@ -83,18 +83,15 @@ object IoTDeviceEventHandler {
 
                 val iotDevice = !ReservationApi.readIfTaken("device-${devId}")
 
-                if (iotDevice == null) {
-                    logger.error(status.toString())
-                    return@launch
+                if (iotDevice != null) {
+                    !IoTDeviceApi.setCapValues(
+                        UUID.fromString(iotDevice),
+                        status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
+                    )
+                } else {
+                    logger.error("IoT device id not found for device-${devId} ${iotDevice}")
                 }
-
-                !IoTDeviceApi.setCapValues(
-                    UUID.fromString(iotDevice),
-                    status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
-                )
-
                 consumer.acknowledgeAsync(message).await()
-
             }
 
             logger.info("DONE LISTENING")
