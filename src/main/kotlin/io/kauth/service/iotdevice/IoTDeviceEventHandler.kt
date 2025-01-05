@@ -144,6 +144,7 @@ object IoTDeviceEventHandler {
             val state = !IoTDeviceApi.Query.readState(id) ?: return@Do
 
             if (state.integration is Integration.Tuya) {
+                //TODO usar publisher para tener idempotencia
                 val tuyaClient = !getService<Tuya.Client>()
                 val deviceId = state.integration.deviceId
                 if (event.value is IoTDevice.Event.SendCommand) {
