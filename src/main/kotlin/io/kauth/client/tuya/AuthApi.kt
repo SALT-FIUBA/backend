@@ -1,12 +1,8 @@
 package io.kauth.client.tuya
 
-import io.kauth.util.not
 import io.ktor.http.*
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlin.time.Duration.Companion.seconds
 
 @Serializable
 data class Token(

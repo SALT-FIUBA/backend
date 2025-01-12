@@ -1,5 +1,6 @@
 package io.kauth.monad.stack
 
+import io.kauth.abstractions.forever
 import io.kauth.client.eventStore.EventStoreClientPersistenceSubs
 import io.kauth.client.eventStore.model.Event
 import io.kauth.client.eventStore.subscribeToStream
@@ -47,6 +48,13 @@ data class AppStack<T>(
             )
     }
 }
+
+fun <T> AppStack<T>.appStackForever(): AppStack<T> =
+    AppStack.Do {
+        !forever {
+            !this@appStackForever
+        }
+    }
 
 fun <T> AppStack<T>.catching(): AppStack<Result<T>> =
     AppStack.Do {

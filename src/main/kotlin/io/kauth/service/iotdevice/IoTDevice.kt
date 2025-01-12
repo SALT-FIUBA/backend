@@ -21,7 +21,8 @@ object IoTDevice {
         val resource: String,
         val enabled: Boolean,
         val integration: Integration,
-        val capabilitiesValues: Map<String, StateData<String>>
+        val capabilitiesValues: Map<String, StateData<String>>,
+        //deviceType!
     )
 
     @Serializable
