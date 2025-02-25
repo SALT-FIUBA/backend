@@ -104,6 +104,7 @@ object IoTDeviceApi {
                             when (it.accessMode) {
                                 DeviceModel.Service.Property.AccessMode.ro -> CapabilitySchema.Access.readonly
                                 DeviceModel.Service.Property.AccessMode.rw -> CapabilitySchema.Access.writeread
+                                DeviceModel.Service.Property.AccessMode.wr -> CapabilitySchema.Access.writeread
                             },
                             cap = when (it.typeSpec) {
                                 is DeviceModel.Service.Property.TypeSpecification.BitMap -> TuyaCapabilityType.BitMapCap(
@@ -125,6 +126,11 @@ object IoTDeviceApi {
                                     it.typeSpec.max,
                                     it.typeSpec.min
                                 )
+
+                                is DeviceModel.Service.Property.TypeSpecification.RawValue -> TuyaCapabilityType.RawCap(
+                                    it.typeSpec.maxlen
+                                )
+
                             }
                         )
 

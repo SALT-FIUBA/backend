@@ -138,6 +138,7 @@ data class DeviceModel(
             enum class AccessMode {
                 rw,
                 ro,
+                wr
             }
 
             @Serializable
@@ -173,6 +174,12 @@ data class DeviceModel(
                 @Serializable
                 @SerialName("string")
                 data class StringValue(
+                    val maxlen: Int
+                ): TypeSpecification()
+
+                @Serializable
+                @SerialName("raw")
+                data class RawValue(
                     val maxlen: Int
                 ): TypeSpecification()
 

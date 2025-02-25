@@ -38,8 +38,8 @@
       "name": "iotdevice",
       "config": {
         "tuya": {
-          "clientId": "gh9cknxh5ryxferdnrkc",
-          "clientSecret": "fd5b028d05b949038a9fd109b45ca534",
+          "clientId": "vjsswmh3wqerd5keuj4m",
+          "clientSecret": "4a24bb8b298e48d8a7040316cd8b8bf7",
           "pulsarHost": "pulsar+ssl://mqe.tuyaus.com:7285"
         }
       }

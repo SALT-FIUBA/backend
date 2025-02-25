@@ -32,9 +32,10 @@ object Tuya {
         scope: CoroutineScope,
         clientId: String,
         clientSecret: String
-    ): IO<Client> = IO {
+    ): Async<Client> = Async {
 
         val state = !varNew<Credentials?>(null)
+        val tokenDeferred = CompletableDeferred<Unit>()
 
         val http = HttpClient(CIO)
         val json = Json {
@@ -65,12 +66,15 @@ object Tuya {
                 }
                 if (token.result != null) {
                     !state.set(Credentials(token.result.accessToken, token.result.refreshToken))
+                    tokenDeferred.complete(Unit)
                     val waitFor = (token.result.expireTime / 10).seconds
                     println("WAITING! ${waitFor}")
                     delay(waitFor)
                 }
             }
         }
+
+        tokenDeferred.await()
 
         Client(
             http = http,

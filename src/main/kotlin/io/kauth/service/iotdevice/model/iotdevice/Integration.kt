@@ -72,6 +72,9 @@ sealed interface TuyaCapabilityType : IntegrationCapability {
     @Serializable
     @SerialName("StringCap")
     data class StringCap(val maxLen: Int) : TuyaCapabilityType
+    @Serializable
+    @SerialName("RawCap")
+    data class RawCap(val maxLen: Int) : TuyaCapabilityType
 }
 
 @Serializable
