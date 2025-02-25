@@ -33,7 +33,7 @@ data class Property(
     val dp_id: Int,
     val time: Long,
     val type: String,
-    val value: JsonPrimitive
+    val value: JsonPrimitive? = null
 )
 
 @Serializable
