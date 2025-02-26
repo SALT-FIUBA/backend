@@ -32,7 +32,7 @@ object ReservationApiRest {
                     call.respond(HttpStatusCode.OK, result)
                 }
 
-                post(path = "/release") {
+                post(path = "/release/{id}") {
                     val result = !KtorCall(this@Do.ctx, call).runApiCall(
                         ReservationApi.release(call.parameters["id"] ?: error("No id found")).toApiCall()
                     )
