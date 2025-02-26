@@ -95,7 +95,7 @@ object IoTDeviceEventHandler {
                             status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
                         )
                     } catch (error: Throwable) {
-                        logger.error("Error updating value !! $iotDevice, $status, ${error.message}")
+                        logger.error("Error updating value !! $iotDevice, $status, ${error}")
                     }
                 } else {
                     logger.error("IoT device id not found for device-${devId} ${iotDevice}")
