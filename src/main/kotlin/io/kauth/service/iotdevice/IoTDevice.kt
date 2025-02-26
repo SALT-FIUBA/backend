@@ -156,7 +156,7 @@ object IoTDevice {
         val command = !getCommand
         if (state == null) {
             !emitEvents(Error.UnknownError("Device does not exists!"))
-            !exit(Failure("Device already exists"))
+            !exit(Failure("Device does not exists!!"))
         }
         !emitEvents(Event.CapabilitiesSet(caps = command.caps, at = command.at))
         Ok

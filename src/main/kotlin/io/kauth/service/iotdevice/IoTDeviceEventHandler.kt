@@ -67,6 +67,7 @@ object IoTDeviceEventHandler {
             .await()
 
         ktor.launch {
+            //TODO: Error handling
             while (isActive) {
                 logger.info("Waiting for tuya events!")
                 val message = consumer.receiveAsync().await()
@@ -87,10 +88,15 @@ object IoTDeviceEventHandler {
                 val iotDevice = !ReservationApi.readIfTaken("device-${devId}")
 
                 if (iotDevice != null) {
-                    !IoTDeviceApi.setCapValues(
-                        UUID.fromString(iotDevice),
-                        status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
-                    ).appStackForever()
+                    //FIX THIS
+                    try {
+                        !IoTDeviceApi.setCapValues(
+                            UUID.fromString(iotDevice),
+                            status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
+                        )
+                    } catch (error: Throwable) {
+                        logger.error("Error updating value !! $iotDevice, $status")
+                    }
                 } else {
                     logger.error("IoT device id not found for device-${devId} ${iotDevice}")
                 }
