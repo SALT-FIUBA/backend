@@ -89,6 +89,7 @@ object AuthApiRest {
                             command.password,
                         )
                     )
+                    call.response.cookies.append(Cookie(name = "token", value = result.access, httpOnly = true, secure = false, path = "/"))
                     call.respond(HttpStatusCode.OK, result)
                 }
 

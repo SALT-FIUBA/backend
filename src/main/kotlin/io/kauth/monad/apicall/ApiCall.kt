@@ -109,10 +109,14 @@ fun <T> KtorCall.runApiCall(call: ApiCall<T>) = Async {
     //Esto me queda duda si tiene que estar aca
     if (authService != null) {
         val authHeader = this.call.request.header("Authorization") ?: ""
-        val token = regex
+
+        val authCookie = this.call.request.cookies["token"]
+
+        val token = authCookie ?: regex
             .matchEntire(authHeader)
             ?.groups?.get("token")
             ?.value?.trim() ?: ""
+
         val alg = Algorithm.HMAC256(authService.config.secret)
         val jwt = jwtVerify(token, alg)
         mutableJwt = jwt
