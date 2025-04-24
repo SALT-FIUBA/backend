@@ -29,17 +29,16 @@ ktor {
     }
 }
 
-val ktorVersion = "3.0.3"
-val logbackVersion = "1.4.14"
-val eventStoreClientVersion = "5.2.0"
+val ktorVersion = "3.1.2"
+val logbackVersion = "1.5.18"
+val eventStoreClientVersion = "5.4.5"
 val serializationVersion = "1.7.3"
-val dateTimeVersion = "0.4.1"
+val dateTimeVersion = "0.6.2"
 val micrometer = "1.12.2"
-val mqttClient = "0.4.6"
-val exposedVersion = "0.50.1"
+val exposedVersion = "0.60.0"
 val hikaricpVersion = "5.0.1"
-val hivemqMQTT = "1.3.3"
-val pulsarVersion = "4.0.0"
+val hivemqMQTT = "1.3.5"
+val pulsarVersion = "4.0.3"
 
 dependencies {
 
@@ -54,6 +53,7 @@ dependencies {
     implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
 
     implementation("org.apache.pulsar:pulsar-client:$pulsarVersion")
 

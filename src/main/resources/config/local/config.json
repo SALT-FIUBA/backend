@@ -31,7 +31,13 @@
     {
       "name": "auth",
       "config": {
-        "secret": "supermegasecret"
+        "secret": "supermegasecret",
+        "frontend": "http://localhost:5173/",
+        "google": {
+          "clientId": "257541230737-var7vge4b9pu7gvrqt2a2slpvugqd27r.apps.googleusercontent.com",
+          "secret": "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",
+          "redirectUri": "http://localhost:8080/auth/google/callback"
+        }
       }
     },
     {
@@ -50,6 +56,30 @@
     },
     {
       "name": "reservation",
+      "config": {}
+    },
+    {
+      "name": "organism",
+      "config": {}
+    },
+    {
+      "name": "device",
+      "config": {}
+    },
+    {
+      "name": "train",
+      "config": {}
+    },
+    {
+      "name": "publisher",
+      "config": {}
+    },
+    {
+      "name": "occasion",
+      "config": {}
+    },
+    {
+      "name": "access-request",
       "config": {}
     }
   ]

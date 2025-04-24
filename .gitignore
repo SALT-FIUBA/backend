@@ -46,3 +46,4 @@ mqtt/data
 mqtt/log
 monitoring/grafana
 db
+./src/main/resources/config/prod/config.json

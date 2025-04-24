@@ -19,6 +19,9 @@ import java.util.*
 
 object MqttConnectorService : AppService {
 
+    override val name: String
+        get() = "mqtt"
+
     val STREAM_NAME = "mqtt"
 
     //pensar esto

@@ -6,6 +6,9 @@ import io.kauth.monad.apicall.KtorCall
 import io.kauth.monad.apicall.runApiCall
 import io.kauth.monad.stack.AppStack
 import io.kauth.service.auth.Auth
+import io.kauth.service.auth.AuthApi
+import io.kauth.service.salt.DeviceApi
+import io.kauth.service.train.TrainApi
 import io.kauth.util.not
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -25,15 +28,11 @@ object OrganismApiRest {
     )
 
     @Serializable
-    data class CreateUsersRequest(
+    data class AddUser(
         @Contextual
         val organism: UUID,
-        @Contextual
-        val user: UUID,
-        val role: Organism.Role,
         val email: String,
-        val password: String,
-        val personalData: Auth.User.PersonalData
+        val roles: List<Organism.Role>
     )
 
     val api = AppStack.Do {
@@ -44,10 +43,12 @@ object OrganismApiRest {
 
                 post(path = "/create") {
                     val command = call.receive<CreateRequest>()
-                    val result = !OrganismApi.Command.create(
-                        command.tag,
-                        command.name,
-                        command.description
+                    val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                        OrganismApi.Command.create(
+                            command.tag,
+                            command.name,
+                            command.description
+                        )
                     )
                     call.respond(HttpStatusCode.Created, result)
                 }
@@ -55,15 +56,13 @@ object OrganismApiRest {
 
                 route("users") {
 
-                    post(path = "/create") {
-                        val command = call.receive<CreateUsersRequest>()
+                    post(path = "/add") {
+                        val command = call.receive<AddUser>()
                         val result = !KtorCall(this@Do.ctx, call).runApiCall(
-                            OrganismApi.Command.createUser(
-                                command.organism,
-                                command.role,
+                            OrganismApi.Command.addUser(
                                 command.email,
-                                command.password,
-                                command.personalData
+                                command.organism,
+                                command.roles
                             )
                         )
                         call.respond(HttpStatusCode.Created, result)
@@ -85,15 +84,20 @@ object OrganismApiRest {
                         call.respond(HttpStatusCode.OK, organism)
                     }
 
-                    get("/supervisors") {
+                    get("trains") {
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                        val result = !OrganismApi.Query.supervisorList(UUID.fromString(id))
-                        call.respond(HttpStatusCode.OK, result)
+                        val devices = !TrainApi.Query.trainList(organismId = id)
+                        call.respond(HttpStatusCode.OK, devices)
                     }
 
-                    get("/operators") {
+                    get("users") {
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
-                        val result = !OrganismApi.Query.operatorList(UUID.fromString(id))
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            AuthApi.Query.list(
+                                role =
+                                    Organism.Role.entries.map { Organism.OrganismRole(it, UUID.fromString(id)).string }
+                            )
+                        )
                         call.respond(HttpStatusCode.OK, result)
                     }
 

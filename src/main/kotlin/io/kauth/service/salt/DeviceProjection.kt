@@ -4,7 +4,6 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import io.kauth.service.organism.OrganismApi
-import io.kauth.service.salt.DeviceProjection.DeviceTable.uniqueIndex
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -20,7 +19,8 @@ object DeviceProjection {
 
     object DeviceTable: Table("devices") {
         val id = text("id").uniqueIndex()
-        val organismId = text("organism_id")
+        val organismId = text("organism_id").nullable()
+        val trainId = text("train_id").nullable()
         val organismName = text("organism_name").nullable()
         val seriesNumber = text("series_number")
         val ports = array<String>("ports")
@@ -43,7 +43,8 @@ object DeviceProjection {
     @Serializable
     data class Projection(
         val id: String,
-        val organismId: String,
+        val organismId: String?,
+        val trainId: String?,
         val organismName: String? = null,
         val seriesNumber: String,
         val ports: List<String>,
@@ -68,6 +69,7 @@ object DeviceProjection {
         Projection(
             this[DeviceTable.id],
             this[DeviceTable.organismId],
+            this[DeviceTable.trainId],
             this[DeviceTable.organismName],
             this[DeviceTable.seriesNumber],
             this[DeviceTable.ports],
@@ -79,7 +81,7 @@ object DeviceProjection {
             this[DeviceTable.state_topic]
         )
 
-    //DEVICE REAL TIME DATA -> Tiene que ser un stream aparte!
+    //@Mati: DEVICE REAL TIME DATA -> Tiene que ser un stream aparte!
     val ResultRow.toDeviceCurrentDataProjection get() =
         DeviceCurrentDataProjection(
             this[DeviceCurrentDataTable.id],
@@ -97,11 +99,13 @@ object DeviceProjection {
         AppStack.Do {
             val entity = UUID.fromString(event.retrieveId("device"))
             val state = !DeviceApi.Query.readState(entity) ?: return@Do
-            val organism = !OrganismApi.Query.readState(state.organismId)
+            val organism = state.organismId?.let { !OrganismApi.Query.readState(it) }
+
             !appStackDbQuery {
                 DeviceTable.upsert() {
                     it[id] = entity.toString()
-                    it[organismId] = state.organismId.toString()
+                    it[organismId] = state.organismId?.toString()
+                    it[trainId] = state.trainId?.toString()
                     it[organismName] = organism?.name
                     it[seriesNumber] = state.seriesNumber
                     it[ports] = state.ports

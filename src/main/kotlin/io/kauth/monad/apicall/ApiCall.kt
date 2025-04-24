@@ -47,7 +47,7 @@ val apiCallLog = ApiCall.Do {
 }
 
 val apiCallJwt = ApiCall.Do {
-    jwt ?: !ApiException("Un Authorized!")
+    jwt ?: !ApiException("No token found!")
 }
 
 val apiCallJson = ApiCall.Do {

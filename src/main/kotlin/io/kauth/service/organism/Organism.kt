@@ -17,13 +17,13 @@ object Organism {
         val role: Role,
         val organismId: UUID
     ) {
-        val string: String = "${organismId}_$role"
+        val string: String = "role:${role}:organism:${organismId}"
         companion object {
             fun formString(organismRole: String) =
                 kotlin.runCatching {
-                    val (organismId, role) = organismRole.split("_")
+                    val (role, roleId, organism, organismId) = organismRole.split(":")
                     OrganismRole(
-                        Role.fromString(role) ?: error("Invalid role"),
+                        Role.fromString(roleId) ?: error("Invalid role"),
                         UUID.fromString(organismId))
                 }.getOrNull()
         }
@@ -33,7 +33,9 @@ object Organism {
     @Serializable
     enum class Role {
         supervisor,
-        operators;
+        operators,
+        write,
+        read;
 
         companion object {
             fun fromString(value: String) =

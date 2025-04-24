@@ -34,6 +34,7 @@ object Device {
             COUNT
         }
 
+        //Revisar si puede ser sealed interface
         @Serializable
         data class SaltCmd(
             val action: SaltAction?,
@@ -58,7 +59,9 @@ object Device {
     @Serializable
     data class State(
         @Contextual
-        val organismId: UUID,
+        val organismId: UUID? = null,
+        @Contextual
+        val trainId: UUID? = null,
         val seriesNumber: String,
         val ports: List<String>,
         val status: String?,
@@ -80,7 +83,9 @@ object Device {
         @Serializable
         data class Create(
             @Contextual
-            val organismId: UUID,
+            val organismId: UUID? = null,
+            @Contextual
+            val trainId: UUID? = null,
             val seriesNumber: String,
             val ports: List<String>,
             val createdBy: String,
@@ -148,6 +153,7 @@ object Device {
 
         val data =
             State(
+                trainId = command.trainId,
                 organismId = command.organismId,
                 seriesNumber = command.seriesNumber,
                 ports = command.ports,

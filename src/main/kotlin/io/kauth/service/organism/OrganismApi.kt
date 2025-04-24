@@ -5,10 +5,12 @@ import io.kauth.exception.ApiException
 import io.kauth.exception.allowIf
 import io.kauth.exception.not
 import io.kauth.monad.apicall.ApiCall
+import io.kauth.monad.apicall.apiCallGetService
+import io.kauth.monad.apicall.apiCallLog
+import io.kauth.monad.apicall.toApiCall
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi
-import io.kauth.service.auth.AuthService
 import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
 import io.kauth.service.organism.OrganismProjection.toOrganismUserInfoProjection
@@ -25,79 +27,33 @@ object OrganismApi {
 
     object Command {
 
-        fun createUser(
-            organism: UUID,
-            role: Organism.Role,
+        fun addUser(
             email: String,
-            password: String,
-            personalData: Auth.User.PersonalData,
+            organism: UUID,
+            role: List<Organism.Role>,
         ) = ApiCall.Do {
-
-            val jwt = jwt ?: !ApiException("UnAuth")
-
-            val orgRole = Organism.OrganismRole(role, organism)
-            val supervisorRole = Organism.OrganismRole(Organism.Role.supervisor, organism)
-
-            !allowIf(
-                "admin" in jwt.payload.roles ||
-                        (supervisorRole.string in jwt.payload.roles && role != Organism.Role.supervisor)
-            ) {
+            //val jwt = jwt ?: !ApiException("UnAuth")
+            val roles = role.map { Organism.OrganismRole(it, organism).string }
+            val writeRole = Organism.OrganismRole(Organism.Role.write, organism)
+            /*
+            !allowIf("admin" in jwt.payload.roles || (writeRole.string in jwt.payload.roles)) {
                 "Not Allowed"
             }
-
-            !AuthApi.register(
+             */
+            !AuthApi.addRoles(
                 email,
-                password,
-                personalData,
-                listOf(orgRole.string)
+                roles
             )
-
-        }
-
-        //Esto se tiene que ejecutar cada vez que se crea un usuario!!
-        fun addUser(
-            organism: UUID,
-            role: Organism.Role,
-            user: UUID,
-            createdBy: UUID?
-        ) = AppStack.Do {
-
-            val orgRole = Organism.OrganismRole(role, organism)
-
-            val service = !getService<OrganismService.Interface>()
-            val auth = !getService<AuthService.Interface>()
-
-            val userData = !auth.query.readState(user) ?: !ApiException("User does not exists")
-
-            !allowIf(orgRole.string in userData.roles) {
-                "Invalid role for user"
-            }
-
-            val userInfo = Organism.UserInfo(
-                id = user,
-                addedBy = createdBy,
-                addedAt = Clock.System.now()
-            )
-
-            !service.command
-                .handle(organism)
-                .throwOnFailureHandler(
-                    when(role) {
-                        Organism.Role.operators -> Organism.Command.AddOperator(userInfo)
-                        Organism.Role.supervisor -> Organism.Command.AddSupervisor(userInfo)
-                    }
-                )
-            userInfo
         }
 
         fun create(
             tag: String,
             name: String,
             description: String,
-        ) = AppStack.Do {
+        ) = ApiCall.Do {
 
-            val log = !authStackLog
-            val jwt = !authStackJwt
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
 
             if (name.isBlank()) {
                 !ApiException("Invalid name")
@@ -107,9 +63,9 @@ object OrganismApi {
                 "Not authorized"
             }
 
-            val service = !getService<OrganismService.Interface>()
+            val service = !apiCallGetService<OrganismService.Interface>()
 
-            val id = !ReservationApi.takeIfNotTaken("organism-${name}") { UUID.randomUUID().toString() }
+            val id = !ReservationApi.takeIfNotTaken("organism-${name}") { UUID.randomUUID().toString() }.toApiCall()
 
             log.info("Create organism $name")
 
@@ -123,7 +79,7 @@ object OrganismApi {
                         createdBy = jwt.payload.id,
                         createdAt = Clock.System.now()
                     ),
-                )
+                ).toApiCall()
 
             id
 

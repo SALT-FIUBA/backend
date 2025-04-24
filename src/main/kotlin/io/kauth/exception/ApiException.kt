@@ -12,6 +12,6 @@ fun allowIf(
     message: () -> String? = { null }
 ) = IO {
     if(!condition) {
-        !ApiException(message() ?: "UnAuthorized")
+        !ApiException(message() ?: "Not allowed!")
     }
 }

@@ -39,12 +39,6 @@ object AuthProjection {
             this[User.roles],
         )
 
-    @Serializable
-    data class Aggregated(
-        val data: UserProjection,
-        val userInfo: List<OrganismProjection.OrganismUserInfoProjection>,
-    )
-
     val sqlEventHandler = appStackSqlProjector<Auth.UserEvent>(
         streamName = "\$ce-user",
         consumerGroup = "user-sql-projection",

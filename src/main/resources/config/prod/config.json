@@ -31,7 +31,13 @@
     {
       "name": "auth",
       "config": {
-        "secret": "supermegasecret"
+        "secret": "supermegasecret",
+        "frontend": "https://occasion-web.vercel.app/",
+        "google": {
+          "clientId": "257541230737-0ho35c61b62l437ud5hvk28kfib41qpt.apps.googleusercontent.com",
+          "secret": "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",
+          "redirectUri": "https://kiot.chickenkiller.com/api/v1/auth/google/callback"
+        }
       }
     },
     {
@@ -50,6 +56,30 @@
     },
     {
       "name": "reservation",
+      "config": {}
+    },
+    {
+      "name": "organism",
+      "config": {}
+    },
+    {
+      "name": "device",
+      "config": {}
+    },
+    {
+      "name": "train",
+      "config": {}
+    },
+    {
+      "name": "publisher",
+      "config": {}
+    },
+    {
+      "name": "occasion",
+      "config": {}
+    },
+    {
+      "name": "access-request",
       "config": {}
     }
   ]
