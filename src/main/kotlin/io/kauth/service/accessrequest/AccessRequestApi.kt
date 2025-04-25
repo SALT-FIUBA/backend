@@ -61,48 +61,33 @@ object AccessRequestApi {
         }
 
         fun accept(
-            id: UUID,
-            acceptBy: String
+            id: UUID
         ) = ApiCall.Do {
-            val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
-
             !allowIf("role:write:access-request" in jwt.payload.roles) {
                 "Not authorized"
             }
-
             val service = !apiCallGetService<AccessRequestService.Interface>()
-
-            log.info("Accept access request $id by $acceptBy")
-
             !service.command
                 .handle(id)
                 .throwOnFailureHandler(
-                    AccessRequest.Command.AcceptRequest(Clock.System.now(), acceptBy)
+                    AccessRequest.Command.AcceptRequest(Clock.System.now(), jwt.payload.id)
                 ).toApiCall()
-
-            "Accepted"
+            id
         }
 
         fun confirm(
-            id: UUID,
-            confirmBy: String
+            id: UUID
         ) = ApiCall.Do {
-            val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
-
-            allowIf("admin" in jwt.payload.roles) {
+            !allowIf("role:write:access-request" in jwt.payload.roles) {
                 "Not authorized"
             }
-
             val service = !apiCallGetService<AccessRequestService.Interface>()
-
-            log.info("Confirm access request $id by $confirmBy")
-
             !service.command
                 .handle(id)
                 .throwOnFailureHandler(
-                    AccessRequest.Command.ConfirmRequest(Clock.System.now(), confirmBy)
+                    AccessRequest.Command.ConfirmRequest(Clock.System.now(),jwt.payload.id)
                 ).toApiCall()
 
             "Confirmed"
