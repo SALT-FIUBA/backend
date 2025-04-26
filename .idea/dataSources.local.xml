@@ -2,7 +2,7 @@
 <project version="4">
   <component name="dataSourceStorageLocal" created-in="IU-243.21565.193">
     <data-source name="salt@localhost" uuid="c3e7e5f5-2e1d-4669-ac64-fef0ea1756da">
-      <database-info product="PostgreSQL" version="14.15" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.6.0" dbms="POSTGRES" exact-version="14.15" exact-driver-version="42.6">
+      <database-info product="PostgreSQL" version="14.11" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.6.0" dbms="POSTGRES" exact-version="14.11" exact-driver-version="42.6">
         <identifier-quote-string>&quot;</identifier-quote-string>
       </database-info>
       <case-sensitivity plain-identifiers="lower" quoted-identifiers="exact" />

@@ -25,6 +25,7 @@ object OccasionProjection {
         val owners = json<List<String>>("owners", Json)
         val createdAt = timestamp("created_at")
         val name = text("name").nullable()
+        val disabled = bool("disabled").default(false)
     }
 
     @Serializable
@@ -65,6 +66,7 @@ object OccasionProjection {
                     it[owners] = state.owners
                     it[createdAt] = state.createdAt
                     it[name] = state.name
+                    it[disabled] = state.disabled
                 }
             }
         }

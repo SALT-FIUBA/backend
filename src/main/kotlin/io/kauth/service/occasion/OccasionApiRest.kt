@@ -14,6 +14,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Contextual
+import java.util.UUID
 
 object OccasionApiRest {
 
@@ -23,6 +25,13 @@ object OccasionApiRest {
         val date: LocalDate,
         val description: String,
         val name: String? = null
+    )
+
+    @Serializable
+    data class VisibilityRequest(
+        @Contextual
+        val id: UUID,
+        val disabled: Boolean,
     )
 
     val api = AppStack.Do {
@@ -45,18 +54,26 @@ object OccasionApiRest {
 
                     get() {
                         val idParam = call.parameters["id"] ?: throw ApiException("Id not found")
-                        val id = java.util.UUID.fromString(idParam)
+                        val id = UUID.fromString(idParam)
                         val occasion = !Query.readState(id) ?: throw ApiException("Occasion not found")
                         call.respond(HttpStatusCode.OK, occasion)
                     }
 
                     get("access-requests") {
                         val idParam = call.parameters["id"] ?: throw ApiException("Id not found")
-                        val id = java.util.UUID.fromString(idParam)
+                        val id = UUID.fromString(idParam)
                         val requests = !KtorCall(this@Do.ctx, call).runApiCall(
                             AccessRequestApi.Query.list(occasionId = id)
                         )
                         call.respond(HttpStatusCode.OK, requests)
+                    }
+
+                    post("visibility") {
+                        val request = call.receive<VisibilityRequest>()
+                        val occasion = !KtorCall(this@Do.ctx, call).runApiCall(
+                            Command.visibility(request.id, request.disabled)
+                        )
+                        call.respond(HttpStatusCode.OK, occasion)
                     }
                 }
 

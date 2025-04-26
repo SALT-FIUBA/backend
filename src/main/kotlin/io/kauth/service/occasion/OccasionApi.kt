@@ -12,12 +12,38 @@ import io.kauth.monad.stack.*
 import io.kauth.service.occasion.OccasionProjection.toOccasionProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.selectAll
 import java.util.UUID
 
 object OccasionApi {
 
     object Command {
+
+        fun visibility(
+            id: UUID,
+            disabled: Boolean
+        ) = ApiCall.Do {
+            val jwt = jwt ?: !ApiException("UnAuth")
+
+            val service = !apiCallGetService<OccasionService.Interface>()
+
+            val occasion = !Query.readState(id).toApiCall() ?: !ApiException("Occasion not found")
+
+            allowIf(jwt.payload.id in occasion.owners) {
+                "Not authorized"
+            }
+
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Occasion.Command.Visibility(
+                        disabled = disabled
+                    )
+                ).toApiCall()
+
+            id.toString()
+        }
 
         fun create(
             categories: List<Occasion.Category>,
@@ -72,6 +98,8 @@ object OccasionApi {
         fun list() = AppStack.Do {
             !appStackDbQuery {
                 OccasionProjection.OccasionTable.selectAll()
+                    .where { OccasionProjection.OccasionTable.disabled eq false }
+                    .orderBy(OccasionProjection.OccasionTable.createdAt to SortOrder.DESC)
                     .map { it.toOccasionProjection }
             }
         }

@@ -13,6 +13,7 @@ import io.kauth.service.reservation.ReservationApi
 import io.kauth.util.not
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import java.util.UUID
@@ -117,6 +118,9 @@ object AccessRequestApi {
                                 ?: Op.TRUE
                         )
                     }
+                    .orderBy(
+                        AccessRequestProjection.AccessRequestTable.createdAt to SortOrder.DESC
+                    )
                     .map { it.toProjection }
             }
 
