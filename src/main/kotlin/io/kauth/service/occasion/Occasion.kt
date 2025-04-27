@@ -8,7 +8,9 @@ import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.util.UUID
 
 object Occasion {
 
@@ -23,10 +25,12 @@ object Occasion {
         val categories: List<Category>,
         val date: LocalDate,
         val description: String,
-        val owners: List<String>,
+        val owners: List<String>? = null,
         val createdAt: Instant,
         val name: String? = null,
         val disabled: Boolean = false,
+        @Contextual
+        val fanPageId: UUID? = null
     )
 
     @Serializable
@@ -36,14 +40,11 @@ object Occasion {
             val categories: List<Category>,
             val date: LocalDate,
             val description: String,
-            val owners: List<String>,
+            val owners: List<String>? = null,
             val createdAt: Instant,
-            val name: String? = null
-        ) : Command
-
-        @Serializable
-        data class AddOwners(
-            val ownersToAdd: List<String>
+            val name: String? = null,
+            @Contextual
+            val fanPageId: UUID? = null
         ) : Command
 
         @Serializable
@@ -57,11 +58,6 @@ object Occasion {
         @Serializable
         data class OccasionCreated(
             val occasion: State
-        ) : Event
-
-        @Serializable
-        data class OwnersAdded(
-            val ownersAdded: List<String>
         ) : Event
 
         @Serializable
@@ -87,10 +83,6 @@ object Occasion {
         event.occasion
     }
 
-    val handleOwnersAddedEvent: Reducer<State?, Event.OwnersAdded> = Reducer { state, event ->
-        state?.copy(owners = state.owners + event.ownersAdded)
-    }
-
     val handleVisibilityEvent: Reducer<State?, Event.VisibilityChanged> = Reducer { state, event ->
         state?.copy(disabled = event.disabled)
     }
@@ -113,9 +105,9 @@ object Occasion {
             !exit(Failure("Description cannot be empty"))
         }
 
-        if (command.owners.isEmpty()) {
-            !emitEvents(Error.InvalidCommand("Owners cannot be empty"))
-            !exit(Failure("Owners cannot be empty"))
+        if (command.fanPageId == null) {
+            !emitEvents(Error.InvalidCommand("Fanpage cannot be null"))
+            !exit(Failure("Fanpage cannot be null"))
         }
 
         !emitEvents(
@@ -124,31 +116,14 @@ object Occasion {
                     categories = command.categories,
                     date = command.date,
                     description = command.description,
-                    owners = command.owners,
+                    owners = emptyList(),
                     createdAt = command.createdAt,
-                    name = command.name
+                    name = command.name,
+                    fanPageId = command.fanPageId
                 )
             )
         )
 
-        Ok
-    }
-
-    val handleAddOwners: CommandMonad<Command.AddOwners, State?, Event, Output> = CommandMonad.Do { exit ->
-        val state = !getState
-        if (state == null) {
-            !emitEvents(Error.InvalidCommand("Occasion does not exist"))
-            !exit(Failure("Occasion does not exist"))
-        }
-
-        val existingOwners = state.owners.toSet()
-        val duplicates = command.ownersToAdd.filter { it in existingOwners }
-        if (duplicates.isNotEmpty()) {
-            !emitEvents(Error.OwnersAlreadyExist(duplicates))
-            !exit(Failure("Owners already exist: $duplicates"))
-        }
-
-        !emitEvents(Event.OwnersAdded(command.ownersToAdd))
         Ok
     }
 
@@ -166,14 +141,12 @@ object Occasion {
         val command = !getCommand
         !when (command) {
             is Command.CreateOccasion -> handleCreate
-            is Command.AddOwners -> handleAddOwners
             is Command.Visibility -> hanndlVisibility
         }
     }
 
     val eventReducer: Reducer<State?, Event> = reducerOf(
         Event.OccasionCreated::class to handleCreatedEvent,
-        Event.OwnersAdded::class to handleOwnersAddedEvent,
         Event.VisibilityChanged::class to handleVisibilityEvent
     )
 }

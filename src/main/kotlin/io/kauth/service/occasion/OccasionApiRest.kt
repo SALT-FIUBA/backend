@@ -24,7 +24,9 @@ object OccasionApiRest {
         val categories: List<Occasion.Category>,
         val date: LocalDate,
         val description: String,
-        val name: String? = null
+        val name: String,
+        @Contextual
+        val fanPageId: UUID
     )
 
     @Serializable
@@ -44,7 +46,8 @@ object OccasionApiRest {
                             categories = request.categories,
                             date = request.date,
                             description = request.description,
-                            name = request.name
+                            name = request.name,
+                            fanPageId = request.fanPageId
                         )
                     )
                     call.respond(HttpStatusCode.Created, mapOf("id" to id))

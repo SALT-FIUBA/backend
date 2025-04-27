@@ -22,10 +22,11 @@ object OccasionProjection {
         val description = text("description")
         val date = date("date")
         val categories = json<List<Occasion.Category>>("categories", Json)
-        val owners = json<List<String>>("owners", Json)
+        val owners = json<List<String>>("owners", Json).nullable()
         val createdAt = timestamp("created_at")
         val name = text("name").nullable()
         val disabled = bool("disabled").default(false)
+        val fanPageId = text("fan_page_id").nullable()
     }
 
     @Serializable
@@ -34,7 +35,7 @@ object OccasionProjection {
         val description: String,
         val date: LocalDate,
         val categories: List<Occasion.Category>,
-        val owners: List<String>,
+        val owners: List<String>? = null,
         val createdAt: Instant,
         val name: String? = null
     )
@@ -63,10 +64,10 @@ object OccasionProjection {
                     it[description] = state.description
                     it[date] = state.date
                     it[categories] =state.categories
-                    it[owners] = state.owners
                     it[createdAt] = state.createdAt
                     it[name] = state.name
                     it[disabled] = state.disabled
+                    it[fanPageId] = state.fanPageId?.toString()
                 }
             }
         }

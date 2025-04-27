@@ -9,6 +9,7 @@ import io.kauth.monad.apicall.apiCallGetService
 import io.kauth.monad.apicall.apiCallLog
 import io.kauth.monad.apicall.toApiCall
 import io.kauth.monad.stack.*
+import io.kauth.service.fanpage.FanPageApi
 import io.kauth.service.occasion.OccasionProjection.toOccasionProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
@@ -30,7 +31,11 @@ object OccasionApi {
 
             val occasion = !Query.readState(id).toApiCall() ?: !ApiException("Occasion not found")
 
-            allowIf(jwt.payload.id in occasion.owners) {
+            val fanId = occasion.fanPageId ?: !ApiException("FanPage not found")
+
+            val fanPageData = !FanPageApi.Query.readState(fanId).toApiCall() ?: !ApiException("FanPage not found")
+
+            !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
                 "Not authorized"
             }
 
@@ -46,6 +51,7 @@ object OccasionApi {
         }
 
         fun create(
+            fanPageId: UUID,
             categories: List<Occasion.Category>,
             date: kotlinx.datetime.LocalDate,
             description: String,
@@ -54,13 +60,16 @@ object OccasionApi {
             val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
 
-            !allowIf(OccasionRoles.WRITE_ALL in jwt.payload.roles) {
+            val fanPageData = !FanPageApi.Query.readState(fanPageId).toApiCall() ?: !ApiException("FanPage not found")
+
+            !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
                 "Not authorized"
             }
 
             if (categories.isEmpty()) {
                 !ApiException("Categories cannot be empty")
             }
+
             if (description.isBlank()) {
                 !ApiException("Description cannot be empty")
             }
@@ -75,10 +84,10 @@ object OccasionApi {
                 .handle(id)
                 .throwOnFailureHandler(
                     Occasion.Command.CreateOccasion(
+                        fanPageId = fanPageId,
                         categories = categories,
                         date = date,
                         description = description,
-                        owners = listOf(jwt.payload.id),
                         createdAt = Clock.System.now(),
                         name = name,
                     )

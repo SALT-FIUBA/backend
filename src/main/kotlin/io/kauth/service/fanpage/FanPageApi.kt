@@ -1,0 +1,88 @@
+package io.kauth.service.fanpage
+
+import io.kauth.abstractions.command.throwOnFailureHandler
+import io.kauth.exception.ApiException
+import io.kauth.exception.allowIf
+import io.kauth.exception.not
+import io.kauth.monad.apicall.ApiCall
+import io.kauth.monad.apicall.apiCallGetService
+import io.kauth.monad.apicall.apiCallLog
+import io.kauth.monad.apicall.toApiCall
+import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.appStackDbQuery
+import io.kauth.monad.stack.getService
+import io.kauth.service.fanpage.FanPageProjection.toFanPageProjection
+import io.kauth.util.not
+import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.selectAll
+import java.util.UUID
+
+object FanPageApi {
+
+    object Command {
+
+        fun create(
+            description: String,
+            name: String,
+            profilePhoto: String,
+            location: String,
+            email: String,
+            phone: String,
+            website: String
+        ) = ApiCall.Do {
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
+
+            /*
+            !allowIf( FanPageRoles.CREATE in jwt.payload.roles) {
+                "Not authorized"
+            }
+
+             */
+
+            val service = !apiCallGetService<FanPageService.Interface>()
+
+            val id = UUID.randomUUID()
+
+            log.info("Create fanpage $id")
+
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    FanPage.Command.Create(
+                        description = description,
+                        createdAt = Clock.System.now(),
+                        createdBy = jwt.payload.id,
+                        name = name,
+                        profilePhoto = profilePhoto,
+                        location = location,
+                        email = email,
+                        phone = phone,
+                        website = website,
+                    )
+                ).toApiCall()
+
+            id.toString()
+        }
+
+    }
+
+
+    object Query {
+
+        fun readState(id: UUID) = AppStack.Do {
+            val service = !getService<FanPageService.Interface>()
+            !service.query.readState(id)
+        }
+
+        fun list() = AppStack.Do {
+            !appStackDbQuery {
+                FanPageProjection.FanPageTable.selectAll()
+                    .orderBy(FanPageProjection.FanPageTable.createdAt to SortOrder.DESC)
+                    .map { it.toFanPageProjection }
+            }
+        }
+    }
+
+}

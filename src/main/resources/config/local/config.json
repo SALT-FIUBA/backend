@@ -81,6 +81,10 @@
     {
       "name": "access-request",
       "config": {}
+    },
+    {
+      "name": "fanpage",
+      "config": {}
     }
   ]
 }
