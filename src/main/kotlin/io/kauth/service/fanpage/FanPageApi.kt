@@ -4,10 +4,7 @@ import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.exception.ApiException
 import io.kauth.exception.allowIf
 import io.kauth.exception.not
-import io.kauth.monad.apicall.ApiCall
-import io.kauth.monad.apicall.apiCallGetService
-import io.kauth.monad.apicall.apiCallLog
-import io.kauth.monad.apicall.toApiCall
+import io.kauth.monad.apicall.*
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.getService
@@ -15,6 +12,8 @@ import io.kauth.service.fanpage.FanPageProjection.toFanPageProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.json.contains
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
 import java.util.UUID
 
@@ -76,11 +75,17 @@ object FanPageApi {
             !service.query.readState(id)
         }
 
-        fun list() = AppStack.Do {
-            !appStackDbQuery {
+        fun list() = ApiCall.Do {
+            !apiCallStackDbQuery{
+                val user = jwt?.payload?.id ?: !ApiException("UnAuth")
                 FanPageProjection.FanPageTable.selectAll()
+                    .where {
+                        FanPageProjection.FanPageTable.admins.contains(listOf(user)) or
+                                (FanPageProjection.FanPageTable.createdBy eq user)
+                    }
                     .orderBy(FanPageProjection.FanPageTable.createdAt to SortOrder.DESC)
                     .map { it.toFanPageProjection }
+
             }
         }
     }

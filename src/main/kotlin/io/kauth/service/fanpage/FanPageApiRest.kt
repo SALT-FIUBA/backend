@@ -57,7 +57,7 @@ object FanPageApiRest {
                 }
 
                 get("/list") {
-                    val fanpages = !FanPageApi.Query.list()
+                    val fanpages = !KtorCall(this@Do.ctx, call).runApiCall(FanPageApi.Query.list())
                     call.respond(HttpStatusCode.OK, fanpages)
                 }
 
