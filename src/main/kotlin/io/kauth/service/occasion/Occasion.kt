@@ -21,8 +21,21 @@ object Occasion {
     )
 
     @Serializable
+    data class CategoryState(
+        val name: String,
+        val capacity: Int,
+        val places: List<Places> = emptyList()
+    )
+
+    @Serializable
+    data class Places(
+        val takenAt: Instant,
+        val accessRequestId: String
+    )
+
+    @Serializable
     data class State(
-        val categories: List<Category>,
+        val categories: List<CategoryState>,
         val date: LocalDate,
         val description: String,
         val owners: List<String>? = null,
@@ -51,6 +64,13 @@ object Occasion {
         data class Visibility(
             val disabled: Boolean
         ) : Command
+
+        @Serializable
+        data class TakePlace(
+            val categoryName: String,
+            val accessRequestId: String,
+            val takenAt: Instant,
+        ) : Command
     }
 
     @Serializable
@@ -63,6 +83,13 @@ object Occasion {
         @Serializable
         data class VisibilityChanged(
             val disabled: Boolean
+        ) : Event
+
+        @Serializable
+        data class PlaceTaken(
+            val categoryName: String,
+            val accessRequestId: String,
+            val takenAt: Instant
         ) : Event
 
     }
@@ -85,6 +112,16 @@ object Occasion {
 
     val handleVisibilityEvent: Reducer<State?, Event.VisibilityChanged> = Reducer { state, event ->
         state?.copy(disabled = event.disabled)
+    }
+
+    val handlePlaceTaken: Reducer<State?, Event.PlaceTaken> = Reducer { state, event ->
+        val category = state?.categories?.find { it.name == event.categoryName }
+        if (category != null) {
+            val updatedCategory = category.copy(places = category.places + Places(event.takenAt, event.accessRequestId))
+            state.copy(categories = state.categories.map { if (it.name == event.categoryName) updatedCategory else it })
+        } else {
+            state
+        }
     }
 
     val handleCreate: CommandMonad<Command.CreateOccasion, State?, Event, Output> = CommandMonad.Do { exit ->
@@ -113,7 +150,7 @@ object Occasion {
         !emitEvents(
             Event.OccasionCreated(
                 State(
-                    categories = command.categories,
+                    categories = command.categories.map { CategoryState(it.name, it.capacity) },
                     date = command.date,
                     description = command.description,
                     owners = emptyList(),
@@ -137,16 +174,47 @@ object Occasion {
         Ok
     }
 
+    val handleTakePlace: CommandMonad<Command.TakePlace, State?, Event, Output> = CommandMonad.Do { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.InvalidCommand("Occasion does not exist"))
+            !exit(Failure("Occasion does not exist"))
+        }
+
+        val category = state.categories.find { it.name == command.categoryName }
+
+        if(category == null) {
+            !emitEvents(Error.InvalidCommand("Category does not exist"))
+            !exit(Failure("Category does not exist"))
+        }
+
+        if (category.places.any { it.accessRequestId == command.accessRequestId }) {
+            !emitEvents(Error.InvalidCommand("Place already taken by ${command.accessRequestId}"))
+            !exit(Failure("Place already taken"))
+        }
+
+        if (category.places.size >= category.capacity) {
+            !emitEvents(Error.InvalidCommand("No more places available"))
+            !exit(Failure("No more places available"))
+        }
+
+        !emitEvents(Event.PlaceTaken(command.categoryName, command.accessRequestId, command.takenAt))
+
+        Ok
+    }
+
     val commandStateMachine: CommandMonad<Command, State?, Event, Output> = CommandMonad.Do { exit ->
         val command = !getCommand
         !when (command) {
             is Command.CreateOccasion -> handleCreate
             is Command.Visibility -> hanndlVisibility
+            is Command.TakePlace -> handleTakePlace
         }
     }
 
     val eventReducer: Reducer<State?, Event> = reducerOf(
         Event.OccasionCreated::class to handleCreatedEvent,
-        Event.VisibilityChanged::class to handleVisibilityEvent
+        Event.VisibilityChanged::class to handleVisibilityEvent,
+        Event.PlaceTaken::class to handlePlaceTaken
     )
 }

@@ -33,12 +33,9 @@ object FanPageApi {
             val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
 
-            /*
             !allowIf( FanPageRoles.CREATE in jwt.payload.roles) {
                 "Not authorized"
             }
-
-             */
 
             val service = !apiCallGetService<FanPageService.Interface>()
 

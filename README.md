@@ -146,6 +146,14 @@ type SaltState = {
 
 
 
+Superbase
+=========
+
+Base de datos admnistrada con plan gratiuto. El plan es bastante lento
++ https://supabase.com/dashboard/project/lhntbqmcduobfsewofbf/editor/17327?schema=public
+
+
+
 
 
 

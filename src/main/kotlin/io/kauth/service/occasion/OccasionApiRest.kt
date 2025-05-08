@@ -78,10 +78,13 @@ object OccasionApiRest {
                         )
                         call.respond(HttpStatusCode.OK, occasion)
                     }
+
+
                 }
 
                 get("/list") {
-                    val occasions = !Query.list()
+                    val fanPageId = call.request.queryParameters["fanPageId"]?.let { UUID.fromString(it) }
+                    val occasions = !Query.list(fanPageId = fanPageId)
                     call.respond(HttpStatusCode.OK, occasions)
                 }
 

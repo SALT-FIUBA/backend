@@ -9,17 +9,40 @@ import io.kauth.monad.apicall.apiCallGetService
 import io.kauth.monad.apicall.apiCallLog
 import io.kauth.monad.apicall.toApiCall
 import io.kauth.monad.stack.*
+import io.kauth.service.accessrequest.AccessRequestApi
+import io.kauth.service.accessrequest.AccessRequestService
 import io.kauth.service.fanpage.FanPageApi
 import io.kauth.service.occasion.OccasionProjection.toOccasionProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import java.util.UUID
 
 object OccasionApi {
 
     object Command {
+
+        fun takePlace(
+            id: UUID,
+            categoryName: String,
+            accessRequestId: UUID
+        ) = AppStack.Do {
+            val occasionService = !getService<OccasionService.Interface>()
+            !AccessRequestApi.Query.readState(accessRequestId) ?: !ApiException("Request not found")
+            !occasionService.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Occasion.Command.TakePlace(
+                        categoryName = categoryName,
+                        takenAt = Clock.System.now(),
+                        accessRequestId = accessRequestId.toString(),
+                    )
+                )
+            id
+        }
 
         fun visibility(
             id: UUID,
@@ -31,12 +54,13 @@ object OccasionApi {
 
             val occasion = !Query.readState(id).toApiCall() ?: !ApiException("Occasion not found")
 
-            val fanId = occasion.fanPageId ?: !ApiException("FanPage not found")
+            val fanId = occasion.fanPageId
 
-            val fanPageData = !FanPageApi.Query.readState(fanId).toApiCall() ?: !ApiException("FanPage not found")
-
-            !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
-                "Not authorized"
+            if (fanId != null) {
+                val fanPageData = !FanPageApi.Query.readState(fanId).toApiCall() ?: !ApiException("FanPage not found")
+                !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
+                    "Not authorized"
+                }
             }
 
             !service.command
@@ -104,10 +128,16 @@ object OccasionApi {
             !service.query.readState(id)
         }
 
-        fun list() = AppStack.Do {
+        fun list(
+            fanPageId: UUID? = null
+        ) = AppStack.Do {
             !appStackDbQuery {
                 OccasionProjection.OccasionTable.selectAll()
-                    .where { OccasionProjection.OccasionTable.disabled eq false }
+                    .where {
+                        (OccasionProjection.OccasionTable.disabled eq false) and
+                                (fanPageId?.let { OccasionProjection.OccasionTable.fanPageId eq it.toString() }
+                                    ?: Op.TRUE)
+                    }
                     .orderBy(OccasionProjection.OccasionTable.createdAt to SortOrder.DESC)
                     .map { it.toOccasionProjection }
             }

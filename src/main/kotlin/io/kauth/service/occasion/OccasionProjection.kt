@@ -3,6 +3,7 @@ package io.kauth.service.occasion
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.service.fanpage.FanPageApi
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -37,7 +38,8 @@ object OccasionProjection {
         val categories: List<Occasion.Category>,
         val owners: List<String>? = null,
         val createdAt: Instant,
-        val name: String? = null
+        val name: String? = null,
+        val fanPageId: String? = null,
     )
 
     val ResultRow.toOccasionProjection get() = OccasionProjection(
@@ -47,7 +49,8 @@ object OccasionProjection {
         categories = this[OccasionTable.categories],
         owners = this[OccasionTable.owners],
         createdAt = this[OccasionTable.createdAt],
-        name = this[OccasionTable.name]
+        name = this[OccasionTable.name],
+        fanPageId = this[OccasionTable.fanPageId],
     )
 
     val sqlEventHandler = appStackSqlProjector<Occasion.Event>(
@@ -59,11 +62,11 @@ object OccasionProjection {
             val occasionId = UUID.fromString(event.retrieveId("occasion"))
             val state = !OccasionApi.Query.readState(occasionId) ?: return@Do
             !appStackDbQuery {
-                OccasionTable.upsert {
+                OccasionTable.upsert { it ->
                     it[id] = occasionId.toString()
                     it[description] = state.description
                     it[date] = state.date
-                    it[categories] =state.categories
+                    it[categories] = state.categories.map { cat -> Occasion.Category(cat.name, cat.capacity) }
                     it[createdAt] = state.createdAt
                     it[name] = state.name
                     it[disabled] = state.disabled
