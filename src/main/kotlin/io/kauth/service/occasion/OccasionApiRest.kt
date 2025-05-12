@@ -12,8 +12,10 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.datetime.DayOfWeek
 import kotlinx.serialization.Serializable
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import java.util.UUID
 
@@ -22,11 +24,16 @@ object OccasionApiRest {
     @Serializable
     data class CreateRequest(
         val categories: List<Occasion.Category>,
-        val date: LocalDate,
+        val date: LocalDateTime? = null,
         val description: String,
         val name: String,
         @Contextual
-        val fanPageId: UUID
+        val fanPageId: UUID,
+        val uniqueDateTime: LocalDateTime? = null,
+        val startDateTime: LocalDateTime? = null,
+        val endDateTime: LocalDateTime? = null,
+        val weekdays: List<DayOfWeek>? = null,
+        val totalCapacity: Int? = null,
     )
 
     @Serializable
@@ -44,10 +51,14 @@ object OccasionApiRest {
                     val id = !KtorCall(this@Do.ctx, call).runApiCall(
                         Command.create(
                             categories = request.categories,
-                            date = request.date,
                             description = request.description,
                             name = request.name,
-                            fanPageId = request.fanPageId
+                            fanPageId = request.fanPageId,
+                            uniqueDateTime = request.uniqueDateTime,
+                            startDateTime = request.startDateTime,
+                            endDateTime = request.endDateTime,
+                            weekdays = request.weekdays,
+                            totalCapacity = request.totalCapacity,
                         )
                     )
                     call.respond(HttpStatusCode.Created, mapOf("id" to id))

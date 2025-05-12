@@ -8,11 +8,30 @@ import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
 object Occasion {
+
+    @Serializable
+    sealed interface OccasionType {
+
+        @Serializable
+        data class UniqueDate(
+            val date: LocalDateTime
+        ) : OccasionType
+
+        @Serializable
+        data class RecurringEvent(
+            val startDateTime: LocalDateTime,
+            val endDateTime: LocalDateTime,
+            val weekdays: List<DayOfWeek>
+        ) : OccasionType
+
+    }
 
     @Serializable
     data class Category(
@@ -36,14 +55,16 @@ object Occasion {
     @Serializable
     data class State(
         val categories: List<CategoryState>,
-        val date: LocalDate,
+        val date: LocalDate? = null,
         val description: String,
         val owners: List<String>? = null,
         val createdAt: Instant,
         val name: String? = null,
         val disabled: Boolean = false,
         @Contextual
-        val fanPageId: UUID? = null
+        val fanPageId: UUID? = null,
+        val totalCapacity: Int? = null,
+        val occasionType: OccasionType? = null
     )
 
     @Serializable
@@ -51,13 +72,15 @@ object Occasion {
         @Serializable
         data class CreateOccasion(
             val categories: List<Category>,
-            val date: LocalDate,
+            val date: LocalDate? = null,
             val description: String,
             val owners: List<String>? = null,
             val createdAt: Instant,
             val name: String? = null,
             @Contextual
-            val fanPageId: UUID? = null
+            val fanPageId: UUID? = null,
+            val totalCapacity: Int? = null,
+            val occasionType: OccasionType? = null
         ) : Command
 
         @Serializable
@@ -132,11 +155,6 @@ object Occasion {
             !exit(Failure("Occasion already exists"))
         }
 
-        if (command.categories.isEmpty()) {
-            !emitEvents(Error.InvalidCommand("Categories cannot be empty"))
-            !exit(Failure("Categories cannot be empty"))
-        }
-
         if (command.description.isEmpty()) {
             !emitEvents(Error.InvalidCommand("Description cannot be empty"))
             !exit(Failure("Description cannot be empty"))
@@ -156,7 +174,9 @@ object Occasion {
                     owners = emptyList(),
                     createdAt = command.createdAt,
                     name = command.name,
-                    fanPageId = command.fanPageId
+                    fanPageId = command.fanPageId,
+                    totalCapacity = command.totalCapacity,
+                    occasionType = command.occasionType,
                 )
             )
         )

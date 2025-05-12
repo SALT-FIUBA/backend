@@ -15,6 +15,8 @@ import io.kauth.service.fanpage.FanPageApi
 import io.kauth.service.occasion.OccasionProjection.toOccasionProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.and
@@ -77,9 +79,13 @@ object OccasionApi {
         fun create(
             fanPageId: UUID,
             categories: List<Occasion.Category>,
-            date: kotlinx.datetime.LocalDate,
             description: String,
             name: String? = null,
+            totalCapacity: Int? = null,
+            uniqueDateTime: LocalDateTime? = null,
+            startDateTime: LocalDateTime? = null,
+            endDateTime: LocalDateTime? = null,
+            weekdays : List<DayOfWeek>? = null
         ) = ApiCall.Do {
             val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
@@ -104,16 +110,25 @@ object OccasionApi {
 
             log.info("Create occasion $id")
 
+            val occasionType = if (uniqueDateTime != null) {
+                Occasion.OccasionType.UniqueDate(uniqueDateTime)
+            } else if (startDateTime != null && endDateTime != null && weekdays != null) {
+                Occasion.OccasionType.RecurringEvent(startDateTime, endDateTime, weekdays)
+            } else {
+                null
+            }
+
             !service.command
                 .handle(id)
                 .throwOnFailureHandler(
                     Occasion.Command.CreateOccasion(
                         fanPageId = fanPageId,
                         categories = categories,
-                        date = date,
                         description = description,
                         createdAt = Clock.System.now(),
                         name = name,
+                        totalCapacity = totalCapacity,
+                        occasionType = occasionType
                     )
                 ).toApiCall()
 
