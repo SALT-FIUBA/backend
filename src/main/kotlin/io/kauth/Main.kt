@@ -7,6 +7,7 @@ import io.kauth.monad.stack.*
 import io.kauth.service.accessrequest.AccessRequestService
 import io.kauth.service.auth.AuthService
 import io.kauth.service.deviceproject.DeviceProjectService
+import io.kauth.service.fanpage.FanPageService
 import io.kauth.service.salt.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.iotdevice.IoTDeviceService
@@ -53,7 +54,8 @@ val runServices get() =
         DeviceProjectService,
         TrainService,
         OccasionService,
-        AccessRequestService
+        AccessRequestService,
+        FanPageService
     )
 
 val installKtorPlugins =

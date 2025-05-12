@@ -27,15 +27,13 @@ object AccessRequestApiRest {
     @Serializable
     data class AcceptRequest(
         @Contextual
-        val id: UUID,
-        val acceptBy: String
+        val id: UUID
     )
 
     @Serializable
     data class ConfirmRequest(
         @Contextual
-        val id: UUID,
-        val confirmBy: String
+        val id: UUID
     )
 
     val api = AppStack.Do {
@@ -59,8 +57,7 @@ object AccessRequestApiRest {
                     val request = call.receive<AcceptRequest>()
                     val result = !KtorCall(this@Do.ctx, call).runApiCall(
                         AccessRequestApi.Command.accept(
-                            id = request.id,
-                            acceptBy = request.acceptBy
+                            id = request.id
                         )
                     )
                     call.respond(HttpStatusCode.OK, result)
@@ -69,10 +66,7 @@ object AccessRequestApiRest {
                 post("/confirm") {
                     val request = call.receive<ConfirmRequest>()
                     val result = !KtorCall(this@Do.ctx, call).runApiCall(
-                        AccessRequestApi.Command.confirm(
-                            id = request.id,
-                            confirmBy = request.confirmBy
-                        )
+                        AccessRequestApi.Command.confirm(id = request.id)
                     )
                     call.respond(HttpStatusCode.OK, result)
                 }
