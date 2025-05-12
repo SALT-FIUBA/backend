@@ -16,13 +16,12 @@ object FanPageApiRest {
 
     @Serializable
     data class CreateRequest(
-      val  description: String,
-      val  name: String,
-      val  profilePhoto: String,
-      val  location: String,
-      val  email: String,
-      val  phone: String,
-      val  website: String
+        val name: String,
+        val profilePhoto: String,
+        val location: String,
+        val phone: String,
+        val website: String,
+        val category: String,
     )
 
     val api = AppStack.Do {
@@ -34,13 +33,12 @@ object FanPageApiRest {
                     val request = call.receive<CreateRequest>()
                     val id = !KtorCall(this@Do.ctx, call).runApiCall(
                         FanPageApi.Command.create(
-                            description = request.description,
                             name = request.name,
                             profilePhoto = request.profilePhoto,
                             location = request.location,
-                            email = request.email,
                             phone = request.phone,
-                            website = request.website
+                            website = request.website,
+                            category = request.category
                         )
                     )
                     call.respond(HttpStatusCode.Created, mapOf("id" to id))

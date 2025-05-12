@@ -22,13 +22,12 @@ object FanPageApi {
     object Command {
 
         fun create(
-            description: String,
             name: String,
             profilePhoto: String,
             location: String,
-            email: String,
             phone: String,
-            website: String
+            website: String,
+            category: String
         ) = ApiCall.Do {
             val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
@@ -47,15 +46,14 @@ object FanPageApi {
                 .handle(id)
                 .throwOnFailureHandler(
                     FanPage.Command.Create(
-                        description = description,
                         createdAt = Clock.System.now(),
                         createdBy = jwt.payload.id,
                         name = name,
                         profilePhoto = profilePhoto,
                         location = location,
-                        email = email,
                         phone = phone,
                         website = website,
+                        category = category,
                     )
                 ).toApiCall()
 

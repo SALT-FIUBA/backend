@@ -17,12 +17,13 @@ object FanPage {
         val admins: List<String>,
         val createdAt: Instant,
         val name: String,
-        val description: String,
+        val description: String? = null,
         val profilePhoto: String,
         val location: String,
-        val email: String,
+        val email: String? = null,
         val phone: String,
         val website: String,
+        val category: String? = null,
     )
 
     @Serializable
@@ -32,12 +33,13 @@ object FanPage {
             val createdBy: String,
             val createdAt: Instant,
             val name: String,
-            val description: String,
+            val description: String? = null,
             val profilePhoto: String,
             val location: String,
-            val email: String,
+            val email: String? = null,
             val phone: String,
             val website: String,
+            val category: String? = null,
         ): Command
         @Serializable
         data class AddAdmins(
@@ -87,7 +89,8 @@ object FanPage {
                     email = command.email,
                     phone = command.phone,
                     website = command.website,
-                    admins = emptyList()
+                    admins = emptyList(),
+                    category = command.category
                 )
             )
         )
