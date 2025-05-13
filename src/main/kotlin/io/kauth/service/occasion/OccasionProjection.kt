@@ -36,6 +36,8 @@ object OccasionProjection {
         val endDateTime = datetime("end_date_time").nullable()
         val weekdays = json<List<DayOfWeek>>("weekdays", Json).nullable()
         val totalCapacity = integer("total_capacity").nullable()
+        val recurringEndDateTime = datetime("recurring_end_date_time").nullable()
+        val isRecurring = bool("is_recurring").nullable()
     }
 
     @Serializable
@@ -54,6 +56,8 @@ object OccasionProjection {
         val endDateTime: LocalDateTime? = null,
         val weekdays: List<DayOfWeek>? = null,
         val totalCapacity: Int? = null,
+        val recurringEndDateTime: LocalDateTime? = null,
+        val isRecurring: Boolean? = null,
     )
 
     val ResultRow.toOccasionProjection get() = OccasionProjection(
@@ -70,7 +74,9 @@ object OccasionProjection {
         startDateTime = this[OccasionTable.startDateTime],
         endDateTime = this[OccasionTable.endDateTime],
         weekdays = this[OccasionTable.weekdays],
-        totalCapacity = this[OccasionTable.totalCapacity]
+        totalCapacity = this[OccasionTable.totalCapacity],
+        recurringEndDateTime = this[OccasionTable.recurringEndDateTime],
+        isRecurring = this[OccasionTable.isRecurring],
     )
 
     val sqlEventHandler = appStackSqlProjector<Occasion.Event>(
@@ -92,27 +98,9 @@ object OccasionProjection {
                     it[disabled] = state.disabled
                     it[fanPageId] = state.fanPageId?.toString()
                     it[owners] = state.owners ?: emptyList()
-                    it[uniqueDateTime] = state.occasionType?.let { type ->
-                        if (type is Occasion.OccasionType.UniqueDate) {
-                            type.date
-                        } else {
-                            null
-                        }
-                    }
-                    it[startDateTime] = state.occasionType?.let { type ->
-                        if (type is Occasion.OccasionType.RecurringEvent) {
-                            type.startDateTime
-                        } else {
-                            null
-                        }
-                    }
-                    it[endDateTime] = state.occasionType?.let { type ->
-                        if (type is Occasion.OccasionType.RecurringEvent) {
-                            type.endDateTime
-                        } else {
-                            null
-                        }
-                    }
+                    it[uniqueDateTime] = null
+                    it[startDateTime] = state.startDateTime
+                    it[endDateTime] = state.endDateTime
                     it[weekdays] = state.occasionType?.let { type ->
                         if (type is Occasion.OccasionType.RecurringEvent) {
                             type.weekdays
@@ -120,6 +108,14 @@ object OccasionProjection {
                             null
                         }
                     }
+                    it[recurringEndDateTime] = state.occasionType?.let { type ->
+                        if (type is Occasion.OccasionType.RecurringEvent) {
+                            type.endDateTime
+                        } else {
+                            null
+                        }
+                    }
+                    it[isRecurring] = state.occasionType?.let { it is Occasion.OccasionType.RecurringEvent }
                     it[totalCapacity] = state.totalCapacity
                 }
             }

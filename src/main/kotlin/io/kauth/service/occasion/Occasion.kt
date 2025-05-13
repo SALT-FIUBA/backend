@@ -21,12 +21,12 @@ object Occasion {
 
         @Serializable
         data class UniqueDate(
-            val date: LocalDateTime
+            val date: LocalDateTime? = null
         ) : OccasionType
 
         @Serializable
         data class RecurringEvent(
-            val startDateTime: LocalDateTime,
+            val startDateTime: LocalDateTime? = null,
             val endDateTime: LocalDateTime,
             val weekdays: List<DayOfWeek>
         ) : OccasionType
@@ -64,7 +64,9 @@ object Occasion {
         @Contextual
         val fanPageId: UUID? = null,
         val totalCapacity: Int? = null,
-        val occasionType: OccasionType? = null
+        val occasionType: OccasionType? = null,
+        val startDateTime: LocalDateTime? = null,
+        val endDateTime: LocalDateTime? = null,
     )
 
     @Serializable
@@ -80,7 +82,9 @@ object Occasion {
             @Contextual
             val fanPageId: UUID? = null,
             val totalCapacity: Int? = null,
-            val occasionType: OccasionType? = null
+            val occasionType: OccasionType? = null,
+            val startDateTime: LocalDateTime? = null,
+            val endDateTime: LocalDateTime? = null,
         ) : Command
 
         @Serializable
@@ -177,6 +181,8 @@ object Occasion {
                     fanPageId = command.fanPageId,
                     totalCapacity = command.totalCapacity,
                     occasionType = command.occasionType,
+                    startDateTime = command.startDateTime,
+                    endDateTime = command.endDateTime,
                 )
             )
         )

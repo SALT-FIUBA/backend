@@ -82,10 +82,10 @@ object OccasionApi {
             description: String,
             name: String? = null,
             totalCapacity: Int? = null,
-            uniqueDateTime: LocalDateTime? = null,
             startDateTime: LocalDateTime? = null,
             endDateTime: LocalDateTime? = null,
-            weekdays : List<DayOfWeek>? = null
+            weekdays : List<DayOfWeek>? = null,
+            recurringEndDateTime: LocalDateTime? = null,
         ) = ApiCall.Do {
             val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
@@ -94,10 +94,6 @@ object OccasionApi {
 
             !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
                 "Not authorized"
-            }
-
-            if (categories.isEmpty()) {
-                !ApiException("Categories cannot be empty")
             }
 
             if (description.isBlank()) {
@@ -110,10 +106,10 @@ object OccasionApi {
 
             log.info("Create occasion $id")
 
-            val occasionType = if (uniqueDateTime != null) {
-                Occasion.OccasionType.UniqueDate(uniqueDateTime)
+            val occasionType = if (weekdays != null && recurringEndDateTime != null) {
+                Occasion.OccasionType.RecurringEvent(endDateTime = recurringEndDateTime, weekdays = weekdays)
             } else if (startDateTime != null && endDateTime != null && weekdays != null) {
-                Occasion.OccasionType.RecurringEvent(startDateTime, endDateTime, weekdays)
+                Occasion.OccasionType.UniqueDate()
             } else {
                 null
             }
@@ -128,7 +124,9 @@ object OccasionApi {
                         createdAt = Clock.System.now(),
                         name = name,
                         totalCapacity = totalCapacity,
-                        occasionType = occasionType
+                        occasionType = occasionType,
+                        startDateTime = startDateTime,
+                        endDateTime = endDateTime,
                     )
                 ).toApiCall()
 
@@ -141,6 +139,17 @@ object OccasionApi {
         fun readState(id: UUID) = AppStack.Do {
             val service = !getService<OccasionService.Interface>()
             !service.query.readState(id)
+        }
+
+        fun get(id: UUID) = AppStack.Do {
+            !appStackDbQuery {
+                OccasionProjection.OccasionTable.selectAll()
+                    .where {
+                                (OccasionProjection.OccasionTable.id eq id.toString())
+                    }
+                    .firstOrNull()
+                    ?.toOccasionProjection
+            }
         }
 
         fun list(

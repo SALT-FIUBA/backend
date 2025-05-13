@@ -29,10 +29,10 @@ object OccasionApiRest {
         val name: String,
         @Contextual
         val fanPageId: UUID,
-        val uniqueDateTime: LocalDateTime? = null,
         val startDateTime: LocalDateTime? = null,
         val endDateTime: LocalDateTime? = null,
         val weekdays: List<DayOfWeek>? = null,
+        val recurringEndDateTime: LocalDateTime? = null,
         val totalCapacity: Int? = null,
     )
 
@@ -54,10 +54,10 @@ object OccasionApiRest {
                             description = request.description,
                             name = request.name,
                             fanPageId = request.fanPageId,
-                            uniqueDateTime = request.uniqueDateTime,
                             startDateTime = request.startDateTime,
                             endDateTime = request.endDateTime,
                             weekdays = request.weekdays,
+                            recurringEndDateTime = request.recurringEndDateTime,
                             totalCapacity = request.totalCapacity,
                         )
                     )
@@ -69,7 +69,7 @@ object OccasionApiRest {
                     get() {
                         val idParam = call.parameters["id"] ?: throw ApiException("Id not found")
                         val id = UUID.fromString(idParam)
-                        val occasion = !Query.readState(id) ?: throw ApiException("Occasion not found")
+                        val occasion = !Query.get(id) ?: throw ApiException("Occasion not found")
                         call.respond(HttpStatusCode.OK, occasion)
                     }
 
