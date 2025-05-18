@@ -4,10 +4,8 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
 import io.kauth.monad.stack.appStackSqlProjector
 import io.kauth.service.fanpage.FanPageApi
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.*
+import kotlinx.datetime.TimeZone
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.sql.ResultRow
@@ -23,100 +21,67 @@ object OccasionProjection {
 
     object OccasionTable : Table("occasions") {
         val id = text("id").uniqueIndex()
+        val resource = text("resource")
         val description = text("description")
-        val date = date("date").nullable()
-        val categories = json<List<Occasion.Category>>("categories", Json)
-        val owners = json<List<String>>("owners", Json).nullable()
+        val categories = json<List<Occasion.CategoryState>>("categories", Json)
         val createdAt = timestamp("created_at")
-        val name = text("name").nullable()
-        val disabled = bool("disabled").default(false)
-        val fanPageId = text("fan_page_id").nullable()
-        val uniqueDateTime = datetime("unique_date_time").nullable()
-        val startDateTime = datetime("start_date_time").nullable()
-        val endDateTime = datetime("end_date_time").nullable()
-        val weekdays = json<List<DayOfWeek>>("weekdays", Json).nullable()
-        val totalCapacity = integer("total_capacity").nullable()
-        val recurringEndDateTime = datetime("recurring_end_date_time").nullable()
-        val isRecurring = bool("is_recurring").nullable()
+        val name = text("name")
+        val disabled = bool("disabled")
+        val fanPageId = text("fan_page_id")
+        val startDateTime = timestamp("start_date_time")
+        val endDateTime = timestamp("end_date_time")
+        val status  = text("status")
     }
 
     @Serializable
     data class OccasionProjection(
         val id: String,
         val description: String,
-        val date: LocalDate?,
-        val categories: List<Occasion.Category>,
-        val owners: List<String>? = null,
+        val categories: List<Occasion.CategoryState>,
         val createdAt: Instant,
-        val name: String? = null,
-        val fanPageId: String? = null,
-        val disabled: Boolean = false,
-        val uniqueDateTime: LocalDateTime? = null,
-        val startDateTime: LocalDateTime? = null,
-        val endDateTime: LocalDateTime? = null,
-        val weekdays: List<DayOfWeek>? = null,
-        val totalCapacity: Int? = null,
-        val recurringEndDateTime: LocalDateTime? = null,
-        val isRecurring: Boolean? = null,
+        val name: String,
+        val fanPageId: String,
+        val disabled: Boolean,
+        val status: String,
+        val startDateTime: Instant,
+        val endDateTime: Instant,
+        val resource: String,
     )
 
     val ResultRow.toOccasionProjection get() = OccasionProjection(
         id = this[OccasionTable.id],
         description = this[OccasionTable.description],
-        date = this[OccasionTable.date],
         categories = this[OccasionTable.categories],
-        owners = this[OccasionTable.owners],
         createdAt = this[OccasionTable.createdAt],
         name = this[OccasionTable.name],
         fanPageId = this[OccasionTable.fanPageId],
         disabled = this[OccasionTable.disabled],
-        uniqueDateTime = this[OccasionTable.uniqueDateTime],
         startDateTime = this[OccasionTable.startDateTime],
         endDateTime = this[OccasionTable.endDateTime],
-        weekdays = this[OccasionTable.weekdays],
-        totalCapacity = this[OccasionTable.totalCapacity],
-        recurringEndDateTime = this[OccasionTable.recurringEndDateTime],
-        isRecurring = this[OccasionTable.isRecurring],
+        resource = this[OccasionTable.resource],
+        status = this[OccasionTable.status]
     )
 
     val sqlEventHandler = appStackSqlProjector<Occasion.Event>(
-        streamName = "\$ce-occasion",
-        consumerGroup = "occasion-sql-projection",
+        streamName = "\$ce-${OccasionService.name}",
+        consumerGroup = "${OccasionService.name}-sql-projection",
         tables = listOf(OccasionTable)
     ) { event ->
         AppStack.Do {
-            val occasionId = UUID.fromString(event.retrieveId("occasion"))
+            val occasionId = UUID.fromString(event.retrieveId(OccasionService.name))
             val state = !OccasionApi.Query.readState(occasionId) ?: return@Do
             !appStackDbQuery {
                 OccasionTable.upsert { it ->
                     it[id] = occasionId.toString()
                     it[description] = state.description
-                    it[date] = state.date
-                    it[categories] = state.categories.map { cat -> Occasion.Category(cat.name, cat.capacity) }
+                    it[categories] = state.categories
                     it[createdAt] = state.createdAt
                     it[name] = state.name
                     it[disabled] = state.disabled
-                    it[fanPageId] = state.fanPageId?.toString()
-                    it[owners] = state.owners ?: emptyList()
-                    it[uniqueDateTime] = null
+                    it[fanPageId] = state.fanPageId.toString()
                     it[startDateTime] = state.startDateTime
                     it[endDateTime] = state.endDateTime
-                    it[weekdays] = state.occasionType?.let { type ->
-                        if (type is Occasion.OccasionType.RecurringEvent) {
-                            type.weekdays
-                        } else {
-                            null
-                        }
-                    }
-                    it[recurringEndDateTime] = state.occasionType?.let { type ->
-                        if (type is Occasion.OccasionType.RecurringEvent) {
-                            type.endDateTime
-                        } else {
-                            null
-                        }
-                    }
-                    it[isRecurring] = state.occasionType?.let { it is Occasion.OccasionType.RecurringEvent }
-                    it[totalCapacity] = state.totalCapacity
+                    it[status] = state.status.name
                 }
             }
         }

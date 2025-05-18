@@ -7,6 +7,8 @@ import io.kauth.exception.not
 import io.kauth.monad.apicall.*
 import io.kauth.monad.stack.*
 import io.kauth.service.accessrequest.AccessRequestProjection.toProjection
+import io.kauth.service.fanpage.FanPageApi
+import io.kauth.service.occasion.OccasionApi
 import io.kauth.service.occasion.OccasionRoles
 import io.kauth.service.occasion.OccasionService
 import io.kauth.service.reservation.ReservationApi
@@ -27,8 +29,11 @@ object AccessRequestApi {
             userId: String?,
             categoryName: String,
             description: String,
+            places: Int
         ) = ApiCall.Do {
+
             val log = !apiCallLog
+
             val jwt = jwt ?: !ApiException("UnAuth")
 
             val email = userId ?: jwt.payload.email
@@ -38,7 +43,7 @@ object AccessRequestApi {
 
             val occasion = !occasionService.query.readState(occasionId) ?: !ApiException("Occasion not found")
 
-            if (occasion.categories.none { it.name == categoryName }) {
+            if (occasion.categories.isNotEmpty() && occasion.categories.none { it.name == categoryName }) {
                 !ApiException("Category not found")
             }
 
@@ -55,24 +60,32 @@ object AccessRequestApi {
                         createAt = Clock.System.now(),
                         categoryName = categoryName,
                         description = description,
+                        places = places
                     )
                 ).toApiCall()
 
             id.toString()
         }
 
-        fun accept(
-            id: UUID
-        ) = ApiCall.Do {
+        fun accept(id: UUID) = ApiCall.Do {
             val jwt = jwt ?: !ApiException("UnAuth")
-            !allowIf("role:write:access-request" in jwt.payload.roles) {
+
+            val reserve = !Query.readState(id).toApiCall() ?: !ApiException("Reserve not found")
+            val occasion = !OccasionApi.Query.readState(reserve.occasionId).toApiCall() ?: !ApiException("Occasion not found")
+            val fanPage = !FanPageApi.Query.readState(occasion.fanPageId).toApiCall() ?: !ApiException("FanPage not found")
+
+            !allowIf(jwt.payload.id in (fanPage.admins + fanPage.createdBy)) {
                 "Not authorized"
             }
+
             val service = !apiCallGetService<AccessRequestService.Interface>()
             !service.command
                 .handle(id)
                 .throwOnFailureHandler(
-                    AccessRequest.Command.AcceptRequest(Clock.System.now(), jwt.payload.id)
+                    AccessRequest.Command.AcceptRequest(
+                        Clock.System.now(),
+                        jwt.payload.id
+                    )
                 ).toApiCall()
             id
         }
@@ -81,18 +94,62 @@ object AccessRequestApi {
             id: UUID
         ) = ApiCall.Do {
             val jwt = jwt ?: !ApiException("UnAuth")
-            !allowIf("role:write:access-request" in jwt.payload.roles) {
+
+            val reserve = !Query.readState(id).toApiCall() ?: !ApiException("Reserve not found")
+            val occasion = !OccasionApi.Query.readState(reserve.occasionId).toApiCall() ?: !ApiException("Occasion not found")
+            val fanPage = !FanPageApi.Query.readState(occasion.fanPageId).toApiCall() ?: !ApiException("FanPage not found")
+
+            !allowIf(jwt.payload.id in (fanPage.admins + fanPage.createdBy)) {
                 "Not authorized"
             }
+
             val service = !apiCallGetService<AccessRequestService.Interface>()
+
             !service.command
                 .handle(id)
                 .throwOnFailureHandler(
-                    AccessRequest.Command.ConfirmRequest(Clock.System.now(),jwt.payload.id)
+                    AccessRequest.Command.ConfirmRequest(Clock.System.now(), jwt.payload.id)
                 ).toApiCall()
 
-            "Confirmed"
+            id.toString()
         }
+
+        fun confirmationResult(
+            id: UUID,
+            confirmed: Boolean,
+            reason: String
+        ) = AppStack.Do {
+            val service = !getService<AccessRequestService.Interface>()
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    AccessRequest.Command.ConfirmRequestResult(
+                        confirmed = confirmed,
+                        reason = reason,
+                        at = Clock.System.now(),
+                    )
+                )
+            id.toString()
+        }
+
+        fun acceptResult(
+            id: UUID,
+            accepted: Boolean,
+            reason: String
+        ) = AppStack.Do {
+            val service = !getService<AccessRequestService.Interface>()
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    AccessRequest.Command.AcceptRequestResult(
+                        accepted = accepted,
+                        reason = reason,
+                        at = Clock.System.now(),
+                    )
+                )
+            id.toString()
+        }
+
     }
 
     object Query {

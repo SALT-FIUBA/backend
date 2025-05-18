@@ -1,6 +1,7 @@
 package io.kauth.client.eventStore.model
 
 import io.kauth.serializer.UUIDSerializer
+import io.kauth.service.AppService
 import kotlinx.serialization.Serializable
 import java.util.UUID
 import kotlin.concurrent.thread
@@ -19,6 +20,9 @@ data class Event<V>(
 ) {
     fun retrieveId(serviceName: String): String? =
         streamName.retrieveId(serviceName)
+
+    fun retrieveId(serviceName: AppService): String? =
+        streamName.retrieveId(serviceName.name)
 }
 
 fun String.retrieveId(serviceName: String): String? {

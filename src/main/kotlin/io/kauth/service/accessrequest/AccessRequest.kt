@@ -9,8 +9,8 @@ import io.kauth.monad.state.CommandMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
 import java.util.UUID
-import javax.management.DescriptorAccess
 
+//ManualReservation
 object AccessRequest {
 
     @Serializable
@@ -26,7 +26,19 @@ object AccessRequest {
         ): Status
 
         @Serializable
+        data class PendingAccept(
+            val acceptedAt: Instant,
+            val acceptedBy: String
+        ): Status
+
+        @Serializable
         data class Confirmed(
+            val confirmedAt: Instant,
+            val confirmedBy: String
+        ): Status
+
+        @Serializable
+        data class PendingConfirmation(
             val confirmedAt: Instant,
             val confirmedBy: String
         ): Status
@@ -47,7 +59,8 @@ object AccessRequest {
         val description: String,
         val createdAt: Instant,
         val userId: String,
-        val status: Status
+        val status: Status,
+        val places: Int
     )
 
     @Serializable
@@ -59,7 +72,8 @@ object AccessRequest {
             val categoryName: String,
             val userId: String,
             val createAt: Instant,
-            val description: String
+            val description: String,
+            val places: Int
         ) : Command
 
         @Serializable
@@ -69,9 +83,23 @@ object AccessRequest {
         ) : Command
 
         @Serializable
+        data class AcceptRequestResult(
+            val accepted: Boolean,
+            val reason: String,
+            val at: Instant
+        ) : Command
+
+        @Serializable
         data class ConfirmRequest(
             val confirmAt: Instant,
             val confirmBy: String
+        ) : Command
+
+        @Serializable
+        data class ConfirmRequestResult(
+            val confirmed: Boolean,
+            val reason: String,
+            val at: Instant
         ) : Command
 
     }
@@ -85,20 +113,40 @@ object AccessRequest {
             val userId: String,
             val createdAt: Instant,
             val categoryName: String,
-            val description: String
+            val description: String,
+            val places: Int
         ) : Event
 
         @Serializable
-        data class RequestAccepted(
+        data class RequestPendingAccept(
             val acceptedAt: Instant,
             val acceptedBy: String
         ) : Event
 
         @Serializable
+        data class RequestAccepted(
+            val acceptedAt: Instant,
+            val reason: String
+        ) : Event
+
+        @Serializable
+        data class RequestRejected(
+            val rejectedAt: Instant,
+            val reason: String
+        ) : Event
+
+        @Serializable
         data class RequestConfirmed(
+            val confirmedAt: Instant,
+            val reason: String
+        ) : Event
+
+        @Serializable
+        data class RequestPendingConfirmation(
             val confirmedAt: Instant,
             val confirmedBy: String
         ) : Event
+
     }
 
     @Serializable
@@ -119,17 +167,33 @@ object AccessRequest {
                 occasionId = event.occasionId,
                 userId = event.userId,
                 status = Status.Pending,
-                createdAt =  event.createdAt,
+                createdAt = event.createdAt,
                 categoryName = event.categoryName,
-                description = event.description
+                description = event.description,
+                places = event.places
             )
+
             is Event.RequestAccepted -> {
-                state?.copy(status = Status.Accepted(event.acceptedAt, event.acceptedBy))
+                state?.copy(status = Status.Accepted(event.acceptedAt, event.reason))
             }
+
             is Event.RequestConfirmed -> {
-                state?.copy(status = Status.Confirmed(event.confirmedAt, event.confirmedBy))
+                state?.copy(status = Status.Confirmed(event.confirmedAt, event.reason))
             }
+
             is Error -> state
+
+            is Event.RequestRejected -> {
+                state?.copy(status = Status.Rejected(event.rejectedAt, event.reason))
+            }
+
+            is Event.RequestPendingAccept -> {
+                state?.copy(status = Status.PendingAccept(event.acceptedAt, event.acceptedBy))
+            }
+
+            is Event.RequestPendingConfirmation -> {
+                state?.copy(status = Status.PendingConfirmation(event.confirmedAt, event.confirmedBy))
+            }
         }
     }
 
@@ -141,7 +205,53 @@ object AccessRequest {
                     !emitEvents(Error.RequestAlreadyExists)
                     !exit(Failure("Request already exists"))
                 }
-                !emitEvents(Event.RequestCreated(cmd.occasionId, cmd.userId, cmd.createAt, cmd.categoryName, cmd.description))
+                !emitEvents(
+                    Event.RequestCreated(
+                        cmd.occasionId,
+                        cmd.userId,
+                        cmd.createAt,
+                        cmd.categoryName,
+                        cmd.description,
+                        cmd.places
+                    )
+                )
+                Ok
+            }
+
+            is Command.AcceptRequestResult -> {
+
+                if (state == null) {
+                    !emitEvents(Error.RequestNotFound)
+                    !exit(Failure("Request not found"))
+                }
+
+                if (state.status !is Status.PendingAccept) {
+                    !emitEvents(Error.InvalidTransition("Can only accept Pending requests"))
+                    !exit(Failure("Invalid transition"))
+                }
+
+                if (cmd.accepted) {
+                    !emitEvents(Event.RequestAccepted(cmd.at, cmd.reason))
+                } else {
+                    !emitEvents(Event.RequestRejected(cmd.at, cmd.reason))
+                }
+                Ok
+
+            }
+            is Command.ConfirmRequestResult -> {
+                if (state == null) {
+                    !emitEvents(Error.RequestNotFound)
+                    !exit(Failure("Request not found"))
+                }
+                if (state.status !is Status.PendingConfirmation) {
+                    !emitEvents(Error.InvalidTransition("Can only confirm pending confirmation requests"))
+                    !exit(Failure("Invalid transition"))
+                }
+                if (cmd.confirmed) {
+                    !emitEvents(Event.RequestConfirmed(cmd.at, cmd.reason))
+                } else {
+                    !emitEvents(Event.RequestRejected(cmd.at, cmd.reason))
+                }
                 Ok
             }
             is Command.AcceptRequest -> {
@@ -154,7 +264,7 @@ object AccessRequest {
                     !exit(Failure("Invalid transition"))
                 }
                 !emitEvents(
-                    Event.RequestAccepted(
+                    Event.RequestPendingAccept(
                         cmd.acceptAt,
                         cmd.acceptBy
                     )
@@ -170,7 +280,7 @@ object AccessRequest {
                     !emitEvents(Error.InvalidTransition("Can only confirm Accepted requests"))
                     !exit(Failure("Invalid transition"))
                 }
-                !emitEvents(Event.RequestConfirmed(cmd.confirmAt, cmd.confirmBy))
+                !emitEvents(Event.RequestPendingConfirmation(cmd.confirmAt, cmd.confirmBy))
                 Ok
             }
         }

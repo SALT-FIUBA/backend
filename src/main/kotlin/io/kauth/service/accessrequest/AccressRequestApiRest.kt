@@ -22,6 +22,7 @@ object AccessRequestApiRest {
         val occasionId: UUID,
         val categoryName: String,
         val description: String,
+        val places: Int
     )
 
     @Serializable
@@ -47,7 +48,8 @@ object AccessRequestApiRest {
                             occasionId = request.occasionId,
                             userId = null,
                             categoryName = request.categoryName,
-                            description = request.description
+                            description = request.description,
+                            places = request.places
                         )
                     )
                     call.respond(HttpStatusCode.Created, result)

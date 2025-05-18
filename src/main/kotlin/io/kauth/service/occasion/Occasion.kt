@@ -6,32 +6,12 @@ import io.kauth.abstractions.result.Failure
 import io.kauth.abstractions.result.Ok
 import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
-import kotlinx.datetime.Instant
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.DayOfWeek
-import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.*
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
 object Occasion {
-
-    @Serializable
-    sealed interface OccasionType {
-
-        @Serializable
-        data class UniqueDate(
-            val date: LocalDateTime? = null
-        ) : OccasionType
-
-        @Serializable
-        data class RecurringEvent(
-            val startDateTime: LocalDateTime? = null,
-            val endDateTime: LocalDateTime,
-            val weekdays: List<DayOfWeek>
-        ) : OccasionType
-
-    }
 
     @Serializable
     data class Category(
@@ -43,48 +23,56 @@ object Occasion {
     data class CategoryState(
         val name: String,
         val capacity: Int,
-        val places: List<Places> = emptyList()
+        val reservedPlaces: List<PlaceState>,
+        val confirmedPlaces: List<PlaceState>
     )
 
     @Serializable
-    data class Places(
+    data class PlaceState(
         val takenAt: Instant,
-        val accessRequestId: String
+        val resource: String,
+        val places: Int
     )
+
+    @Serializable
+    enum class Status {
+        open,
+        completed,
+        cancelled
+    }
 
     @Serializable
     data class State(
-        val categories: List<CategoryState>,
-        val date: LocalDate? = null,
-        val description: String,
-        val owners: List<String>? = null,
-        val createdAt: Instant,
-        val name: String? = null,
-        val disabled: Boolean = false,
+        val status: Status,
         @Contextual
-        val fanPageId: UUID? = null,
-        val totalCapacity: Int? = null,
-        val occasionType: OccasionType? = null,
-        val startDateTime: LocalDateTime? = null,
-        val endDateTime: LocalDateTime? = null,
+        val fanPageId: UUID,
+        val name: String,
+        val description: String,
+        val resource: String,
+        val startDateTime: Instant,
+        val endDateTime: Instant,
+        val categories: List<CategoryState>,
+        val disabled: Boolean,
+        val createdAt: Instant,
+        val location: String?
     )
 
     @Serializable
     sealed interface Command {
+
         @Serializable
         data class CreateOccasion(
-            val categories: List<Category>,
-            val date: LocalDate? = null,
-            val description: String,
-            val owners: List<String>? = null,
-            val createdAt: Instant,
-            val name: String? = null,
+            val resource: String,
             @Contextual
-            val fanPageId: UUID? = null,
-            val totalCapacity: Int? = null,
-            val occasionType: OccasionType? = null,
-            val startDateTime: LocalDateTime? = null,
-            val endDateTime: LocalDateTime? = null,
+            val fanPageId: UUID,
+            val name: String,
+            val description: String,
+            val categories: List<Category>,
+            val startDateTime: Instant,
+            val endDateTime: Instant,
+            val createdAt: Instant,
+            val createdBy: String,
+            val location: String?
         ) : Command
 
         @Serializable
@@ -93,11 +81,19 @@ object Occasion {
         ) : Command
 
         @Serializable
-        data class TakePlace(
+        data class ReservePlace(
             val categoryName: String,
-            val accessRequestId: String,
+            val resource: String,
             val takenAt: Instant,
+            val places: Int
         ) : Command
+
+        @Serializable
+        data class ConfirmPlace(
+            val resource: String,
+            val confirmedAt: Instant,
+        ) : Command
+
     }
 
     @Serializable
@@ -113,10 +109,27 @@ object Occasion {
         ) : Event
 
         @Serializable
-        data class PlaceTaken(
-            val categoryName: String,
-            val accessRequestId: String,
-            val takenAt: Instant
+        data class PlaceReserved(
+            val categoryName: String? = null,
+            val resource: String,
+            val takenAt: Instant,
+            val places: Int
+        ) : Event
+
+        @Serializable
+        data class PlaceConfirmed(
+            val resource: String,
+            val confirmedAt: Instant,
+        ) : Event
+
+        @Serializable
+        data class Completed(
+            val completedAt: Instant,
+        ) : Event
+
+        @Serializable
+        data class Cancelled(
+            val cancelledAt: Instant,
         ) : Event
 
     }
@@ -141,11 +154,40 @@ object Occasion {
         state?.copy(disabled = event.disabled)
     }
 
-    val handlePlaceTaken: Reducer<State?, Event.PlaceTaken> = Reducer { state, event ->
+    val handlePlaceReserved: Reducer<State?, Event.PlaceReserved> = Reducer { state, event ->
         val category = state?.categories?.find { it.name == event.categoryName }
         if (category != null) {
-            val updatedCategory = category.copy(places = category.places + Places(event.takenAt, event.accessRequestId))
+            val updatedCategory =
+                category.copy(
+                    reservedPlaces = category.reservedPlaces + PlaceState(
+                        event.takenAt,
+                        event.resource,
+                        event.places
+                    )
+                )
             state.copy(categories = state.categories.map { if (it.name == event.categoryName) updatedCategory else it })
+        } else {
+            state
+        }
+    }
+
+    val handlePlaceConfirmed: Reducer<State?, Event.PlaceConfirmed> = Reducer { state, event ->
+        val category = state?.categories?.find { it.reservedPlaces.any { it.resource == event.resource } }
+        if (category != null) {
+            val reservation = category.reservedPlaces.find { it.resource == event.resource }
+            if (reservation == null) {
+                return@Reducer state
+            }
+            val updatedCategory =
+                category.copy(
+                    reservedPlaces = category.reservedPlaces.filter { it.resource != event.resource },
+                    confirmedPlaces = category.confirmedPlaces + PlaceState(
+                        event.confirmedAt,
+                        event.resource,
+                        reservation.places
+                    )
+                )
+            state.copy(categories = state.categories.map { if (it.name == category.name) updatedCategory else it })
         } else {
             state
         }
@@ -164,25 +206,46 @@ object Occasion {
             !exit(Failure("Description cannot be empty"))
         }
 
-        if (command.fanPageId == null) {
-            !emitEvents(Error.InvalidCommand("Fanpage cannot be null"))
-            !exit(Failure("Fanpage cannot be null"))
+        if (command.startDateTime > command.endDateTime) {
+            !emitEvents(Error.InvalidCommand("Start date cannot be after end date"))
+            !exit(Failure("Start date cannot be after end date"))
+        }
+        if (command.startDateTime < Clock.System.now()) {
+            !emitEvents(Error.InvalidCommand("Start date cannot be before created date"))
+            !exit(Failure("Start date cannot be before now"))
+        }
+
+        if (command.categories.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Categories cannot be empty"))
+            !exit(Failure("Categories cannot be empty"))
+        }
+
+        if (command.categories.any {it.capacity == 0}) {
+            !emitEvents(Error.InvalidCommand("Category capacity cannot be 0"))
+            !exit(Failure("Category capacity cannot be 0"))
         }
 
         !emitEvents(
             Event.OccasionCreated(
                 State(
-                    categories = command.categories.map { CategoryState(it.name, it.capacity) },
-                    date = command.date,
+                    categories = command.categories.map {
+                        CategoryState(
+                            it.name,
+                            it.capacity,
+                            emptyList(),
+                            emptyList()
+                        )
+                    },
                     description = command.description,
-                    owners = emptyList(),
-                    createdAt = command.createdAt,
                     name = command.name,
                     fanPageId = command.fanPageId,
-                    totalCapacity = command.totalCapacity,
-                    occasionType = command.occasionType,
                     startDateTime = command.startDateTime,
                     endDateTime = command.endDateTime,
+                    disabled = false,
+                    resource = command.resource,
+                    createdAt = command.createdAt,
+                    location = command.location,
+                    status = Status.open
                 )
             )
         )
@@ -200,47 +263,78 @@ object Occasion {
         Ok
     }
 
-    val handleTakePlace: CommandMonad<Command.TakePlace, State?, Event, Output> = CommandMonad.Do { exit ->
+    val handleReservePlace: CommandMonad<Command.ReservePlace, State?, Event, Output> = CommandMonad.Do { exit ->
         val state = !getState
         if (state == null) {
             !emitEvents(Error.InvalidCommand("Occasion does not exist"))
             !exit(Failure("Occasion does not exist"))
         }
-
         val category = state.categories.find { it.name == command.categoryName }
+        if(category == null) {
+            !emitEvents(Error.InvalidCommand("Category does not exist"))
+            !exit(Failure("Category does not exist"))
+        }
+        if (category.confirmedPlaces.any { it.resource == command.resource}) {
+            !emitEvents(Error.InvalidCommand("Place already taken"))
+            !exit(Failure("Place already taken"))
+        }
+        if (category.confirmedPlaces.size >= category.capacity) {
+            !emitEvents(Error.InvalidCommand("No more places available"))
+            !exit(Failure("No more places available"))
+        }
+        !emitEvents(Event.PlaceReserved(command.categoryName, command.resource, command.takenAt, command.places))
+        Ok
+    }
+
+    val handleConfirmPlace: CommandMonad<Command.ConfirmPlace, State?, Event, Output> = CommandMonad.Do { exit ->
+
+        val state = !getState
+
+        if (state == null) {
+            !emitEvents(Error.InvalidCommand("Occasion does not exist"))
+            !exit(Failure("Occasion does not exist"))
+        }
+        val category = state.categories.find { it.reservedPlaces.any { it.resource == command.resource } }
 
         if(category == null) {
             !emitEvents(Error.InvalidCommand("Category does not exist"))
             !exit(Failure("Category does not exist"))
         }
 
-        if (category.places.any { it.accessRequestId == command.accessRequestId }) {
-            !emitEvents(Error.InvalidCommand("Place already taken by ${command.accessRequestId}"))
-            !exit(Failure("Place already taken"))
+        val reservation = category.reservedPlaces.find { it.resource == command.resource }
+
+        if(reservation == null) {
+            !emitEvents(Error.InvalidCommand("Reservation does not exist"))
+            !exit(Failure("Reservation does not exist"))
         }
 
-        if (category.places.size >= category.capacity) {
-            !emitEvents(Error.InvalidCommand("No more places available"))
-            !exit(Failure("No more places available"))
-        }
-
-        !emitEvents(Event.PlaceTaken(command.categoryName, command.accessRequestId, command.takenAt))
+        !emitEvents(
+            Event.PlaceConfirmed(
+                command.resource,
+                command.confirmedAt
+            )
+        )
 
         Ok
     }
+
+
 
     val commandStateMachine: CommandMonad<Command, State?, Event, Output> = CommandMonad.Do { exit ->
         val command = !getCommand
         !when (command) {
             is Command.CreateOccasion -> handleCreate
             is Command.Visibility -> hanndlVisibility
-            is Command.TakePlace -> handleTakePlace
+            is Command.ReservePlace -> handleReservePlace
+            is Command.ConfirmPlace -> handleConfirmPlace
         }
     }
 
     val eventReducer: Reducer<State?, Event> = reducerOf(
         Event.OccasionCreated::class to handleCreatedEvent,
         Event.VisibilityChanged::class to handleVisibilityEvent,
-        Event.PlaceTaken::class to handlePlaceTaken
+        Event.PlaceReserved::class to handlePlaceReserved,
+        Event.PlaceConfirmed::class to handlePlaceConfirmed,
     )
+
 }

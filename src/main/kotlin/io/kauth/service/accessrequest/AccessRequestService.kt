@@ -10,22 +10,18 @@ import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.getService
 import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
+import io.kauth.service.EventStoreService
 import io.kauth.util.Async
 import java.util.UUID
 
-object AccessRequestService : AppService {
+object AccessRequestService : EventStoreService {
 
     override val name: String
-        get() = "access-request"
-
-    private const val STREAM_PREFIX = "access_request-"
-    private const val SNAPSHOT_STREAM_PREFIX = "access_request_snapshot-"
-
-    private val UUID.streamName get() = STREAM_PREFIX + this.toString()
-    private val UUID.snapshotName get() = SNAPSHOT_STREAM_PREFIX + this.toString()
+        get() = "access_request"
 
     data class Command(
-        val handle: (id: UUID) -> CommandHandler<AccessRequest.Command, Output>
+        val handle: (id: UUID) -> CommandHandler<AccessRequest.Command, Output>,
+        val idempotentHandle: (id: UUID, idempotency: UUID) -> CommandHandler<AccessRequest.Command, Output>
     )
 
     data class Query(
@@ -44,7 +40,12 @@ object AccessRequestService : AppService {
             handle = { id ->
                 stream<AccessRequest.Event, AccessRequest.State>(client, id.streamName, id.snapshotName)
                     .commandHandler(AccessRequest.commandHandler, AccessRequest.reducer)
-            }
+            },
+            idempotentHandle = { id, idempotency ->
+                stream<AccessRequest.Event, AccessRequest.State>(client, id.streamName, id.snapshotName)
+                    .commandHandler(AccessRequest.commandHandler, AccessRequest.reducer) { idempotency }
+            },
+
         )
 
         val query = Query(
@@ -64,5 +65,7 @@ object AccessRequestService : AppService {
         !AccessRequestProjection.sqlEventHandler
 
         !AccessRequestApiRest.api
+
+        !AccessRequestEventHandler.start
     }
 }

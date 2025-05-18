@@ -12,10 +12,8 @@ import io.ktor.http.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.*
 import kotlinx.serialization.Serializable
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Contextual
 import java.util.UUID
 
@@ -23,17 +21,14 @@ object OccasionApiRest {
 
     @Serializable
     data class CreateRequest(
-        val categories: List<Occasion.Category>,
-        val date: LocalDateTime? = null,
-        val description: String,
         val name: String,
+        val description: String,
+        val categories: List<Occasion.Category>,
         @Contextual
         val fanPageId: UUID,
-        val startDateTime: LocalDateTime? = null,
-        val endDateTime: LocalDateTime? = null,
-        val weekdays: List<DayOfWeek>? = null,
-        val recurringEndDateTime: LocalDateTime? = null,
-        val totalCapacity: Int? = null,
+        val startDateTime: Instant,
+        val endDateTime: Instant,
+        val location: String? = null
     )
 
     @Serializable
@@ -45,7 +40,8 @@ object OccasionApiRest {
 
     val api = AppStack.Do {
         ktor.routing {
-            route("occasion") {
+            route(OccasionService.name) {
+
                 post("create") {
                     val request = call.receive<CreateRequest>()
                     val id = !KtorCall(this@Do.ctx, call).runApiCall(
@@ -56,23 +52,20 @@ object OccasionApiRest {
                             fanPageId = request.fanPageId,
                             startDateTime = request.startDateTime,
                             endDateTime = request.endDateTime,
-                            weekdays = request.weekdays,
-                            recurringEndDateTime = request.recurringEndDateTime,
-                            totalCapacity = request.totalCapacity,
+                            resource = "unique",
+                            location = request.location
                         )
                     )
                     call.respond(HttpStatusCode.Created, mapOf("id" to id))
                 }
 
                 route("{id}") {
-
                     get() {
                         val idParam = call.parameters["id"] ?: throw ApiException("Id not found")
                         val id = UUID.fromString(idParam)
                         val occasion = !Query.get(id) ?: throw ApiException("Occasion not found")
                         call.respond(HttpStatusCode.OK, occasion)
                     }
-
                     get("access-requests") {
                         val idParam = call.parameters["id"] ?: throw ApiException("Id not found")
                         val id = UUID.fromString(idParam)
@@ -81,7 +74,6 @@ object OccasionApiRest {
                         )
                         call.respond(HttpStatusCode.OK, requests)
                     }
-
                     post("visibility") {
                         val request = call.receive<VisibilityRequest>()
                         val occasion = !KtorCall(this@Do.ctx, call).runApiCall(
@@ -89,8 +81,6 @@ object OccasionApiRest {
                         )
                         call.respond(HttpStatusCode.OK, occasion)
                     }
-
-
                 }
 
                 get("/list") {

@@ -52,12 +52,12 @@ object AccessRequestProjection {
     )
 
     val sqlEventHandler = appStackSqlProjector<AccessRequest.Event>(
-        streamName = "\$ce-access_request",
-        consumerGroup = "access_request-sql-projection",
+        streamName = "\$ce-${AccessRequestService.name}",
+        consumerGroup = "${AccessRequestService.name}-sql-projection",
         tables = listOf(AccessRequestTable)
     ) { event ->
         AppStack.Do {
-            val id = UUID.fromString(event.retrieveId("access_request"))
+            val id = UUID.fromString(event.retrieveId(AccessRequestService.name))
             val state = !AccessRequestApi.Query.readState(id) ?: return@Do
 
             !appStackDbQuery {
@@ -71,6 +71,8 @@ object AccessRequestProjection {
                         is AccessRequest.Status.Confirmed -> "confirmed"
                         AccessRequest.Status.Pending -> "pending"
                         is AccessRequest.Status.Rejected -> "rejected"
+                        is AccessRequest.Status.PendingConfirmation -> "pending_confirmation"
+                        is AccessRequest.Status.PendingAccept -> "pending_accept"
                     }
                     it[createdAt] = state.createdAt
                     it[updatedAt] = when (val status = state.status) {
@@ -78,12 +80,16 @@ object AccessRequestProjection {
                         is AccessRequest.Status.Confirmed -> status.confirmedAt
                         AccessRequest.Status.Pending -> state.createdAt
                         is AccessRequest.Status.Rejected -> status.rejectedAt
+                        is AccessRequest.Status.PendingConfirmation -> status.confirmedAt
+                        is AccessRequest.Status.PendingAccept -> status.acceptedAt
                     }
                     it[updatedBy] = when (val status = state.status) {
                         is AccessRequest.Status.Accepted -> status.acceptedBy
                         is AccessRequest.Status.Confirmed -> status.confirmedBy
                         AccessRequest.Status.Pending -> null
                         is AccessRequest.Status.Rejected -> status.rejectedBy
+                        is AccessRequest.Status.PendingConfirmation -> status.confirmedBy
+                        is AccessRequest.Status.PendingAccept -> status.acceptedBy
                     }
                     it[description] = state.description
                 }

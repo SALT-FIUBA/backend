@@ -13,9 +13,11 @@ import io.kauth.service.accessrequest.AccessRequestApi
 import io.kauth.service.accessrequest.AccessRequestService
 import io.kauth.service.fanpage.FanPageApi
 import io.kauth.service.occasion.OccasionProjection.toOccasionProjection
+import io.kauth.service.ping.Api
 import io.kauth.util.not
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.SortOrder
@@ -27,20 +29,37 @@ object OccasionApi {
 
     object Command {
 
-        fun takePlace(
+        fun confirmPlace(
             id: UUID,
-            categoryName: String,
-            accessRequestId: UUID
+            resource: String,
         ) = AppStack.Do {
             val occasionService = !getService<OccasionService.Interface>()
-            !AccessRequestApi.Query.readState(accessRequestId) ?: !ApiException("Request not found")
             !occasionService.command
                 .handle(id)
                 .throwOnFailureHandler(
-                    Occasion.Command.TakePlace(
+                    Occasion.Command.ConfirmPlace(
+                        confirmedAt = Clock.System.now(),
+                        resource = resource,
+                    )
+                )
+            id
+        }
+
+        fun reservePlace(
+            id: UUID,
+            resource: String,
+            places: Int,
+            categoryName: String
+        ) = AppStack.Do {
+            val occasionService = !getService<OccasionService.Interface>()
+            !occasionService.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Occasion.Command.ReservePlace(
                         categoryName = categoryName,
                         takenAt = Clock.System.now(),
-                        accessRequestId = accessRequestId.toString(),
+                        places = places,
+                        resource = resource,
                     )
                 )
             id
@@ -51,20 +70,15 @@ object OccasionApi {
             disabled: Boolean
         ) = ApiCall.Do {
             val jwt = jwt ?: !ApiException("UnAuth")
-
             val service = !apiCallGetService<OccasionService.Interface>()
-
             val occasion = !Query.readState(id).toApiCall() ?: !ApiException("Occasion not found")
-
             val fanId = occasion.fanPageId
-
             if (fanId != null) {
                 val fanPageData = !FanPageApi.Query.readState(fanId).toApiCall() ?: !ApiException("FanPage not found")
                 !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
                     "Not authorized"
                 }
             }
-
             !service.command
                 .handle(id)
                 .throwOnFailureHandler(
@@ -72,21 +86,20 @@ object OccasionApi {
                         disabled = disabled
                     )
                 ).toApiCall()
-
             id.toString()
         }
 
         fun create(
+            resource: String,
             fanPageId: UUID,
             categories: List<Occasion.Category>,
             description: String,
-            name: String? = null,
-            totalCapacity: Int? = null,
-            startDateTime: LocalDateTime? = null,
-            endDateTime: LocalDateTime? = null,
-            weekdays : List<DayOfWeek>? = null,
-            recurringEndDateTime: LocalDateTime? = null,
+            name: String,
+            startDateTime: Instant,
+            endDateTime: Instant,
+            location: String?
         ) = ApiCall.Do {
+
             val log = !apiCallLog
             val jwt = jwt ?: !ApiException("UnAuth")
 
@@ -106,27 +119,20 @@ object OccasionApi {
 
             log.info("Create occasion $id")
 
-            val occasionType = if (weekdays != null && recurringEndDateTime != null) {
-                Occasion.OccasionType.RecurringEvent(endDateTime = recurringEndDateTime, weekdays = weekdays)
-            } else if (startDateTime != null && endDateTime != null && weekdays != null) {
-                Occasion.OccasionType.UniqueDate()
-            } else {
-                null
-            }
-
             !service.command
                 .handle(id)
                 .throwOnFailureHandler(
                     Occasion.Command.CreateOccasion(
+                        resource = resource,
                         fanPageId = fanPageId,
                         categories = categories,
                         description = description,
                         createdAt = Clock.System.now(),
                         name = name,
-                        totalCapacity = totalCapacity,
-                        occasionType = occasionType,
+                        createdBy = jwt.payload.id,
                         startDateTime = startDateTime,
                         endDateTime = endDateTime,
+                        location = location,
                     )
                 ).toApiCall()
 
@@ -145,7 +151,7 @@ object OccasionApi {
             !appStackDbQuery {
                 OccasionProjection.OccasionTable.selectAll()
                     .where {
-                                (OccasionProjection.OccasionTable.id eq id.toString())
+                        (OccasionProjection.OccasionTable.id eq id.toString())
                     }
                     .firstOrNull()
                     ?.toOccasionProjection
