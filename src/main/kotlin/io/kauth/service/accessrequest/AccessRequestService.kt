@@ -17,7 +17,7 @@ import java.util.UUID
 object AccessRequestService : EventStoreService {
 
     override val name: String
-        get() = "access_request"
+        get() = "access_request.v0.2"
 
     data class Command(
         val handle: (id: UUID) -> CommandHandler<AccessRequest.Command, Output>,

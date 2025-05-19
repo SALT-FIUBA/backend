@@ -40,7 +40,7 @@ object OccasionApiRest {
 
     val api = AppStack.Do {
         ktor.routing {
-            route(OccasionService.name) {
+            route("occasion") {
 
                 post("create") {
                     val request = call.receive<CreateRequest>()

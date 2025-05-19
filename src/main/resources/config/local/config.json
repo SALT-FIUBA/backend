@@ -75,11 +75,11 @@
       "config": {}
     },
     {
-      "name": "occasion",
+      "name": "occasion.v0.2",
       "config": {}
     },
     {
-      "name": "access_request",
+      "name": "access_request.v0.2",
       "config": {}
     },
     {

@@ -15,7 +15,7 @@ import java.util.UUID
 
 object OccasionService : EventStoreService {
 
-    override val name = "occasion"
+    override val name = "occasion.v0.2"
 
     data class Command(
         val handle: (id: UUID) -> CommandHandler<Occasion.Command, Output>
