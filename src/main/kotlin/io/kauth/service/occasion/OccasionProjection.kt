@@ -82,6 +82,7 @@ object OccasionProjection {
                     it[startDateTime] = state.startDateTime
                     it[endDateTime] = state.endDateTime
                     it[status] = state.status.name
+                    it[resource] = state.resource
                 }
             }
         }
