@@ -12,6 +12,7 @@ import io.kauth.service.fanpage.FanPageProjection.toFanPageProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.json.contains
 import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.selectAll
@@ -68,6 +69,15 @@ object FanPageApi {
         fun readState(id: UUID) = AppStack.Do {
             val service = !getService<FanPageService.Interface>()
             !service.query.readState(id)
+        }
+
+        fun state(id: UUID) = ApiCall.Do {
+            !apiCallStackDbQuery {
+                FanPageProjection.FanPageTable.selectAll()
+                    .where { (FanPageProjection.FanPageTable.id eq id.toString()) }
+                    .map { it.toFanPageProjection }
+                    .firstOrNull()
+            }
         }
 
         fun list() = ApiCall.Do {

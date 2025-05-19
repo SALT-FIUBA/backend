@@ -8,6 +8,7 @@ import io.kauth.monad.apicall.*
 import io.kauth.monad.stack.*
 import io.kauth.service.accessrequest.AccessRequestProjection.toProjection
 import io.kauth.service.fanpage.FanPageApi
+import io.kauth.service.fanpage.FanPageProjection
 import io.kauth.service.occasion.OccasionApi
 import io.kauth.service.occasion.OccasionRoles
 import io.kauth.service.occasion.OccasionService
@@ -162,15 +163,22 @@ object AccessRequestApi {
         fun list(
             occasionId: UUID? = null,
         ) = ApiCall.Do {
-
             val session = jwt ?: !ApiException("UnAuth")
-
-            val writeRole = session.payload.roles.contains(OccasionRoles.WRITE_ALL)
-
             !apiCallStackDbQuery {
+
+                var writeAccess = false
+
+                if (occasionId != null) {
+                    val occasion = !OccasionApi.Query.get(occasionId).toApiCall()
+                        ?: !ApiException("Occasion not found")
+                    val fanPage = !FanPageApi.Query.state(UUID.fromString(occasion.fanPageId))
+                        ?: !ApiException("FanPage not found")
+                    writeAccess = session.payload.id in (fanPage.admins + fanPage.createdBy)
+                }
+
                 AccessRequestProjection.AccessRequestTable.selectAll()
                     .where {
-                        (if (writeRole) Op.TRUE else AccessRequestProjection.AccessRequestTable.userId eq session.payload.email).and(
+                        (if (writeAccess) Op.TRUE else AccessRequestProjection.AccessRequestTable.userId eq session.payload.email).and(
                             occasionId?.let { AccessRequestProjection.AccessRequestTable.occasionId.eq(it.toString()) }
                                 ?: Op.TRUE
                         )
@@ -180,7 +188,6 @@ object AccessRequestApi {
                     )
                     .map { it.toProjection }
             }
-
         }
     }
 }
