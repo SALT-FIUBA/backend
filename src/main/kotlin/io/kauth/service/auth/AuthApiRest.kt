@@ -50,16 +50,18 @@ object AuthApiRest {
                 route("google") {
 
                     get {
-
                         val google = !getService<Google.Client>()
                         val scope = "openid%20email%20profile"
+                        val redirectParam = call.request.queryParameters["redirect"]
+                        // Encode the redirect param in the state parameter (URL-safe base64)
+                        val state = if (redirectParam != null) java.util.Base64.getUrlEncoder().encodeToString(redirectParam.toByteArray()) else ""
                         val authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
                                 "?client_id=${google.clientId}" +
                                 "&redirect_uri=${google.redirectUri}" +
                                 "&response_type=code" +
                                 "&scope=$scope" +
-                                "&access_type=offline"
-
+                                "&access_type=offline" +
+                                (if (state.isNotEmpty()) "&state=$state" else "")
                         call.respondRedirect(authUrl)
                     }
 
@@ -67,6 +69,14 @@ object AuthApiRest {
                         val authConfig = !findConfig<AuthConfig>(name)
                         try {
                             val code = call.parameters["code"] ?: return@get call.respondText("No code", status = HttpStatusCode.BadRequest)
+                            val state = call.parameters["state"]
+                            val redirectFromState = state?.let {
+                                try {
+                                    String(java.util.Base64.getUrlDecoder().decode(it))
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
                             val result = !KtorCall(this@Do.ctx, call).runApiCall(AuthApi.googleLogin(code = code))
                             call.response.cookies.append(
                                 Cookie(
@@ -78,7 +88,11 @@ object AuthApiRest {
                                     extensions = mapOf("SameSite" to "None")
                                 )
                             )
-                            call.respondRedirect((authConfig?.frontend ?: "http://localhost:5173/"))
+                            val frontendBase = authConfig?.frontend ?: "http://localhost:5173/"
+                            val redirectUrl = if (!redirectFromState.isNullOrBlank()) {
+                                if (redirectFromState.startsWith("/")) frontendBase.trimEnd('/') + redirectFromState else redirectFromState
+                            } else frontendBase
+                            call.respondRedirect(redirectUrl)
                         } catch (e: Throwable) {
                             call.respondRedirect((authConfig?.frontend ?: "http://localhost:5173/") + "login")
                         }
@@ -206,3 +220,4 @@ object AuthApiRest {
 
 
 }
+
