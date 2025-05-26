@@ -144,6 +144,9 @@ object Occasion {
 
         @Serializable
         data class OwnersAlreadyExist(val owners: List<String>) : Error
+
+        @Serializable
+        data class CategoryFull(val name: String) : Error
     }
 
     val handleCreatedEvent: Reducer<State?, Event.OccasionCreated> = Reducer { _, event ->
@@ -278,8 +281,16 @@ object Occasion {
             !emitEvents(Error.InvalidCommand("Place already taken"))
             !exit(Failure("Place already taken"))
         }
-        if (category.confirmedPlaces.size >= category.capacity) {
-            !emitEvents(Error.InvalidCommand("No more places available"))
+        val confirmed = category.confirmedPlaces.fold(0) {
+                acc, it -> acc + it.places
+        }
+        val reserved = category.reservedPlaces.fold(0) {
+                acc, it -> acc + it.places
+        }
+        val remaining = category.capacity - confirmed - reserved
+
+        if (remaining <= 0) {
+            !emitEvents(Error.CategoryFull(category.name))
             !exit(Failure("No more places available"))
         }
         !emitEvents(Event.PlaceReserved(command.categoryName, command.resource, command.takenAt, command.places))
