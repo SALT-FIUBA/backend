@@ -66,16 +66,17 @@ services:
       - POSTGRES_USER=salt
       - POSTGRES_DB=salt
 
-  backend:
-    image: kiot-backend:2.0.0-rc14
-    restart: always
-    ports:
-      - "8080:8080"
-    environment:
-      - environment=stg
-    depends_on:
-      - eventstore.db
-      - postgres
+  
+ # backend:
+ #   image: kiot-backend:2.0.0-rc14
+ #  restart: always
+ #  ports:
+ #    - "8080:8080"
+ #  environment:
+ #    - environment=stg
+ #  depends_on:
+ #    - eventstore.db
+ #    - postgres
 
 
 volumes:

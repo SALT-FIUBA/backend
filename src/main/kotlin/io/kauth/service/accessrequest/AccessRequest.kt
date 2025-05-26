@@ -213,7 +213,8 @@ object AccessRequest {
                         cmd.categoryName,
                         cmd.description,
                         cmd.places
-                    )
+                    ),
+                    Event.RequestPendingAccept(cmd.createAt, "automatic")
                 )
                 Ok
             }
