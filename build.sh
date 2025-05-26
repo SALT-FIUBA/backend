@@ -20,4 +20,8 @@ docker save -o ./kiot.tar "kiot-backend:$version"
 echo "🚀 Enviando imagen al servidor"
 scp -P 2222 kiot.tar root@kiot.chickenkiller.com:/root/kiot
 
+git tag $version
+
+git push --tags
+
 echo "✅ Listo"
