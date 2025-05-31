@@ -390,4 +390,90 @@ class OccasionTest {
         assertTrue(events.any { it is Error.InvalidCommand })
         assertTrue(output.isFailure)
     }
+
+    @Test
+    fun `eventReducer applies events correctly`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val categoryName = "VIP"
+        val initialState: State? = null
+        val createdEvent = Event.OccasionCreated(
+            State(
+                status = Occasion.Status.open,
+                fanPageId = fanPageId,
+                name = "Occasion1",
+                description = "desc",
+                resource = "res1",
+                startDateTime = now,
+                endDateTime = now.plus(3600.seconds),
+                categories = listOf(Occasion.CategoryState(categoryName, 10, emptyList(), emptyList())),
+                disabled = false,
+                createdAt = now,
+                location = null
+            )
+        )
+        val stateAfterCreate = Occasion.eventReducer.run(initialState, createdEvent)
+        assertNotNull(stateAfterCreate)
+        assertEquals("Occasion1", stateAfterCreate!!.name)
+        val reservedEvent = Event.PlaceReserved(categoryName, "user1", now, 2)
+        val stateAfterReserve = Occasion.eventReducer.run(stateAfterCreate, reservedEvent)
+        assertEquals(2, stateAfterReserve!!.categories[0].reservedPlaces[0].places)
+        val confirmedEvent = Event.PlaceConfirmed("user1", now)
+        val stateAfterConfirm = Occasion.eventReducer.run(stateAfterReserve, confirmedEvent)
+        assertEquals(2, stateAfterConfirm!!.categories[0].confirmedPlaces[0].places)
+        assertEquals(0, stateAfterConfirm.categories[0].reservedPlaces.size)
+    }
+
+    @Test
+    fun `eventReducer sets status to completed when all categories are full`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val categoryName = "VIP"
+        val initialState: State? = null
+        val createdEvent = Event.OccasionCreated(
+            State(
+                status = Occasion.Status.open,
+                fanPageId = fanPageId,
+                name = "Occasion1",
+                description = "desc",
+                resource = "res1",
+                startDateTime = now,
+                endDateTime = now.plus(3600.seconds),
+                categories = listOf(Occasion.CategoryState(categoryName, 2, emptyList(), emptyList())),
+                disabled = false,
+                createdAt = now,
+                location = null
+            )
+        )
+        val stateAfterCreate = Occasion.eventReducer.run(initialState, createdEvent)
+        val reservedEvent = Event.PlaceReserved(categoryName, "user1", now, 2)
+        val stateAfterReserve = Occasion.eventReducer.run(stateAfterCreate, reservedEvent)
+        val confirmedEvent = Event.PlaceConfirmed("user1", now)
+        val stateAfterConfirm = Occasion.eventReducer.run(stateAfterReserve, confirmedEvent)
+        assertEquals(Occasion.Status.completed, stateAfterConfirm!!.status)
+    }
+
+    @Test
+    fun `eventReducer handles unknown event gracefully`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val state = State(
+            status = Occasion.Status.open,
+            fanPageId = fanPageId,
+            name = "Occasion1",
+            description = "desc",
+            resource = "res1",
+            startDateTime = now,
+            endDateTime = now.plus(3600.seconds),
+            categories = listOf(Occasion.CategoryState("VIP", 2, emptyList(), emptyList())),
+            disabled = false,
+            createdAt = now,
+            location = null
+        )
+        // Use an event type not handled by the reducer
+        val cancelledEvent = Event.Cancelled(now)
+        val result = Occasion.eventReducer.run(state, cancelledEvent)
+        // Should return the state unchanged
+        assertEquals(state, result)
+    }
 }

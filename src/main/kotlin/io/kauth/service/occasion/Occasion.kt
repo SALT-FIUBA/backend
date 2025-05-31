@@ -123,11 +123,6 @@ object Occasion {
         ) : Event
 
         @Serializable
-        data class Completed(
-            val completedAt: Instant,
-        ) : Event
-
-        @Serializable
         data class Cancelled(
             val cancelledAt: Instant,
         ) : Event
@@ -193,7 +188,15 @@ object Occasion {
                         reservation.places
                     )
                 )
-            state.copy(categories = state.categories.map { if (it.name == category.name) updatedCategory else it })
+            val newCategories = state.categories.map { if (it.name == category.name) updatedCategory else it }
+            // Check if all categories are completed (full)
+            val allFull = newCategories.all { cat ->
+                val conf = cat.confirmedPlaces.sumOf { it.places }
+                val res = cat.reservedPlaces.sumOf { it.places }
+                (cat.capacity - conf - res) <= 0
+            }
+            val newStatus = if (allFull) Status.completed else state.status
+            state.copy(categories = newCategories, status = newStatus)
         } else {
             state
         }
