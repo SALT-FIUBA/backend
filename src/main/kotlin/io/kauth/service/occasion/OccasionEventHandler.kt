@@ -22,20 +22,12 @@ object OccasionEventHandler {
             Async {
                 val request = !AccessRequestApi.Query.readState(requestId) ?: error("Request not found")
                 if (event.value is AccessRequest.Event.RequestPendingAccept) {
-                    try {
-                        !OccasionApi.Command.reservePlace(
-                            id = request.occasionId,
-                            categoryName = request.categoryName,
-                            resource = event.streamName,
-                            places = request.places
-                        )
-                    } catch (error: Throwable) {
-                        !AccessRequestApi.Command.acceptResult(
-                            requestId,
-                            false,
-                            error.message ?: "Unknown error",
-                        )
-                    }
+                    !OccasionApi.Command.reservePlace(
+                        id = request.occasionId,
+                        categoryName = request.categoryName,
+                        resource = event.streamName,
+                        places = request.places
+                    )
                 }
                 if (event.value is AccessRequest.Event.RequestPendingConfirmation) {
                     !OccasionApi.Command.confirmPlace(

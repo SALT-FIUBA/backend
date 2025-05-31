@@ -37,6 +37,16 @@ object AccessRequestEventHandler {
                         reason = "Accepted",
                     )
                 }
+
+                if (event.value is Occasion.Error.CategoryFull) {
+                    val requestId = event.value.resource.retrieveId(AccessRequestService.name)
+                    !AccessRequestApi.Command.acceptResult(
+                        id = UUID.fromString( requestId),
+                        accepted = false,
+                        reason = "Category is full, cannot reserve more places.",
+                    )
+                }
+
             }
         }
     }
