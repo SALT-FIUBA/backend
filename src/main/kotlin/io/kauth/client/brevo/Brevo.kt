@@ -1,6 +1,7 @@
 package io.kauth.client.brevo
 
 import io.kauth.util.Async
+import io.kauth.util.IO
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -14,7 +15,7 @@ object Brevo {
 
     fun newClient(
         apiKey: String
-    ): Async<Client> = Async {
+    ): IO<Client> = IO {
 
         val http = HttpClient(CIO)
         val json = Json {

@@ -27,6 +27,9 @@ val <T, E> Result<T, E>.throwOnFailure
         }
     }
 
+val Result<*, *>.isFailure: Boolean
+    get() = this is Failure<*>
+
 typealias Output = Result<Unit, String>
 typealias Fail = Failure<String>
 typealias Done = Success<Unit>

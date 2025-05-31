@@ -82,10 +82,14 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.2")
 
     testImplementation(kotlin("test"))
+
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.2.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.2.0")
 }
 
-tasks.test {
-    useJUnitPlatform()
+tasks.withType<Test>().configureEach {
+   useJUnitPlatform()
 }
 
 tasks.jar {
