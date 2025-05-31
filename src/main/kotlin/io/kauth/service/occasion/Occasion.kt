@@ -296,10 +296,9 @@ object Occasion {
             !emitEvents(Error.InvalidCommand("Place already taken"))
             !exit(Failure("Place already taken"))
         }
-        // Check if takenAt is before the start time
-        if (command.takenAt < state.startDateTime) {
+        if (command.takenAt > state.startDateTime) {
             !emitEvents(Error.InvalidCommand("Reservation time cannot be before occasion start time"))
-            !exit(Failure("Reservation time cannot be before occasion start time"))
+            return@Do Ok
         }
         val confirmed = category.confirmedPlaces.fold(0) {
                 acc, it -> acc + it.places

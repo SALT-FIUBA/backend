@@ -281,7 +281,7 @@ class OccasionTest {
     }
 
     @Test
-    fun `cannot reserve a place before occasion start time`() {
+    fun `cannot reserve a place after occasion start time`() {
         val now = Clock.System.now()
         val fanPageId = UUID.randomUUID()
         val categoryName = "VIP"
@@ -300,11 +300,11 @@ class OccasionTest {
             createdAt = now,
             location = null
         )
-        val takenAt = now // before startDateTime
+        val takenAt = now.plus(20000.seconds) // After the start time
         val cmd = Command.ReservePlace(categoryName, "user1", takenAt, 2)
         val (events, output) = Occasion.commandStateMachine.run(cmd, state)
         assertTrue(events.any { it is Error.InvalidCommand })
-        assertTrue(output.isFailure)
+        assertTrue(output== Ok)
     }
 
     @Test

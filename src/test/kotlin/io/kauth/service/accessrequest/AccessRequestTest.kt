@@ -216,4 +216,45 @@ class AccessRequestTest {
         assertTrue(events.any { it is AccessRequest.Error.RequestNotFound })
         assertTrue(output.isFailure)
     }
+
+    @Test
+    fun `reducer applies all events correctly`() {
+        val now = Clock.System.now()
+        val occasionId = UUID.randomUUID()
+        val userId = "user1"
+        val categoryName = "cat"
+        val description = "desc"
+        val places = 2
+        // RequestCreated
+        val created = AccessRequest.Event.RequestCreated(occasionId, userId, now, categoryName, description, places)
+        val stateCreated = AccessRequest.reducer.run(null, created)
+        assertNotNull(stateCreated)
+        assertEquals(occasionId, stateCreated!!.occasionId)
+        assertEquals(userId, stateCreated.userId)
+        assertEquals(AccessRequest.Status.Pending, stateCreated.status)
+        // RequestPendingAccept
+        val pendingAccept = AccessRequest.Event.RequestPendingAccept(now, "admin")
+        val statePendingAccept = AccessRequest.reducer.run(stateCreated, pendingAccept)
+        assertTrue(statePendingAccept!!.status is AccessRequest.Status.PendingAccept)
+        // RequestAccepted
+        val accepted = AccessRequest.Event.RequestAccepted(now, "ok")
+        val stateAccepted = AccessRequest.reducer.run(statePendingAccept, accepted)
+        assertTrue(stateAccepted!!.status is AccessRequest.Status.Accepted)
+        // RequestPendingConfirmation
+        val pendingConfirmation = AccessRequest.Event.RequestPendingConfirmation(now, "admin")
+        val statePendingConfirmation = AccessRequest.reducer.run(stateAccepted, pendingConfirmation)
+        assertTrue(statePendingConfirmation!!.status is AccessRequest.Status.PendingConfirmation)
+        // RequestConfirmed
+        val confirmed = AccessRequest.Event.RequestConfirmed(now, "confirmed")
+        val stateConfirmed = AccessRequest.reducer.run(statePendingConfirmation, confirmed)
+        assertTrue(stateConfirmed!!.status is AccessRequest.Status.Confirmed)
+        // RequestRejected
+        val rejected = AccessRequest.Event.RequestRejected(now, "rejected")
+        val stateRejected = AccessRequest.reducer.run(stateConfirmed, rejected)
+        assertTrue(stateRejected!!.status is AccessRequest.Status.Rejected)
+        // Error event should not change state
+        val error = AccessRequest.Error.InvalidTransition("err")
+        val stateAfterError = AccessRequest.reducer.run(stateRejected, error)
+        assertEquals(stateRejected, stateAfterError)
+    }
 }

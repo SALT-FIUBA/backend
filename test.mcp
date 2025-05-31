@@ -1,0 +1,44 @@
+# Project Test Rules for Agentic AI Assistant
+
+## 1. Test Location
+- All tests are located in the `src/test/kotlin` directory, mirroring the main source structure.
+- Each domain or service (e.g., Occasion, AccessRequest) has its own test file (e.g., `OccasionTest.kt`, `AccessRequestTest.kt`).
+
+## 2. Test Structure
+- Each test class is named after the domain/service it tests, suffixed with `Test` (e.g., `OccasionTest`).
+- Tests use JUnit 5 (`@Test` annotation) and standard assertion methods (e.g., `assertEquals`, `assertTrue`, `assertNotNull`).
+
+## 3. Command Handler Tests
+- For each command handler, create at least one test covering the happy path and relevant edge cases.
+- Steps:
+  1. Prepare the initial state (or null for creation commands).
+  2. Create the command instance.
+  3. Run the handler via the domain's command state machine (e.g., `Occasion.commandStateMachine.run(cmd, state)`).
+  4. Assert on the output (should be `Ok` or `isFailure`) and emitted events.
+  5. Check that business rules are enforced (e.g., cannot create if already exists).
+
+## 4. Reducer/Event Tests
+- For each event, create a test that applies the event to a state using the reducer (e.g., `Occasion.eventReducer.run(state, event)`).
+- Assert that the new state is as expected (fields updated, status changed, etc.).
+- Include tests for error events to ensure state is unchanged.
+
+## 5. Coverage
+- Ensure all command handlers and reducers are covered by tests.
+- Edge cases and invalid transitions must be tested (e.g., trying to cancel a completed occasion).
+- Aim for 100% branch coverage for business logic.
+
+## 6. Naming
+- Test names should describe the scenario and expected outcome (e.g., `cannot create occasion if already exists`).
+- Use backticks for descriptive test names in Kotlin.
+
+## 7. Patterns
+- Use real domain objects and values (UUIDs, timestamps, etc.) in tests.
+- Prefer explicit assertions over generic ones.
+- Group related assertions in a single test when they are part of the same scenario.
+
+## 8. Extending Tests
+- When adding a new command or event:
+  1. Add tests for the handler (happy path and errors).
+  2. Add tests for the reducer/event application.
+  3. Ensure coverage for all new logic and edge cases.
+

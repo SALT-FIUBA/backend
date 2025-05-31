@@ -1,0 +1,48 @@
+# Project Build Rules for Agentic AI Assistant
+
+## 1. Command Handlers
+- Defined as `CommandMonad` objects in the domain object (e.g., `Occasion`).
+- Each command (e.g., `CreateOccasion`, `Cancel`) has a corresponding handler (e.g., `handleCreate`, `handleCancel`).
+- Handlers:
+  - Read current state with `!getState`.
+  - Validate business rules (e.g., already exists, status, etc.).
+  - Emit events using `!emitEvents(...)`.
+  - Return `Ok` or `Failure(...)` (with `!exit(...)`).
+- All handlers are dispatched in a `commandStateMachine` using a `when` on the command type.
+
+## 2. Reducers
+- Defined as `Reducer<State?, EventType>` objects in the domain object.
+- Each event (e.g., `OccasionCreated`, `Cancelled`) has a corresponding reducer (e.g., `handleCreatedEvent`, `handleCancelled`).
+- Reducers:
+  - Take the current state and the event.
+  - Return the new state (or unchanged if the event is not relevant).
+- All reducers are registered in a single `eventReducer` using `reducerOf(...)`, mapping event classes to their reducers.
+
+## 3. Tests
+- Located in `src/test/kotlin/io/kauth/service/occasion/OccasionTest.kt`.
+- Each command and reducer has at least one test.
+- Command Tests:
+  - Create a state and a command.
+  - Run the command handler via `Occasion.commandStateMachine.run(cmd, state)`.
+  - Assert on the output and emitted events.
+- Reducer Tests:
+  - Create a state and an event.
+  - Run the reducer via `Occasion.eventReducer.run(state, event)`.
+  - Assert on the new state.
+- Edge Cases: Tests cover invalid states, business rule violations, and correct event emission.
+
+## 4. API and REST
+- API Layer: Exposes command handlers as functions (e.g., `OccasionApi.Command.cancel(id)`).
+- REST Layer: Maps HTTP endpoints to API commands (e.g., `POST /occasion/{id}/cancel` calls the cancel command).
+
+## 5. General Rules
+- All commands, events, and state are `@Serializable`.
+- State transitions (e.g., open → cancelled) are managed by reducers.
+- Use domain errors (e.g., `Error.InvalidCommand`) for business rule violations.
+- To add a new command/event:
+  1. Add to the sealed interface.
+  2. Implement handler and reducer.
+  3. Register in the state machine and reducer.
+  4. Add tests.
+  5. Expose in API and REST if needed.
+
