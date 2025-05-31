@@ -73,11 +73,9 @@ object OccasionApi {
             val service = !apiCallGetService<OccasionService.Interface>()
             val occasion = !Query.readState(id).toApiCall() ?: !ApiException("Occasion not found")
             val fanId = occasion.fanPageId
-            if (fanId != null) {
-                val fanPageData = !FanPageApi.Query.readState(fanId).toApiCall() ?: !ApiException("FanPage not found")
-                !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
-                    "Not authorized"
-                }
+            val fanPageData = !FanPageApi.Query.readState(fanId).toApiCall() ?: !ApiException("FanPage not found")
+            !allowIf(jwt.payload.id in (fanPageData.admins + fanPageData.createdBy)) {
+                "Not authorized"
             }
             !service.command
                 .handle(id)
@@ -137,6 +135,19 @@ object OccasionApi {
                 ).toApiCall()
 
             id.toString()
+        }
+
+        fun cancel(id: UUID) =ApiCall.Do {
+            val occasionService = !apiCallGetService<OccasionService.Interface>()
+            !occasionService.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Occasion.Command.Cancel(
+                        cancelledAt = Clock.System.now()
+                    )
+                )
+                .toApiCall()
+            id
         }
     }
 

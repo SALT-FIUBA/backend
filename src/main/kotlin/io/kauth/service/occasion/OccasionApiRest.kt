@@ -81,6 +81,12 @@ object OccasionApiRest {
                         )
                         call.respond(HttpStatusCode.OK, occasion)
                     }
+                    post("cancel") {
+                        val idParam = call.parameters["id"] ?: throw ApiException("Id not found")
+                        val id = UUID.fromString(idParam)
+                        !KtorCall(this@Do.ctx, call).runApiCall(Command.cancel(id))
+                        call.respond(HttpStatusCode.OK, mapOf("id" to id))
+                    }
                 }
 
                 get("/list") {

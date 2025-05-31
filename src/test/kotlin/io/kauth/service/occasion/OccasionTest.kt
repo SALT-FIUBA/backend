@@ -473,7 +473,34 @@ class OccasionTest {
         // Use an event type not handled by the reducer
         val cancelledEvent = Event.Cancelled(now)
         val result = Occasion.eventReducer.run(state, cancelledEvent)
-        // Should return the state unchanged
-        assertEquals(state, result)
+        // Should set the status to cancelled
+        assertEquals(Occasion.Status.cancelled, result!!.status)
+    }
+
+    @Test
+    fun `handleCancel prohibits cancel if already cancelled or completed`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val stateCancelled = State(
+            status = Occasion.Status.cancelled,
+            fanPageId = fanPageId,
+            name = "Occasion1",
+            description = "desc",
+            resource = "res1",
+            startDateTime = now,
+            endDateTime = now,
+            categories = emptyList(),
+            disabled = false,
+            createdAt = now,
+            location = null
+        )
+        val stateCompleted = stateCancelled.copy(status = Occasion.Status.completed)
+        val cmd = Command.Cancel(now)
+        val (eventsCancelled, outputCancelled) = Occasion.commandStateMachine.run(cmd, stateCancelled)
+        assertTrue(eventsCancelled.any { it is Error.InvalidCommand })
+        assertTrue(outputCancelled.isFailure)
+        val (eventsCompleted, outputCompleted) = Occasion.commandStateMachine.run(cmd, stateCompleted)
+        assertTrue(eventsCompleted.any { it is Error.InvalidCommand })
+        assertTrue(outputCompleted.isFailure)
     }
 }

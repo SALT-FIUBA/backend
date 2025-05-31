@@ -94,6 +94,11 @@ object Occasion {
             val confirmedAt: Instant,
         ) : Command
 
+        @Serializable
+        data class Cancel(
+            val cancelledAt: Instant
+        ) : Command
+
     }
 
     @Serializable
@@ -200,6 +205,10 @@ object Occasion {
         } else {
             state
         }
+    }
+
+    val handleCancelled: Reducer<State?, Event.Cancelled> = Reducer { state, _ ->
+        state?.copy(status = Status.cancelled)
     }
 
     val handleCreate: CommandMonad<Command.CreateOccasion, State?, Event, Output> = CommandMonad.Do { exit ->
@@ -340,7 +349,23 @@ object Occasion {
         Ok
     }
 
-
+    val handleCancel: CommandMonad<Command.Cancel, State?, Event, Output> = CommandMonad.Do { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.InvalidCommand("Occasion does not exist"))
+            !exit(Failure("Occasion does not exist"))
+        }
+        if (state.status == Status.cancelled) {
+            !emitEvents(Error.InvalidCommand("Occasion already cancelled"))
+            !exit(Failure("Occasion already cancelled"))
+        }
+        if (state.status == Status.completed) {
+            !emitEvents(Error.InvalidCommand("Occasion already completed"))
+            !exit(Failure("Occasion already completed"))
+        }
+        !emitEvents(Event.Cancelled(command.cancelledAt))
+        Ok
+    }
 
     val commandStateMachine: CommandMonad<Command, State?, Event, Output> = CommandMonad.Do { exit ->
         val command = !getCommand
@@ -349,6 +374,7 @@ object Occasion {
             is Command.Visibility -> hanndlVisibility
             is Command.ReservePlace -> handleReservePlace
             is Command.ConfirmPlace -> handleConfirmPlace
+            is Command.Cancel -> handleCancel
         }
     }
 
@@ -357,6 +383,7 @@ object Occasion {
         Event.VisibilityChanged::class to handleVisibilityEvent,
         Event.PlaceReserved::class to handlePlaceReserved,
         Event.PlaceConfirmed::class to handlePlaceConfirmed,
+        Event.Cancelled::class to handleCancelled,
     )
 
 }
