@@ -281,6 +281,33 @@ class OccasionTest {
     }
 
     @Test
+    fun `cannot reserve a place before occasion start time`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val categoryName = "VIP"
+        val startDateTime = now.plus(10000.seconds)
+        val endDateTime = startDateTime.plus(3600.seconds)
+        val state = State(
+            status = Occasion.Status.open,
+            fanPageId = fanPageId,
+            name = "Occasion1",
+            description = "desc",
+            resource = "res1",
+            startDateTime = startDateTime,
+            endDateTime = endDateTime,
+            categories = listOf(Occasion.CategoryState(categoryName, 10, emptyList(), emptyList())),
+            disabled = false,
+            createdAt = now,
+            location = null
+        )
+        val takenAt = now // before startDateTime
+        val cmd = Command.ReservePlace(categoryName, "user1", takenAt, 2)
+        val (events, output) = Occasion.commandStateMachine.run(cmd, state)
+        assertTrue(events.any { it is Error.InvalidCommand })
+        assertTrue(output.isFailure)
+    }
+
+    @Test
     fun `can confirm a reserved place`() {
         val now = Clock.System.now()
         val fanPageId = UUID.randomUUID()
