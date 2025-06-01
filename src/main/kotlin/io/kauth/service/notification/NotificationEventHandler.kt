@@ -30,13 +30,18 @@ object NotificationEventHandler {
                     val sendEvent = event.value
                     val now = Clock.System.now()
                     try {
+                        val state = !NotificationApi.Query.readState(notificationId)
+                        if (state == null || state.status != Notification.Status.pending) {
+                            log.warn("Notification $notificationId is not pending, skipping send.")
+                            return@Async
+                        }
                         if (sendEvent.channel == Notification.Channel.email) {
                             val brevoClient = !getService<Brevo.Client>()
                             !brevoClient.sendEmail(
                                to = listOf(Brevo.BrevoUser(sendEvent.recipient, sendEvent.recipient)),
                                  subject = "test",
-                                sender = Brevo.BrevoUser(sendEvent.sender, sendEvent.sender),
-                                htmlContent = sendEvent.content
+                                sender = Brevo.BrevoUser("jm-software" , "matias.sambrizzi@gmail.com"),
+                                htmlContent = sendEvent.content,
                             )
                         } else {
                         }

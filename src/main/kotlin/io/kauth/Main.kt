@@ -149,7 +149,6 @@ fun Application.kauthApp() {
             !registerService(PrometheusMeterRegistry(PrometheusConfig.DEFAULT))
             !registerService(AppLogger(log))
 
-            !registerService(!Brevo.newClient("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"))
 
             !installKtorPlugins
 

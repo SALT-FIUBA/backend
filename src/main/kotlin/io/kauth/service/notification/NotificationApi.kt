@@ -7,18 +7,20 @@ import io.kauth.monad.apicall.apiCallGetService
 import io.kauth.monad.apicall.toApiCall
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.getService
+import io.kauth.util.not
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import java.util.UUID
 
 object NotificationApi {
     object Command {
         fun sendNotification(
+            resource: String,
             id: UUID,
             channel: Notification.Channel,
             recipient: String,
             content: String,
-            sender: String,
-            createdAt: Instant
+            sender: String
         ) = AppStack.Do {
             val service = !getService<NotificationService.Interface>()
             !service.command
@@ -29,7 +31,8 @@ object NotificationApi {
                         recipient = recipient,
                         content = content,
                         sender = sender,
-                        createdAt = createdAt
+                        createdAt = Clock.System.now(),
+                        resource = resource
                     )
                 )
             id.toString()
@@ -53,5 +56,10 @@ object NotificationApi {
             id.toString()
         }
     }
+    object Query {
+        fun readState(id: UUID) = AppStack.Do {
+            val service = !getService<NotificationService.Interface>()
+            !service.query.readState(id)
+        }
+    }
 }
-

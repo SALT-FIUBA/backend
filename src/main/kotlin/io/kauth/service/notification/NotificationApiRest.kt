@@ -22,8 +22,7 @@ object NotificationApiRest {
         val channel: Notification.Channel,
         val recipient: String,
         val content: String,
-        val sender: String,
-        @Contextual val createdAt: Instant
+        val sender: String
     )
 
     @Serializable
@@ -46,7 +45,7 @@ object NotificationApiRest {
                             recipient = request.recipient,
                             content = request.content,
                             sender = request.sender,
-                            createdAt = request.createdAt
+                            resource = "web"
                         ).toApiCall()
                     )
                     call.respond(HttpStatusCode.Created, result)

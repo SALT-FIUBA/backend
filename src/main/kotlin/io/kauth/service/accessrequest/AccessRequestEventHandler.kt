@@ -6,6 +6,8 @@ import io.kauth.client.eventStore.subscribeToAllStream
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.getService
 import io.kauth.service.consumerGroupName
+import io.kauth.service.notification.Notification
+import io.kauth.service.notification.NotificationApi
 import io.kauth.service.occasion.Occasion
 import io.kauth.service.occasion.OccasionService
 import io.kauth.util.Async
@@ -13,6 +15,30 @@ import io.kauth.util.not
 import java.util.*
 
 object AccessRequestEventHandler {
+
+
+    val accessRequestEventHandler = AppStack.Do {
+        val client = !getService<EventStoreClientPersistenceSubs>()
+        !client.subscribeToAllStream<AccessRequest.Event, AccessRequestService>(
+            AccessRequestService,
+            consumerGroupName(AccessRequestService, AccessRequestService)
+        ) { event, accessRequestId ->
+            Async {
+                if (event.value is AccessRequest.Event.RequestConfirmed) {
+                    val accessRequest = !AccessRequestApi.Query.readState(accessRequestId) ?: return@Async
+                    !NotificationApi.Command.sendNotification(
+                        id = event.id,
+                        channel = Notification.Channel.email,
+                        recipient =  accessRequest.userId,
+                        content = "Your access request for occasion ${accessRequest.occasionId} has been confirmed.",
+                        sender = "Occasion Service",
+                        resource = event.streamName
+                    )
+                }
+
+            }
+        }
+    }
 
     val occasionEventHandler = AppStack.Do {
         val client = !getService<EventStoreClientPersistenceSubs>()
@@ -53,6 +79,7 @@ object AccessRequestEventHandler {
 
     val start = AppStack.Do {
         !occasionEventHandler
+        !accessRequestEventHandler
     }
 
 }

@@ -46,7 +46,8 @@ object Notification {
             val recipient: String,
             val content: String,
             val sender: String,
-            val createdAt: Instant
+            val createdAt: Instant,
+            val resource: String
         ) : Command
 
         @Serializable
@@ -75,7 +76,8 @@ object Notification {
             val recipient: String,
             val content: String,
             val sender: String,
-            val createdAt: Instant
+            val createdAt: Instant,
+            val resource: String
         ) : Event
     }
 
@@ -101,7 +103,8 @@ object Notification {
             recipient = command.recipient,
             content = command.content,
             sender = command.sender,
-            createdAt = command.createdAt
+            createdAt = command.createdAt,
+            resource = command.resource
         ))
         Ok
     }
@@ -138,7 +141,20 @@ object Notification {
             ?: state
     }
 
+    val handleSendNotificationEvent get() = Reducer<State?, Event.SendNotificationEvent> { state, event ->
+        State(
+            resource = event.resource,
+            channel = event.channel,
+            recipient = event.recipient,
+            content = event.content,
+            sender = event.sender,
+            status = Status.pending,
+            createdAt = event.createdAt
+        )
+    }
+
     val eventReducer: Reducer<State?, Event> = reducerOf(
+        Event.SendNotificationEvent::class to handleSendNotificationEvent,
         Event.NotificationSent::class to handleNotificationSent,
         Event.NotificationFailed::class to handleNotificationFailed
     )
