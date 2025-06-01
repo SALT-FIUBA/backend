@@ -1,5 +1,6 @@
 package io.kauth
 
+import io.kauth.client.brevo.Brevo
 import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
 import io.kauth.exception.ApiException
@@ -11,6 +12,7 @@ import io.kauth.service.fanpage.FanPageService
 import io.kauth.service.salt.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.iotdevice.IoTDeviceService
+import io.kauth.service.notification.NotificationService
 import io.kauth.service.occasion.OccasionService
 import io.kauth.service.organism.OrganismService
 import io.kauth.service.organism.TrainService
@@ -55,7 +57,8 @@ val runServices get() =
         TrainService,
         OccasionService,
         AccessRequestService,
-        FanPageService
+        FanPageService,
+        NotificationService
     )
 
 val installKtorPlugins =
@@ -145,6 +148,8 @@ fun Application.kauthApp() {
             !registerService(!eventStoreClientPersistenceSubsNew(eventstoreDbHost, serialization))
             !registerService(PrometheusMeterRegistry(PrometheusConfig.DEFAULT))
             !registerService(AppLogger(log))
+
+            !registerService(!Brevo.newClient("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"))
 
             !installKtorPlugins
 

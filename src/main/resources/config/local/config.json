@@ -85,6 +85,10 @@
     {
       "name": "fanpage",
       "config": {}
+    },
+    {
+      "name": "notification.v0.1",
+      "config": {}
     }
   ]
 }
