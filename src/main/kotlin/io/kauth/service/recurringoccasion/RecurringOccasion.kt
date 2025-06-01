@@ -7,6 +7,9 @@ import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import io.kauth.service.occasion.Occasion
 import kotlinx.datetime.Instant
+import kotlinx.datetime.isoDayNumber
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import java.util.UUID
@@ -127,14 +130,40 @@ object RecurringOccasion {
         if (state.disabled) {
             !exit(Ok)
         }
-        // Simple daily recurrence logic (replace with real logic as needed)
         val last = state.lastGenerated
-        val shouldGenerate = last == null || command.now.epochSeconds - last.epochSeconds >= 86400
+        val configDays = state.config.daysOfWeek
+        // Check if today is a recurring day (1=Monday, ..., 7=Sunday)
+        val nowDateTime = command.now.toLocalDateTime(kotlinx.datetime.TimeZone.UTC)
+        val todayDayOfWeek = nowDateTime.date.dayOfWeek.isoDayNumber
+        val isRecurringDay = configDays == null || configDays.contains(todayDayOfWeek)
+        val shouldGenerate = isRecurringDay && (last == null || command.now.epochSeconds - last.epochSeconds >= 86400)
         if (shouldGenerate) {
+            val templateStart = state.occasionTemplate.startDateTime.toLocalDateTime(kotlinx.datetime.TimeZone.UTC)
+            val templateEnd = state.occasionTemplate.endDateTime.toLocalDateTime(kotlinx.datetime.TimeZone.UTC)
+            val newStartDateTime = kotlinx.datetime.LocalDateTime(
+                year = nowDateTime.year,
+                monthNumber = nowDateTime.monthNumber,
+                dayOfMonth = nowDateTime.dayOfMonth,
+                hour = templateStart.hour,
+                minute = templateStart.minute,
+                second = templateStart.second,
+                nanosecond = templateStart.nanosecond
+            )
+            val newEndDateTime = kotlinx.datetime.LocalDateTime(
+                year = nowDateTime.year,
+                monthNumber = nowDateTime.monthNumber,
+                dayOfMonth = nowDateTime.dayOfMonth,
+                hour = templateEnd.hour,
+                minute = templateEnd.minute,
+                second = templateEnd.second,
+                nanosecond = templateEnd.nanosecond
+            )
+            val newStartInstant = newStartDateTime.toInstant(kotlinx.datetime.TimeZone.UTC)
+            val newEndInstant = newEndDateTime.toInstant(kotlinx.datetime.TimeZone.UTC)
             val nextOccasion = state.occasionTemplate.copy(
                 resource = UUID.randomUUID().toString(),
-                startDateTime = command.now,
-                endDateTime = command.now.plus(3600.seconds),
+                startDateTime = newStartInstant,
+                endDateTime = newEndInstant,
                 createdAt = command.now
             )
             !emitEvents(Event.GenerateOccasion(nextOccasion))

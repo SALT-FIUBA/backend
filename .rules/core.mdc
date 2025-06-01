@@ -9,6 +9,18 @@
   - Emit events using `!emitEvents(...)`.
   - Return `Ok` or `Failure(...)` (with `!exit(...)`).
 - All handlers are dispatched in a `commandStateMachine` using a `when` on the command type.
+- The `commandStateMachine` is a single entry point for all command execution, implemented as a `CommandMonad` that pattern matches on the command type and delegates to the appropriate handler.
+- Example:
+  ```kotlin
+  val commandStateMachine: CommandMonad<Command, State?, Event, Output> = CommandMonad.Do { exit ->
+      val command = !getCommand
+      !when (command) {
+          is Command.CreateOccasion -> handleCreate
+          is Command.Cancel -> handleCancel
+          // ...other commands
+      }
+  }
+  ```
 
 ## 2. Reducers
 - Defined as `Reducer<State?, EventType>` objects in the domain object.
@@ -17,6 +29,15 @@
   - Take the current state and the event.
   - Return the new state (or unchanged if the event is not relevant).
 - All reducers are registered in a single `eventReducer` using `reducerOf(...)`, mapping event classes to their reducers.
+- The `eventReducer` is a single entry point for all event application, implemented as a `Reducer<State?, Event>` that pattern matches on the event type and delegates to the appropriate reducer.
+- Example:
+  ```kotlin
+  val eventReducer: Reducer<State?, Event> = reducerOf(
+      Event.OccasionCreated::class to handleCreatedEvent,
+      Event.Cancelled::class to handleCancelled,
+      // ...other events
+  )
+  ```
 
 ## 3. Tests
 - Located in `src/test/kotlin/io/kauth/service/occasion/OccasionTest.kt`.
