@@ -503,4 +503,118 @@ class OccasionTest {
         assertTrue(eventsCompleted.any { it is Error.InvalidCommand })
         assertTrue(outputCompleted.isFailure)
     }
+
+    @Test
+    fun `can cancel a reserved place`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val categoryName = "VIP"
+        val reserved = listOf(Occasion.PlaceState(now, "user1", 2))
+        val state = State(
+            status = Occasion.Status.open,
+            fanPageId = fanPageId,
+            name = "Occasion1",
+            description = "desc",
+            resource = "res1",
+            startDateTime = now,
+            endDateTime = now,
+            categories = listOf(Occasion.CategoryState(categoryName, 10, reserved, emptyList())),
+            disabled = false,
+            createdAt = now,
+            location = null
+        )
+        val cmd = Command.CancelPlace(categoryName, "user1", now)
+        val (events, output) = Occasion.commandStateMachine.run(cmd, state)
+        assertTrue(output == Ok)
+        assertEquals(1, events.size)
+        val event = events[0] as Event.PlaceCancelled
+        assertEquals(categoryName, event.categoryName)
+        assertEquals("user1", event.resource)
+        assertEquals(now, event.cancelledAt)
+    }
+
+    @Test
+    fun `can cancel a confirmed place`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val categoryName = "VIP"
+        val confirmed = listOf(Occasion.PlaceState(now, "user1", 2))
+        val state = State(
+            status = Occasion.Status.open,
+            fanPageId = fanPageId,
+            name = "Occasion1",
+            description = "desc",
+            resource = "res1",
+            startDateTime = now,
+            endDateTime = now,
+            categories = listOf(Occasion.CategoryState(categoryName, 10, emptyList(), confirmed)),
+            disabled = false,
+            createdAt = now,
+            location = null
+        )
+        val cmd = Command.CancelPlace(categoryName, "user1", now)
+        val (events, output) = Occasion.commandStateMachine.run(cmd, state)
+        assertTrue(output == Ok)
+        assertEquals(1, events.size)
+        val event = events[0] as Event.PlaceCancelled
+        assertEquals(categoryName, event.categoryName)
+        assertEquals("user1", event.resource)
+        assertEquals(now, event.cancelledAt)
+    }
+
+    @Test
+    fun `cannot cancel place if occasion does not exist`() {
+        val now = Clock.System.now()
+        val cmd = Command.CancelPlace("VIP", "user1", now)
+        val (events, output) = Occasion.commandStateMachine.run(cmd, null)
+        assertTrue(events.any { it is Error.InvalidCommand })
+        assertTrue(output.isFailure)
+    }
+
+    @Test
+    fun `cannot cancel place if category does not exist`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val state = State(
+            status = Occasion.Status.open,
+            fanPageId = fanPageId,
+            name = "Occasion1",
+            description = "desc",
+            resource = "res1",
+            startDateTime = now,
+            endDateTime = now,
+            categories = listOf(Occasion.CategoryState("VIP", 10, emptyList(), emptyList())),
+            disabled = false,
+            createdAt = now,
+            location = null
+        )
+        val cmd = Command.CancelPlace("REGULAR", "user1", now)
+        val (events, output) = Occasion.commandStateMachine.run(cmd, state)
+        assertTrue(events.any { it is Error.InvalidCommand })
+        assertTrue(output.isFailure)
+    }
+
+    @Test
+    fun `cannot cancel place if no reservation or confirmation exists`() {
+        val now = Clock.System.now()
+        val fanPageId = UUID.randomUUID()
+        val categoryName = "VIP"
+        val state = State(
+            status = Occasion.Status.open,
+            fanPageId = fanPageId,
+            name = "Occasion1",
+            description = "desc",
+            resource = "res1",
+            startDateTime = now,
+            endDateTime = now,
+            categories = listOf(Occasion.CategoryState(categoryName, 10, emptyList(), emptyList())),
+            disabled = false,
+            createdAt = now,
+            location = null
+        )
+        val cmd = Command.CancelPlace(categoryName, "user1", now)
+        val (events, output) = Occasion.commandStateMachine.run(cmd, state)
+        assertTrue(events.any { it is Error.InvalidCommand })
+        assertTrue(output.isFailure)
+    }
 }

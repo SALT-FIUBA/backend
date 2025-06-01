@@ -257,4 +257,48 @@ class AccessRequestTest {
         val stateAfterError = AccessRequest.reducer.run(stateRejected, error)
         assertEquals(stateRejected, stateAfterError)
     }
+
+    @Test
+    fun `can cancel a pending request`() {
+        val now = Clock.System.now()
+        val state = State(UUID.randomUUID(), "cat", "desc", now, "user1", AccessRequest.Status.Pending, 1)
+        val cmd = Command.CancelRequest(now, "user1")
+        val (events, output) = commandHandler.run(cmd, state)
+        assertTrue(output == Ok)
+        assertEquals(1, events.size)
+        val expected = Event.RequestCancelled(
+            cancelledAt = now,
+            cancelledBy = "user1"
+        )
+        assertEquals(expected, events[0])
+    }
+
+    @Test
+    fun `cannot cancel a confirmed request`() {
+        val now = Clock.System.now()
+        val state = State(UUID.randomUUID(), "cat", "desc", now, "user1", AccessRequest.Status.Confirmed(now, "admin"), 1)
+        val cmd = Command.CancelRequest(now, "user1")
+        val (events, output) = commandHandler.run(cmd, state)
+        assertTrue(events.any { it is AccessRequest.Error.InvalidTransition })
+        assertTrue(output.isFailure)
+    }
+
+    @Test
+    fun `cannot cancel a rejected request`() {
+        val now = Clock.System.now()
+        val state = State(UUID.randomUUID(), "cat", "desc", now, "user1", AccessRequest.Status.Rejected(now, "admin"), 1)
+        val cmd = Command.CancelRequest(now, "user1")
+        val (events, output) = commandHandler.run(cmd, state)
+        assertTrue(events.any { it is AccessRequest.Error.InvalidTransition })
+        assertTrue(output.isFailure)
+    }
+
+    @Test
+    fun `cannot cancel if request does not exist`() {
+        val now = Clock.System.now()
+        val cmd = Command.CancelRequest(now, "user1")
+        val (events, output) = commandHandler.run(cmd, null)
+        assertTrue(events.any { it is AccessRequest.Error.RequestNotFound })
+        assertTrue(output.isFailure)
+    }
 }

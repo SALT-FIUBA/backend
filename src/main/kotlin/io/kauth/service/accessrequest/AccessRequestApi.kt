@@ -151,6 +151,27 @@ object AccessRequestApi {
             id.toString()
         }
 
+        fun cancel(id: UUID) = ApiCall.Do {
+            val jwt = jwt ?: !ApiException("UnAuth")
+            val reserve = !Query.readState(id).toApiCall() ?: !ApiException("Reserve not found")
+            // Only the user who created the request or an admin can cancel
+            val occasion = !OccasionApi.Query.readState(reserve.occasionId).toApiCall() ?: !ApiException("Occasion not found")
+            val fanPage = !FanPageApi.Query.readState(occasion.fanPageId).toApiCall() ?: !ApiException("FanPage not found")
+            !allowIf(jwt.payload.id == reserve.userId || jwt.payload.id in (fanPage.admins + fanPage.createdBy)) {
+                "Not authorized"
+            }
+            val service = !apiCallGetService<AccessRequestService.Interface>()
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    AccessRequest.Command.CancelRequest(
+                        cancelledAt = Clock.System.now(),
+                        cancelledBy = jwt.payload.id
+                    )
+                ).toApiCall()
+            id.toString()
+        }
+
     }
 
     object Query {

@@ -99,6 +99,12 @@ object Occasion {
             val cancelledAt: Instant
         ) : Command
 
+        @Serializable
+        data class CancelPlace(
+            val categoryName: String,
+            val resource: String,
+            val cancelledAt: Instant
+        ) : Command
     }
 
     @Serializable
@@ -132,6 +138,12 @@ object Occasion {
             val cancelledAt: Instant,
         ) : Event
 
+        @Serializable
+        data class PlaceCancelled(
+            val categoryName: String,
+            val resource: String,
+            val cancelledAt: Instant
+        ) : Event
     }
 
     @Serializable
@@ -209,6 +221,20 @@ object Occasion {
 
     val handleCancelled: Reducer<State?, Event.Cancelled> = Reducer { state, _ ->
         state?.copy(status = Status.cancelled)
+    }
+
+    val handlePlaceCancelled: Reducer<State?, Event.PlaceCancelled> = Reducer { state, event ->
+        val category = state?.categories?.find { it.name == event.categoryName }
+        if (category != null) {
+            val updatedCategory = category.copy(
+                reservedPlaces = category.reservedPlaces.filter { it.resource != event.resource },
+                confirmedPlaces = category.confirmedPlaces.filter { it.resource != event.resource }
+            )
+            val newCategories = state.categories.map { if (it.name == event.categoryName) updatedCategory else it }
+            state.copy(categories = newCategories)
+        } else {
+            state
+        }
     }
 
     val handleCreate: CommandMonad<Command.CreateOccasion, State?, Event, Output> = CommandMonad.Do { exit ->
@@ -366,6 +392,27 @@ object Occasion {
         Ok
     }
 
+    val handleCancelPlace: CommandMonad<Command.CancelPlace, State?, Event, Output> = CommandMonad.Do { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.InvalidCommand("Occasion does not exist"))
+            !exit(Failure("Occasion does not exist"))
+        }
+        val category = state.categories.find { it.name == command.categoryName }
+        if (category == null) {
+            !emitEvents(Error.InvalidCommand("Category does not exist"))
+            !exit(Failure("Category does not exist"))
+        }
+        val hasReservation = category.reservedPlaces.any { it.resource == command.resource }
+        val hasConfirmation = category.confirmedPlaces.any { it.resource == command.resource }
+        if (!hasReservation && !hasConfirmation) {
+            !emitEvents(Error.InvalidCommand("No reservation or confirmation found for resource"))
+            !exit(Failure("No reservation or confirmation found for resource"))
+        }
+        !emitEvents(Event.PlaceCancelled(command.categoryName, command.resource, command.cancelledAt))
+        Ok
+    }
+
     val commandStateMachine: CommandMonad<Command, State?, Event, Output> = CommandMonad.Do { exit ->
         val command = !getCommand
         !when (command) {
@@ -374,6 +421,7 @@ object Occasion {
             is Command.ReservePlace -> handleReservePlace
             is Command.ConfirmPlace -> handleConfirmPlace
             is Command.Cancel -> handleCancel
+            is Command.CancelPlace -> handleCancelPlace
         }
     }
 
@@ -383,6 +431,7 @@ object Occasion {
         Event.PlaceReserved::class to handlePlaceReserved,
         Event.PlaceConfirmed::class to handlePlaceConfirmed,
         Event.Cancelled::class to handleCancelled,
+        Event.PlaceCancelled::class to handlePlaceCancelled,
     )
 
 }

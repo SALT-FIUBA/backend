@@ -35,6 +35,13 @@ object OccasionEventHandler {
                         event.streamName,
                     )
                 }
+                if (event.value is AccessRequest.Event.RequestCancelled) {
+                    !OccasionApi.Command.cancelPlace(
+                        request.occasionId,
+                        request.categoryName,
+                        event.streamName,
+                    )
+                }
             }
         }
     }

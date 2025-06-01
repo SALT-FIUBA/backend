@@ -37,6 +37,12 @@ object AccessRequestApiRest {
         val id: UUID
     )
 
+    @Serializable
+    data class CancelRequest(
+        @Contextual
+        val id: UUID
+    )
+
     val api = AppStack.Do {
         ktor.routing {
             route("access-request") {
@@ -69,6 +75,16 @@ object AccessRequestApiRest {
                     val request = call.receive<ConfirmRequest>()
                     val result = !KtorCall(this@Do.ctx, call).runApiCall(
                         AccessRequestApi.Command.confirm(id = request.id)
+                    )
+                    call.respond(HttpStatusCode.OK, result)
+                }
+
+                post("/cancel") {
+                    val request = call.receive<CancelRequest>()
+                    val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                        AccessRequestApi.Command.cancel(
+                            id = request.id
+                        )
                     )
                     call.respond(HttpStatusCode.OK, result)
                 }

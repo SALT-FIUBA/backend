@@ -102,6 +102,12 @@ object AccessRequest {
             val at: Instant
         ) : Command
 
+        @Serializable
+        data class CancelRequest(
+            val cancelledAt: Instant,
+            val cancelledBy: String
+        ) : Command
+
     }
 
     @Serializable
@@ -145,6 +151,12 @@ object AccessRequest {
         data class RequestPendingConfirmation(
             val confirmedAt: Instant,
             val confirmedBy: String
+        ) : Event
+
+        @Serializable
+        data class RequestCancelled(
+            val cancelledAt: Instant,
+            val cancelledBy: String
         ) : Event
 
     }
@@ -193,6 +205,10 @@ object AccessRequest {
 
             is Event.RequestPendingConfirmation -> {
                 state?.copy(status = Status.PendingConfirmation(event.confirmedAt, event.confirmedBy))
+            }
+
+            is Event.RequestCancelled -> {
+                state?.copy(status = Status.Rejected(event.cancelledAt, event.cancelledBy))
             }
         }
     }
@@ -282,6 +298,22 @@ object AccessRequest {
                     !exit(Failure("Invalid transition"))
                 }
                 !emitEvents(Event.RequestPendingConfirmation(cmd.confirmAt, cmd.confirmBy))
+                Ok
+            }
+            is Command.CancelRequest -> {
+                if (state == null) {
+                    !emitEvents(Error.RequestNotFound)
+                    !exit(Failure("Request not found"))
+                }
+                if (state.status is Status.Rejected) {
+                    !emitEvents(Error.InvalidTransition("Request already cancelled or rejected"))
+                    !exit(Failure("Request already cancelled or rejected"))
+                }
+                if (state.status is Status.Confirmed) {
+                    !emitEvents(Error.InvalidTransition("Cannot cancel a confirmed request"))
+                    !exit(Failure("Cannot cancel a confirmed request"))
+                }
+                !emitEvents(Event.RequestCancelled(cmd.cancelledAt, cmd.cancelledBy))
                 Ok
             }
         }

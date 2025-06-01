@@ -149,6 +149,24 @@ object OccasionApi {
                 .toApiCall()
             id
         }
+
+        fun cancelPlace(
+            id: UUID,
+            categoryName: String,
+            resource: String
+        ) = AppStack.Do {
+            val occasionService = !getService<OccasionService.Interface>()
+            !occasionService.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Occasion.Command.CancelPlace(
+                        categoryName = categoryName,
+                        resource = resource,
+                        cancelledAt = Clock.System.now()
+                    )
+                )
+            id
+        }
     }
 
     object Query {
