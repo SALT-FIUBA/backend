@@ -67,3 +67,11 @@
   4. Add tests.
   5. Expose in API and REST if needed.
 
+## 6. Projections
+- Projections are read-optimized database views of aggregate state, built from events.
+- Each domain (e.g., Occasion, Notification) has a Projection object (e.g., `OccasionProjection`, `NotificationProjection`).
+- A Projection defines:
+  - A Table schema (using Exposed DSL) for storing the projection in SQL.
+  - A serializable data class for the projection view.
+  - An extension to map DB rows to the projection data class.
+  - A `sql

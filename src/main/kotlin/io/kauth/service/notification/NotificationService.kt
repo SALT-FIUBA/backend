@@ -64,6 +64,9 @@ object NotificationService : EventStoreService {
             )
         )
 
+        // Register the SQL projection event handler for notifications
+        !NotificationProjection.sqlEventHandler
+
         !NotificationApiRest.api
         !NotificationEventHandler.start
     }
