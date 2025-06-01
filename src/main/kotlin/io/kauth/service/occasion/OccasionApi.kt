@@ -201,5 +201,30 @@ object OccasionApi {
                     .map { it.toOccasionProjection }
             }
         }
+
+        fun userOccasions() = ApiCall.Do {
+            val jwt = jwt ?: !ApiException("UnAuth")
+            val userId = jwt.payload.id
+            // 1. Occasions where user is admin/creator of the fanpage
+            val myFanPages = !FanPageApi.Query.listByAdminOrCreator(userId)
+            val myFanPageIds = myFanPages.map { it.id }
+            val adminOccasions = !appStackDbQuery {
+                OccasionProjection.OccasionTable.selectAll()
+                    .where { (OccasionProjection.OccasionTable.fanPageId inList myFanPageIds.map { it.toString() }) and (OccasionProjection.OccasionTable.disabled eq false) }
+                    .map { it.toOccasionProjection }
+            }.toApiCall()
+            // 2. Occasions where user has a reservation (via AccessRequestApi)
+            val myRequests = !AccessRequestApi.Query.listReservedOccasionIds(jwt.payload.email)
+            val reservedOccasionIds = myRequests.map { it.occasionId }
+            val reservedOccasions = if (reservedOccasionIds.isNotEmpty()) {
+                !appStackDbQuery {
+                    OccasionProjection.OccasionTable.selectAll()
+                        .where { (OccasionProjection.OccasionTable.id inList reservedOccasionIds.map { it.toString() }) and (OccasionProjection.OccasionTable.disabled eq false) }
+                        .map { it.toOccasionProjection }
+                }.toApiCall()
+            } else emptyList()
+            // Merge and deduplicate
+            (adminOccasions + reservedOccasions).distinctBy { it.id }
+        }
     }
 }

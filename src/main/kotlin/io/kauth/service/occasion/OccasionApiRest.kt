@@ -91,6 +91,13 @@ object OccasionApiRest {
 
                 get("/list") {
                     val fanPageId = call.request.queryParameters["fanPageId"]?.let { UUID.fromString(it) }
+                    if (fanPageId == null) {
+                        val occasions = !KtorCall(this@Do.ctx, call).runApiCall(
+                            Query.userOccasions()
+                        )
+                        call.respond(HttpStatusCode.OK, occasions)
+                        return@get
+                    }
                     val occasions = !Query.list(fanPageId = fanPageId)
                     call.respond(HttpStatusCode.OK, occasions)
                 }

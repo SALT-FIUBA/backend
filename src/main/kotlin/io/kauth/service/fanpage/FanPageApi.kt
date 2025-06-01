@@ -93,6 +93,19 @@ object FanPageApi {
 
             }
         }
+
+        fun listByAdminOrCreator(userId: String) = ApiCall.Do {
+            !apiCallStackDbQuery {
+                FanPageProjection.FanPageTable.selectAll()
+                    .where {
+                        FanPageProjection.FanPageTable.admins.contains(listOf(userId)) or
+                        (FanPageProjection.FanPageTable.createdBy eq userId)
+                    }
+                    .orderBy(FanPageProjection.FanPageTable.createdAt to SortOrder.DESC)
+                    .map { it.toFanPageProjection }
+            }
+        }
     }
 
 }
+

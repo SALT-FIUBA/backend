@@ -210,5 +210,13 @@ object AccessRequestApi {
                     .map { it.toProjection }
             }
         }
+
+        fun listReservedOccasionIds(userId: String) = ApiCall.Do {
+            !apiCallStackDbQuery {
+                AccessRequestProjection.AccessRequestTable.selectAll()
+                    .where { AccessRequestProjection.AccessRequestTable.userId eq userId }
+                    .map { it.toProjection }
+            }
+        }
     }
 }
