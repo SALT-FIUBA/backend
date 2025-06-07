@@ -39,6 +39,7 @@ val exposedVersion = "0.60.0"
 val hikaricpVersion = "5.0.1"
 val hivemqMQTT = "1.3.5"
 val pulsarVersion = "4.0.3"
+val mockkVersion = "1.14.2"
 
 dependencies {
 
@@ -84,6 +85,10 @@ dependencies {
     testImplementation(kotlin("test"))
 
     testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+
+    testImplementation("io.mockk:mockk:${mockkVersion}")
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.2.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.2.0")
 }
@@ -100,7 +105,7 @@ tasks.jar {
 }
 
 kotlin {
-    jvmToolchain(8)
+    jvmToolchain(11)
     compilerOptions {
         freeCompilerArgs.add("-Xcontext-receivers")
     }

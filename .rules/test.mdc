@@ -7,6 +7,9 @@
 ## 2. Test Structure
 - Each test class is named after the domain/service it tests, suffixed with `Test` (e.g., `OccasionTest`).
 - Tests use JUnit 5 (`@Test` annotation) and standard assertion methods (e.g., `assertEquals`, `assertTrue`, `assertNotNull`).
+- Use MockK for mocking dependencies and verifying interactions.
+- Use `runBlocking` for coroutine-based tests.
+- Use a helper function named `initMocks()` to initialize mocks and test context for each test. This function should support parameterization for edge cases and reduce boilerplate in test setup. All new tests should use `initMocks()` for context and dependency setup.
 
 ## 3. Command Handler Tests
 - For each command handler, create at least one test covering the happy path and relevant edge cases.
@@ -16,6 +19,8 @@
   3. Run the handler via the domain's command state machine (e.g., `Occasion.commandStateMachine.run(cmd, state)`).
   4. Assert on the output (should be `Ok` or `isFailure`) and emitted events.
   5. Check that business rules are enforced (e.g., cannot create if already exists).
+  6. Use MockK's `verify` to ensure command handlers are called with the correct arguments.
+  7. For API/service layer tests, verify that service.command.handle is called with the expected command object.
 
 ## 4. Reducer/Event Tests
 - For each event, create a test that applies the event to a state using the reducer (e.g., `Occasion.eventReducer.run(state, event)`).
@@ -35,10 +40,28 @@
 - Use real domain objects and values (UUIDs, timestamps, etc.) in tests.
 - Prefer explicit assertions over generic ones.
 - Group related assertions in a single test when they are part of the same scenario.
+- Use parameterized setup (e.g., `initMocks`) to easily test different edge cases.
+- Use MockK's `withArg` and `ofType` to verify correct command types and argument values.
 
 ## 8. Extending Tests
 - When adding a new command or event:
   1. Add tests for the handler (happy path and errors).
   2. Add tests for the reducer/event application.
   3. Ensure coverage for all new logic and edge cases.
+  4. For service/API layer, verify correct service/command handler invocation and argument values.
 
+## 9. Mocking and Verification
+- Use MockK for all mocking and verification.
+- Always verify that command handlers are called with the correct command type and argument values.
+- Use `every { ... } returns ...` to stub dependencies.
+- Use `verify { ... }` to check interactions and argument correctness.
+- For commands with multiple possible outcomes, test both success and failure paths.
+
+## 10. Coroutines
+- Use `runBlocking` for coroutine-based tests to ensure proper execution and assertions.
+
+## 11. General Best Practices
+- Keep tests isolated and independent.
+- Use clear, descriptive names for test methods and scenarios.
+- Refactor common setup into helper functions or `initMocks` to reduce duplication and improve clarity.
+- All new tests should use the `initMocks()` helper for context and dependency setup.

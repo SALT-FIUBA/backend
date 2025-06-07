@@ -23,7 +23,8 @@ class NotificationTest {
             recipient = "user@example.com",
             content = "Hello!",
             sender = "noreply@example.com",
-            createdAt = now
+            createdAt = now,
+            resource = "test"
         )
         val (events, output) = commandStateMachine.run(cmd, null)
         assertEquals(Ok, output)
@@ -34,6 +35,7 @@ class NotificationTest {
         assertEquals("user@example.com", sendEvent.recipient)
         assertEquals("Hello!", sendEvent.content)
         assertEquals("noreply@example.com", sendEvent.sender)
+        assertEquals("test", sendEvent.resource)
         assertEquals(now, sendEvent.createdAt)
     }
 
@@ -45,7 +47,8 @@ class NotificationTest {
             recipient = "",
             content = "",
             sender = "",
-            createdAt = now
+            createdAt = now,
+            resource = "test"
         )
         val (events, output) = commandStateMachine.run(cmd, null)
         assertTrue(events.any { it is Notification.Error.InvalidCommand })
