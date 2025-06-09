@@ -24,6 +24,7 @@ fun mqttRequesterHiveMQNew(
     port: Int,
     json: Json,
     coroutineScope: CoroutineScope,
+    consumerGroup: String,
     callback: (Mqtt5Publish) -> Async<Unit>
 ) = Async {
 
@@ -51,6 +52,7 @@ fun mqttRequesterHiveMQNew(
         client,
         json,
         coroutineScope,
+        consumerGroup,
         callback
     )
 }
@@ -59,6 +61,7 @@ data class MqttRequesterHiveMQ(
     val client: Mqtt5AsyncClient,
     val serializable: Json,
     val coroutineScope: CoroutineScope,
+    val consumerGroup: String,
     val callback: (Mqtt5Publish) -> Async<Unit>
 ): CoroutineScope by coroutineScope {
 
@@ -73,7 +76,7 @@ data class MqttRequesterHiveMQ(
 
     fun unsubscribe(topic: String) = Async {
         client.unsubscribeWith()
-            .topicFilter(topic)
+            .topicFilter("\$share/${consumerGroup}/$topic")
             .send()
             .await()
         !subscriptions.set(!subscriptions.get - topic)
@@ -89,7 +92,7 @@ data class MqttRequesterHiveMQ(
         filteredSubs.forEach {
             client
                 .subscribeWith()
-                .topicFilter(it)
+                .topicFilter("\$share/${consumerGroup}/$it")
                 .send()
                 .await()
         }

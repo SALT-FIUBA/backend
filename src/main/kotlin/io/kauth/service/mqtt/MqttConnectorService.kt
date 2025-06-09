@@ -69,7 +69,8 @@ object MqttConnectorService : AppService {
                 config.brokerAddress,
                 config.brokerPort,
                 json,
-                ctx
+                ctx,
+                consumerGroup = "mqtt-consumer-${config.clientId}",
             ) { message ->
                 Async {
                     try {

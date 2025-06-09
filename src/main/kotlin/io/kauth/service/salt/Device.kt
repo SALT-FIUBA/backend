@@ -98,6 +98,11 @@ object Device {
             val status: String
         ): Command
 
+        @Serializable
+        data class SetState(
+            val state: Mqtt.SaltState
+        ): Command
+
     }
 
     @Serializable
@@ -111,6 +116,11 @@ object Device {
         @Serializable
         data class StatusSet(
             val status: String
+        ): Event
+
+        @Serializable
+        data class StateSet(
+            val state: Mqtt.SaltState
         ): Event
 
     }
@@ -131,6 +141,10 @@ object Device {
         state?.copy(status = event.status)
     }
 
+    val stateSetEventHandler get() = Reducer<State?, Event.StateSet> { state, event ->
+        state?.copy(deviceState = event.state)
+    }
+
     val setStatusHandler get() = CommandMonad.Do<Command.SetStatus, State?, Event, Output> { exit ->
         val state = !getState
         val command = !getCommand
@@ -139,6 +153,17 @@ object Device {
             !exit(Failure("Device already exists"))
         }
         !emitEvents(Event.StatusSet(command.status))
+        Ok
+    }
+
+    val setStateHandler get() = CommandMonad.Do<Command.SetState, State?, Event, Output> { exit ->
+        val state = !getState
+        val command = !getCommand
+        if (state == null) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device does not exist"))
+        }
+        !emitEvents(Event.StateSet(command.state))
         Ok
     }
 
@@ -174,13 +199,15 @@ object Device {
             when(command) {
                 is Command.Create -> !createCommandHandler
                 is Command.SetStatus -> !setStatusHandler
+                is Command.SetState -> !setStateHandler
             }
         }
 
     val eventReducer get() =
         reducerOf(
             Event.Created::class to createdEventHandler,
-            Event.StatusSet::class to statusSetEventHandler
+            Event.StatusSet::class to statusSetEventHandler,
+            Event.StateSet::class to stateSetEventHandler
         )
-
 }
+

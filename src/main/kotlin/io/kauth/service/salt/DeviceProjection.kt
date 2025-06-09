@@ -30,14 +30,7 @@ object DeviceProjection {
         val command_topic = text("command_topic").nullable()
         val status_topic = text("status_topic").nullable()
         val state_topic = text("state_topic").nullable()
-    }
-
-    object DeviceCurrentDataTable: Table("devices_data") {
-        val id = text("id").uniqueIndex()
-        val organismId = text("organism_id")
-        val speed = double("device_speed").nullable()
-        val device_config = json<Device.Mqtt.SaltConfig>("device_config", Json).nullable()
-        val current_action = json<Device.Mqtt.SaltAction>("current_action ", Json).nullable()
+        val deviceState = json<Device.Mqtt.SaltState>("device_state", Json).nullable()
     }
 
     @Serializable
@@ -54,15 +47,7 @@ object DeviceProjection {
         val commandTopic: String?,
         val statusTopic: String?,
         val stateTopic: String?,
-    )
-
-    @Serializable
-    data class DeviceCurrentDataProjection(
-        val id: String,
-        val organismId: String,
-        val speed: Double?,
-        val deviceConfig: Device.Mqtt.SaltConfig?,
-        val deviceCurrentAction: Device.Mqtt.SaltAction?
+        val deviceState: Device.Mqtt.SaltState? = null
     )
 
     val ResultRow.toDeviceProjection get() =
@@ -78,17 +63,8 @@ object DeviceProjection {
             this[DeviceTable.createdAt],
             this[DeviceTable.command_topic],
             this[DeviceTable.status_topic],
-            this[DeviceTable.state_topic]
-        )
-
-    //@Mati: DEVICE REAL TIME DATA -> Tiene que ser un stream aparte!
-    val ResultRow.toDeviceCurrentDataProjection get() =
-        DeviceCurrentDataProjection(
-            this[DeviceCurrentDataTable.id],
-            this[DeviceCurrentDataTable.organismId],
-            this[DeviceCurrentDataTable.speed],
-            this[DeviceCurrentDataTable.device_config],
-            this[DeviceCurrentDataTable.current_action],
+            this[DeviceTable.state_topic],
+            this[DeviceTable.deviceState]
         )
 
     val sqlEventHandler = appStackSqlProjector<Device.Event>(
@@ -115,6 +91,7 @@ object DeviceProjection {
                     it[command_topic] = state.topics?.command
                     it[status_topic] = state.topics?.status
                     it[state_topic] = state.topics?.state
+                    it[deviceState] = state.deviceState
                 }
             }
         }

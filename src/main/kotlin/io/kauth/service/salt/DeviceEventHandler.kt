@@ -31,9 +31,9 @@ object DeviceEventHandler {
                     !DeviceApi.setStatus(deviceId, message.jsonPrimitive.content)
                 } else if (topic == device?.topics?.state) {
                     val state = serialization.decodeFromJsonElement<Device.Mqtt.SaltState>(message)
-                    println(state)
+                    !DeviceApi.setState(deviceId, state)
                 } else {
-
+                    println("Unknown topic: $topic for device: $deviceId")
                 }
             }
 

@@ -56,6 +56,21 @@ object DeviceApi {
         deviceId
     }
 
+    fun setState(
+        deviceId: UUID,
+        state: Device.Mqtt.SaltState
+    ) = AppStack.Do {
+        val service = !getService<DeviceService.Interface>()
+        !service.command
+            .handle(deviceId)
+            .throwOnFailureHandler(
+                Device.Command.SetState(
+                    state = state
+                ),
+            )
+        deviceId
+    }
+
     fun create(
         trainId: UUID,
         seriesNumber: String,
@@ -137,3 +152,4 @@ object DeviceApi {
 
 
 }
+
