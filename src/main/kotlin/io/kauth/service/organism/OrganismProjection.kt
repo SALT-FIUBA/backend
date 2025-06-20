@@ -1,8 +1,6 @@
 package io.kauth.service.organism
 
-import io.kauth.monad.stack.AppStack
-import io.kauth.monad.stack.appStackDbQuery
-import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.monad.stack.*
 import io.kauth.service.auth.AuthApi
 import io.kauth.service.salt.DeviceProjection
 import kotlinx.datetime.Instant
@@ -24,6 +22,7 @@ object OrganismProjection {
         val createdBy = text("created_by").nullable()
         val createdByEmail = text("created_by_email").nullable()
         val createdAt = timestamp("created_at")
+        val deleted = bool("deleted").default(false) // Soft delete flag
     }
 
     object OrganismUserInfoTable: Table("organism_users") {
@@ -47,7 +46,8 @@ object OrganismProjection {
         val description: String,
         val createdBy: String?,
         val createdByEmail: String? = null,
-        val createdAt: Instant
+        val createdAt: Instant,
+        val deleted: Boolean = false // Soft delete flag
     )
 
     @Serializable
@@ -83,6 +83,7 @@ object OrganismProjection {
             this[OrganismTable.createdBy],
             this[OrganismTable.createdByEmail],
             this[OrganismTable.createdAt],
+            this[OrganismTable.deleted] // Map deleted field
         )
 
     @Serializable
@@ -93,7 +94,7 @@ object OrganismProjection {
         val devices: List<DeviceProjection.Projection>
     )
 
-    val sqlEventHandler = appStackSqlProjector<Organism.Event>(
+    val sqlEventHandler = appStackSqlProjectorNeon<Organism.Event>(
         streamName = "\$ce-organism",
         consumerGroup = "organism-sql-projection",
         tables = listOf(OrganismTable, OrganismUserInfoTable)
@@ -104,7 +105,7 @@ object OrganismProjection {
             val state = !OrganismApi.Query.readState(entity) ?: return@Do
             val user = !AuthApi.Query.readState(UUID.fromString(state.createdBy))
 
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
 
                 state.operators.forEach {
                     operator ->
@@ -146,6 +147,7 @@ object OrganismProjection {
                     it[createdBy] = state.createdBy
                     it[createdByEmail] = user?.email
                     it[createdAt] = state.createdAt
+                    it[deleted] = state.deleted
                 }
 
             }

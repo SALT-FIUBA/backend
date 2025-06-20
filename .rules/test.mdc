@@ -21,6 +21,7 @@
   5. Check that business rules are enforced (e.g., cannot create if already exists).
   6. Use MockK's `verify` to ensure command handlers are called with the correct arguments.
   7. For API/service layer tests, verify that service.command.handle is called with the expected command object.
+  8. **Order of Results:** When using `.run(cmd, state)`, always destructure as `(events, output)` (not `(output, events)`).
 
 ## 4. Reducer/Event Tests
 - For each event, create a test that applies the event to a state using the reducer (e.g., `Occasion.eventReducer.run(state, event)`).
@@ -65,3 +66,6 @@
 - Use clear, descriptive names for test methods and scenarios.
 - Refactor common setup into helper functions or `initMocks` to reduce duplication and improve clarity.
 - All new tests should use the `initMocks()` helper for context and dependency setup.
+
+## 12. Kotlin Import Rule
+- Never use `import x.y.z.ObjectName.*` (wildcard import from an object). Always use explicit imports for each member (e.g., `import x.y.z.ObjectName.Member`). This avoids the 'Cannot import on demand from object' compilation error.

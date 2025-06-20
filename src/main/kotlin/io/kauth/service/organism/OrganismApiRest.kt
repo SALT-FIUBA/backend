@@ -5,6 +5,7 @@ import io.kauth.exception.not
 import io.kauth.monad.apicall.KtorCall
 import io.kauth.monad.apicall.runApiCall
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.authStackLog
 import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi
 import io.kauth.service.salt.DeviceApi
@@ -36,6 +37,8 @@ object OrganismApiRest {
     )
 
     val api = AppStack.Do {
+
+        val log = !authStackLog
 
         ktor.routing {
 
@@ -72,6 +75,7 @@ object OrganismApiRest {
 
 
                 get("/list") {
+                    log.info("List organisms")
                     val result = !OrganismApi.Query.organismsList()
                     call.respond(HttpStatusCode.OK, result)
                 }
@@ -97,6 +101,14 @@ object OrganismApiRest {
                                 role =
                                     Organism.Role.entries.map { Organism.OrganismRole(it, UUID.fromString(id)).string }
                             )
+                        )
+                        call.respond(HttpStatusCode.OK, result)
+                    }
+
+                    post("delete") {
+                        val id = UUID.fromString(call.parameters["id"] ?: throw ApiException("Missing id"))
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            OrganismApi.Command.delete(id)
                         )
                         call.respond(HttpStatusCode.OK, result)
                     }

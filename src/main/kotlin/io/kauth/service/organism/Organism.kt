@@ -56,7 +56,8 @@ object Organism {
         val createdBy: String?,
         val createdAt: Instant,
         val supervisors: List<UserInfo> = emptyList(),
-        val operators: List<UserInfo> = emptyList()
+        val operators: List<UserInfo> = emptyList(),
+        val deleted: Boolean = false // Soft delete flag
     )
 
     @Serializable
@@ -90,6 +91,11 @@ object Organism {
             val user: UserInfo
         ): Command
 
+        @Serializable
+        data class DeleteOrganism(
+            val deletedBy: String?,
+            val deletedAt: Instant
+        ): Command
     }
 
     @Serializable
@@ -110,6 +116,11 @@ object Organism {
             val user: UserInfo
         ): Event
 
+        @Serializable
+        data class OrganismDeleted(
+            val deletedBy: String?,
+            val deletedAt: Instant
+        ): Event
     }
 
     @Serializable
@@ -135,6 +146,10 @@ object Organism {
 
     val handleSupervisorEvent get() = Reducer<State?, Event.SupervisorAdded> { state, event ->
         state?.copy(supervisors = state.supervisors + event.user)
+    }
+
+    val handleDeletedEvent get() = Reducer<State?, Event.OrganismDeleted> { state, event ->
+        state?.copy(deleted = true)
     }
 
     //event generators
@@ -213,6 +228,20 @@ object Organism {
         Ok
     }
 
+    val handleDeleteOrganism get() = CommandMonad.Do<Command.DeleteOrganism, State?, Event, Output> { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.OrganismDoesNotExists)
+            !exit(Failure("Organism does not exists"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.InvalidCommand("Organism already deleted"))
+            !exit(Failure("Organism already deleted"))
+        }
+        !emitEvents(Event.OrganismDeleted(command.deletedBy, command.deletedAt))
+        Ok
+    }
+
     val commandStateMachine get() =
         CommandMonad.Do<Command, State?, Event, Output> { exit ->
             val command = !getCommand
@@ -220,6 +249,7 @@ object Organism {
                 is Command.CreateOrganism -> handleCreate
                 is Command.AddSupervisor -> handleAddSupervisor
                 is Command.AddOperator -> handleAddOperator
+                is Command.DeleteOrganism -> handleDeleteOrganism
             }
         }
 
@@ -228,7 +258,8 @@ object Organism {
             reducerOf(
                 Event.OrganismCreated::class to handleCreatedEvent,
                 Event.SupervisorAdded::class to handleSupervisorEvent,
-                Event.OperatorAdded::class to handleOperatorEvent
+                Event.OperatorAdded::class to handleOperatorEvent,
+                Event.OrganismDeleted::class to handleDeletedEvent
             )
 
 }

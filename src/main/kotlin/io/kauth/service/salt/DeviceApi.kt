@@ -16,6 +16,7 @@ import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.service.train.TrainApi
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
 
@@ -24,20 +25,16 @@ object DeviceApi {
     fun sendCommand(
         deviceId: UUID,
         messageId: UUID,
-        action: Device.Mqtt.SaltAction
+        cmd: Device.Mqtt.SaltCmd
     ) = AppStack.Do {
-
         val state = !Query.readState(deviceId) ?: return@Do messageId
-
         val commandTopic = state.topics?.command ?: error("No command topic");
-
         !PublisherApi.publish(
             messageId = messageId,
-            message = Device.Mqtt.SaltCmd(action = action, config = null),
+            message = cmd,
             resource = deviceId.streamName,
             channel = Publisher.Channel.Mqtt(commandTopic)
         )
-
         messageId
     }
 
@@ -108,6 +105,22 @@ object DeviceApi {
 
     }
 
+    fun delete(
+        deviceId: UUID
+    ) = ApiCall.Do {
+        val jwt = jwt ?: !ApiException("UnAuth")
+        val service = !apiCallGetService<DeviceService.Interface>()
+        !service.command
+            .handle(deviceId)
+            .throwOnFailureHandler(
+                Device.Command.Delete(
+                    deletedBy = jwt.payload.id,
+                    deletedAt = Clock.System.now()
+                ),
+            ).toApiCall()
+        deviceId
+    }
+
     object Query {
 
         fun readState(id: UUID) = AppStack.Do {
@@ -128,7 +141,7 @@ object DeviceApi {
             PublisherApi.getByResource("${DeviceService.STREAM_NAME}-${id}")
 
         fun get(id: String) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 DeviceProjection.DeviceTable
                     .selectAll()
                     .where { DeviceProjection.DeviceTable.id eq id }
@@ -139,10 +152,10 @@ object DeviceApi {
         fun list(
             trainId: String? = null
         ) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 DeviceProjection.DeviceTable.selectAll()
                     .where {
-                        trainId?.let {  DeviceProjection.DeviceTable.trainId.eq(it) } ?: Op.TRUE
+                        trainId?.let {  DeviceProjection.DeviceTable.trainId.eq(it) } ?: Op.TRUE and (DeviceProjection.DeviceTable.deleted eq false)
                     }
                     .map { it.toDeviceProjection }
             }
@@ -152,4 +165,3 @@ object DeviceApi {
 
 
 }
-

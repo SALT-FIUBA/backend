@@ -12,5 +12,6 @@ data class AppContext(
     val serialization: Json,
     val services: MutableClassMap,
     val db: Database,
+    val neonDb: Database? = null,
     val appConfig: AppConfig
 ): CoroutineScope by ktor

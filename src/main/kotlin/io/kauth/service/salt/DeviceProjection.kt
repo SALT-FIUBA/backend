@@ -2,6 +2,7 @@ package io.kauth.service.salt
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
+import io.kauth.monad.stack.appStackDbQueryNeon
 import io.kauth.monad.stack.appStackSqlProjector
 import io.kauth.service.organism.OrganismApi
 import kotlinx.datetime.Instant
@@ -31,6 +32,7 @@ object DeviceProjection {
         val status_topic = text("status_topic").nullable()
         val state_topic = text("state_topic").nullable()
         val deviceState = json<Device.Mqtt.SaltState>("device_state", Json).nullable()
+        val deleted = bool("deleted").default(false)
     }
 
     @Serializable
@@ -47,7 +49,8 @@ object DeviceProjection {
         val commandTopic: String?,
         val statusTopic: String?,
         val stateTopic: String?,
-        val deviceState: Device.Mqtt.SaltState? = null
+        val deviceState: Device.Mqtt.SaltState? = null,
+        val deleted: Boolean = false
     )
 
     val ResultRow.toDeviceProjection get() =
@@ -64,7 +67,8 @@ object DeviceProjection {
             this[DeviceTable.command_topic],
             this[DeviceTable.status_topic],
             this[DeviceTable.state_topic],
-            this[DeviceTable.deviceState]
+            this[DeviceTable.deviceState],
+            this[DeviceTable.deleted]
         )
 
     val sqlEventHandler = appStackSqlProjector<Device.Event>(
@@ -77,7 +81,7 @@ object DeviceProjection {
             val state = !DeviceApi.Query.readState(entity) ?: return@Do
             val organism = state.organismId?.let { !OrganismApi.Query.readState(it) }
 
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 DeviceTable.upsert() {
                     it[id] = entity.toString()
                     it[organismId] = state.organismId?.toString()
@@ -92,6 +96,7 @@ object DeviceProjection {
                     it[status_topic] = state.topics?.status
                     it[state_topic] = state.topics?.state
                     it[deviceState] = state.deviceState
+                    it[deleted] = state.deleted
                 }
             }
         }

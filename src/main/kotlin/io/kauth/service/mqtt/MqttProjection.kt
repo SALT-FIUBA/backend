@@ -1,8 +1,6 @@
 package io.kauth.service.mqtt
 
-import io.kauth.monad.stack.AppStack
-import io.kauth.monad.stack.appStackDbQuery
-import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.monad.stack.*
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
@@ -36,13 +34,13 @@ object MqttProjection {
             this[MqttMessages.timestamp],
         )
 
-    val sqlEventHandler = appStackSqlProjector<MqttConnectorService.MqttData<JsonElement>>(
+    val sqlEventHandler = appStackSqlProjectorNeon<MqttConnectorService.MqttData<JsonElement>>(
         streamName = "\$ce-mqtt",
         consumerGroup = "mqtt-data-sql-projection",
         tables = listOf(MqttMessages)
     ) { event ->
         AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 MqttMessages.upsert() {
                     it[id] = event.value.idempotence?.toString() ?: event.id.toString()
                     it[data] = serialization.encodeToString(event.value.message)

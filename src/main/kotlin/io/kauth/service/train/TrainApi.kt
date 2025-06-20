@@ -16,6 +16,7 @@ import io.kauth.util.not
 import kotlinx.datetime.Clock
 import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.and
 import java.util.*
 
 object TrainApi {
@@ -65,6 +66,24 @@ object TrainApi {
 
         }
 
+        fun delete(
+            id: UUID
+        ) = ApiCall.Do {
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
+            // Add authorization as needed
+            val service = !apiCallGetService<TrainService.Interface>()
+            log.info("Delete train $id")
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Train.Command.DeleteTrain(
+                        deletedBy = jwt.payload.id,
+                        deletedAt = Clock.System.now()
+                    ),
+                ).toApiCall()
+        }
+
     }
 
     object Query {
@@ -75,7 +94,7 @@ object TrainApi {
         }
 
         fun train(id: UUID) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 TrainProjection.TrainTable.selectAll()
                     .where { TrainProjection.TrainTable.id eq id.toString() }
                     .singleOrNull()
@@ -86,10 +105,10 @@ object TrainApi {
         fun trainList(
             organismId: String? = null
         ) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 TrainProjection.TrainTable.selectAll()
                     .where {
-                        organismId?.let { TrainProjection.TrainTable.organismId.eq(it) } ?: Op.TRUE
+                        (organismId?.let { TrainProjection.TrainTable.organismId.eq(it) } ?: Op.TRUE) and (TrainProjection.TrainTable.deleted eq false)
                     }
                     .map { it.toTrainProjection }
             }
@@ -98,4 +117,3 @@ object TrainApi {
     }
 
 }
-

@@ -8,44 +8,56 @@ import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
 import java.util.UUID
 
 object Device {
 
     object Mqtt {
+
+        //https://github.com/nahueespinosa/salt-firmware/blob/master/data
         @Serializable
-        data class SaltConfig(
-            val velCtOn: Double?,
-            val velCtOff: Double?,
-            val velFeOn: Double?,
-            val velFeHold: Double?,
-            val timeBlinkEnable: Boolean?,
-            val timeBlinkDisable: Boolean?,
-            val blinkPeriod: Boolean?
-        )
+        sealed interface SaltCmd {}
 
         @Serializable
-        enum class SaltAction {
-            STOP,
-            DRIFT,
-            ISOLATED,
-            AUTOMATIC,
-            COUNT
+        @SerialName("cmd")
+        data class SaltActionCmd(
+            val cmd: SaltCommand
+        ) : SaltCmd
+
+        @Serializable
+        @SerialName("config")
+        data class SaltConfigCmd(
+            val parameter: String,
+            val value: JsonPrimitive
+        ) : SaltCmd
+
+        @Serializable
+        enum class SaltCommand {
+            total_stop,
+            drift,
+            automatic,
+            total_isolated,
+            isolated
         }
-
-        //Revisar si puede ser sealed interface
-        @Serializable
-        data class SaltCmd(
-            val action: SaltAction?,
-            val config: SaltConfig?
-        )
 
         @Serializable
         data class SaltState(
-            val config: SaltConfig,
-            val currentAction: SaltAction,
-            val speed: Double
+            val cmd_timeout: Long,
+            val vel: Double? = null,
+            val vel_source: String? = null,
+            val al_mode: Boolean? = null,
+            val publish_period: Int? = null,
+            val cmd: SaltCommand? = null,
+            val vel_ct_on: Double? = null,
+            val vel_ct_off: Double? = null,
+            val vel_fe_on: Double? = null,
+            val time_fe_hold: Long? = null,
+            val time_blink_enable: Long? = null,
+            val time_blink_disable: Long? = null,
+            val period_blink: Int? = null
         )
     }
 
@@ -68,7 +80,8 @@ object Device {
         val createdBy: String,
         val createdAt: Instant,
         val topics: Topics? = null,
-        val deviceState: Mqtt.SaltState? = null
+        val deviceState: Mqtt.SaltState? = null,
+        val deleted: Boolean = false // <--- Added deleted flag
     )
 
     //Metadatos del tren en el que se configuró este device
@@ -103,6 +116,8 @@ object Device {
             val state: Mqtt.SaltState
         ): Command
 
+        @Serializable
+        data class Delete(val deletedBy: String, val deletedAt: Instant): Command // <--- Added Delete command
     }
 
     @Serializable
@@ -123,6 +138,8 @@ object Device {
             val state: Mqtt.SaltState
         ): Event
 
+        @Serializable
+        data class Deleted(val deletedBy: String, val deletedAt: Instant): Event // <--- Added Deleted event
     }
 
     @Serializable
@@ -145,6 +162,10 @@ object Device {
         state?.copy(deviceState = event.state)
     }
 
+    val deletedEventHandler get() = Reducer<State?, Event.Deleted> { state, event ->
+        state?.copy(deleted = true)
+    }
+
     val setStatusHandler get() = CommandMonad.Do<Command.SetStatus, State?, Event, Output> { exit ->
         val state = !getState
         val command = !getCommand
@@ -164,6 +185,21 @@ object Device {
             !exit(Failure("Device does not exist"))
         }
         !emitEvents(Event.StateSet(command.state))
+        Ok
+    }
+
+    val deleteCommandHandler get() = CommandMonad.Do<Command.Delete, State?, Event, Output> { exit ->
+        val state = !getState
+        val command = !getCommand
+        if (state == null) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device does not exist"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device already deleted"))
+        }
+        !emitEvents(Event.Deleted(command.deletedBy, command.deletedAt))
         Ok
     }
 
@@ -200,6 +236,7 @@ object Device {
                 is Command.Create -> !createCommandHandler
                 is Command.SetStatus -> !setStatusHandler
                 is Command.SetState -> !setStateHandler
+                is Command.Delete -> !deleteCommandHandler // <--- Register delete handler
             }
         }
 
@@ -207,7 +244,7 @@ object Device {
         reducerOf(
             Event.Created::class to createdEventHandler,
             Event.StatusSet::class to statusSetEventHandler,
-            Event.StateSet::class to stateSetEventHandler
+            Event.StateSet::class to stateSetEventHandler,
+            Event.Deleted::class to deletedEventHandler // <--- Register deleted event reducer
         )
 }
-

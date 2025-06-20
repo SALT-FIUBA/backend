@@ -7,6 +7,12 @@
         "user": "salt",
         "password": "1234"
       },
+      "neon": {
+        "host": "jdbc:postgresql://ep-jolly-block-acof675a-pooler.sa-east-1.aws.neon.tech/neondb",
+        "driver": "org.postgresql.Driver",
+        "user": "neondb_owner",
+        "password": "npg_3pDIG5lTAtQL"
+      },
       "eventstore": {
         "host": "esdb://localhost:2113?tls=false"
       }

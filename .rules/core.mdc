@@ -1,11 +1,11 @@
 # Project Build Rules for Agentic AI Assistant
 
 ## 1. Command Handlers
-- Defined as `CommandMonad` objects in the domain object (e.g., `Occasion`).
-- Each command (e.g., `CreateOccasion`, `Cancel`) has a corresponding handler (e.g., `handleCreate`, `handleCancel`).
+- Defined as `CommandMonad` objects in the domain object (e.g., `Occasion`, `Organism`).
+- Each command (e.g., `CreateOccasion`, `Cancel`, `DeleteOrganism`) has a corresponding handler (e.g., `handleCreate`, `handleCancel`, `handleDeleteOrganism`).
 - Handlers:
   - Read current state with `!getState`.
-  - Validate business rules (e.g., already exists, status, etc.).
+  - Validate business rules (e.g., already exists, status, deleted flag, etc.).
   - Emit events using `!emitEvents(...)`.
   - Return `Ok` or `Failure(...)` (with `!exit(...)`).
 - All handlers are dispatched in a `commandStateMachine` using a `when` on the command type.
@@ -17,6 +17,7 @@
       !when (command) {
           is Command.CreateOccasion -> handleCreate
           is Command.Cancel -> handleCancel
+          is Command.DeleteOrganism -> handleDeleteOrganism
           // ...other commands
       }
   }
@@ -24,7 +25,7 @@
 
 ## 2. Reducers
 - Defined as `Reducer<State?, EventType>` objects in the domain object.
-- Each event (e.g., `OccasionCreated`, `Cancelled`) has a corresponding reducer (e.g., `handleCreatedEvent`, `handleCancelled`).
+- Each event (e.g., `OccasionCreated`, `Cancelled`, `OrganismDeleted`) has a corresponding reducer (e.g., `handleCreatedEvent`, `handleCancelled`, `handleDeletedEvent`).
 - Reducers:
   - Take the current state and the event.
   - Return the new state (or unchanged if the event is not relevant).
@@ -35,30 +36,33 @@
   val eventReducer: Reducer<State?, Event> = reducerOf(
       Event.OccasionCreated::class to handleCreatedEvent,
       Event.Cancelled::class to handleCancelled,
+      Event.OrganismDeleted::class to handleDeletedEvent,
       // ...other events
   )
   ```
 
 ## 3. Tests
-- Located in `src/test/kotlin/io/kauth/service/occasion/OccasionTest.kt`.
+- Located in `src/test/kotlin/io/kauth/service/<domain>/<DomainTest>.kt` (e.g., `OrganismTest.kt`).
 - Each command and reducer has at least one test.
 - Command Tests:
   - Create a state and a command.
-  - Run the command handler via `Occasion.commandStateMachine.run(cmd, state)`.
+  - Run the command handler via `Domain.commandStateMachine.run(cmd, state)`.
   - Assert on the output and emitted events.
 - Reducer Tests:
   - Create a state and an event.
-  - Run the reducer via `Occasion.eventReducer.run(state, event)`.
+  - Run the reducer via `Domain.eventReducer.run(state, event)`.
   - Assert on the new state.
 - Edge Cases: Tests cover invalid states, business rule violations, and correct event emission.
+- For new commands/events (e.g., `DeleteOrganism`), add happy path and error/edge case tests.
 
 ## 4. API and REST
-- API Layer: Exposes command handlers as functions (e.g., `OccasionApi.Command.cancel(id)`).
-- REST Layer: Maps HTTP endpoints to API commands (e.g., `POST /occasion/{id}/cancel` calls the cancel command).
+- API Layer: Exposes command handlers as functions (e.g., `OrganismApi.Command.delete(id)`).
+- REST Layer: Maps HTTP endpoints to API commands (e.g., `POST /organism/{id}/delete` calls the delete command).
+- All new commands/events should be exposed in both API and REST if relevant.
 
 ## 5. General Rules
 - All commands, events, and state are `@Serializable`.
-- State transitions (e.g., open → cancelled) are managed by reducers.
+- State transitions (e.g., open → cancelled, deleted flag) are managed by reducers.
 - Use domain errors (e.g., `Error.InvalidCommand`) for business rule violations.
 - To add a new command/event:
   1. Add to the sealed interface.
@@ -66,12 +70,38 @@
   3. Register in the state machine and reducer.
   4. Add tests.
   5. Expose in API and REST if needed.
+  6. Update projections and migrations if state shape changes.
 
 ## 6. Projections
 - Projections are read-optimized database views of aggregate state, built from events.
-- Each domain (e.g., Occasion, Notification) has a Projection object (e.g., `OccasionProjection`, `NotificationProjection`).
+- Each domain (e.g., Occasion, Notification, Organism) has a Projection object (e.g., `OccasionProjection`, `NotificationProjection`, `OrganismProjection`).
 - A Projection defines:
   - A Table schema (using Exposed DSL) for storing the projection in SQL.
   - A serializable data class for the projection view.
   - An extension to map DB rows to the projection data class.
-  - A `sql
+  - A `sqlEventHandler` to update the projection from events.
+- When adding a new state field (e.g., `deleted` for soft delete):
+  1. Add the field to the state and projection data class.
+  2. Add the field to the table schema.
+  3. Update the projection mapping and upsert logic.
+  4. Add a migration SQL file to update the DB schema.
+
+## 7. Migrations
+- All schema changes (e.g., new columns) require a migration SQL file in the `migrations/` directory.
+- Migration files are named with a version and description (e.g., `V20250620__add_deleted_column_to_organims.sql`).
+- Example for soft delete:
+  ```sql
+  ALTER TABLE organims ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT FALSE;
+  ```
+
+## 8. Serialization
+- All commands, events, and state classes must be annotated with `@Serializable`.
+- Projections and API/REST DTOs must also be serializable.
+
+## 9. Error Handling
+- Use domain-specific error events (e.g., `Error.InvalidCommand`, `Error.OrganismDoesNotExists`).
+- Command handlers must emit error events and return `Failure` for business rule violations.
+
+## 10. Documentation
+- Update `.rules/core.mdc` and related rule files whenever new patterns, commands, events, or migrations are added.
+- Document new API and REST endpoints, and migration requirements.

@@ -2,6 +2,7 @@ package io.kauth.service.auth
 
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.appStackDbQuery
+import io.kauth.monad.stack.appStackDbQueryAll
 import io.kauth.monad.stack.appStackSqlProjector
 import io.kauth.service.organism.OrganismProjection
 import kotlinx.serialization.Serializable
@@ -49,7 +50,7 @@ object AuthProjection {
             val userId = UUID.fromString(event.retrieveId("user"))
             val state = !AuthApi.Query.readState(userId)?: return@Do
 
-            !appStackDbQuery {
+            !appStackDbQueryAll {
                 User.upsert() {
                     it[id] = userId.toString()
                     it[firstname] = state.personalData.firstName

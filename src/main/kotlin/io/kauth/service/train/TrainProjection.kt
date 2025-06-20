@@ -1,8 +1,6 @@
 package io.kauth.service.train
 
-import io.kauth.monad.stack.AppStack
-import io.kauth.monad.stack.appStackDbQuery
-import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.monad.stack.*
 import io.kauth.service.auth.AuthApi
 import io.kauth.service.salt.DeviceProjection
 import io.kauth.service.train.Train
@@ -27,6 +25,7 @@ object TrainProjection {
         val createdBy = text("created_by").nullable()
         val createdAt = timestamp("created_at")
         val organismId = text("organism_id")
+        val deleted = bool("deleted").default(false)
     }
 
     @Serializable
@@ -37,7 +36,8 @@ object TrainProjection {
         val seriesNumber: String,
         val organismId: String,
         val createdBy: String?,
-        val createdAt: Instant
+        val createdAt: Instant,
+        val deleted: Boolean = false
     )
 
     val ResultRow.toTrainProjection get() =
@@ -49,9 +49,10 @@ object TrainProjection {
             this[TrainTable.organismId],
             this[TrainTable.createdBy],
             this[TrainTable.createdAt],
+            this[TrainTable.deleted]
         )
 
-    val sqlEventHandler = appStackSqlProjector<Train.Event>(
+    val sqlEventHandler = appStackSqlProjectorNeon<Train.Event>(
         streamName = "\$ce-train",
         consumerGroup = "train-sql-projection",
         tables = listOf(TrainTable)
@@ -59,15 +60,16 @@ object TrainProjection {
         AppStack.Do {
             val entity = UUID.fromString(event.retrieveId("train"))
             val state = !TrainApi.Query.readState(entity) ?: return@Do
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 TrainTable.upsert() {
                     it[id] = entity.toString()
+                    it[seriesNumber] = state.seriesNumber
                     it[name] = state.name
                     it[description] = state.description
                     it[createdBy] = state.createdBy
                     it[createdAt] = state.createdAt
-                    it[seriesNumber] = state.seriesNumber
                     it[organismId] = state.organism.toString()
+                    it[deleted] = state.deleted
                 }
             }
         }

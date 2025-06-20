@@ -19,6 +19,7 @@ import io.kauth.service.salt.DeviceProjection
 import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
@@ -85,6 +86,24 @@ object OrganismApi {
 
         }
 
+        fun delete(
+            id: UUID
+        ) = ApiCall.Do {
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
+            allowIf("admin" in jwt.payload.roles) { "Not authorized" }
+            val service = !apiCallGetService<OrganismService.Interface>()
+            log.info("Delete organism $id")
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Organism.Command.DeleteOrganism(
+                        deletedBy = jwt.payload.id,
+                        deletedAt = Clock.System.now()
+                    ),
+                ).toApiCall()
+        }
+
     }
 
     object Query {
@@ -95,9 +114,9 @@ object OrganismApi {
         }
 
         fun organism(id: UUID) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 val data = OrganismTable.selectAll()
-                    .where { OrganismTable.id eq id.toString() }
+                    .where { (OrganismTable.id eq id.toString()) and (OrganismTable.deleted eq false) }
                     .map { it.toOrganismProjection }
                     .firstOrNull()
                 data?.let { it ->
@@ -136,14 +155,15 @@ object OrganismApi {
         }
 
         fun organismsList() = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 OrganismTable.selectAll()
+                    .where { OrganismTable.deleted eq false }
                     .map { it.toOrganismProjection }
             }
         }
 
         fun supervisorList(organism: UUID) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {
                         (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
@@ -154,7 +174,7 @@ object OrganismApi {
         }
 
         fun operatorList(organism: UUID) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {
                         (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
@@ -167,4 +187,3 @@ object OrganismApi {
     }
 
 }
-

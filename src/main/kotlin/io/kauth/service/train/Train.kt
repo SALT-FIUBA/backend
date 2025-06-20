@@ -22,6 +22,7 @@ object Train {
         val description: String,
         val createdBy: String?,
         val createdAt: Instant,
+        val deleted: Boolean = false
     )
 
     @Serializable
@@ -36,6 +37,11 @@ object Train {
             @Contextual
             val organism: UUID
         ): Command
+        @Serializable
+        data class DeleteTrain(
+            val deletedBy: String?,
+            val deletedAt: Instant
+        ): Command
     }
 
     @Serializable
@@ -43,6 +49,11 @@ object Train {
         @Serializable
         data class TrainCreated(
             val state: State
+        ): Event
+        @Serializable
+        data class TrainDeleted(
+            val deletedBy: String?,
+            val deletedAt: Instant
         ): Event
     }
 
@@ -58,6 +69,9 @@ object Train {
     //Reducers
     val handleCreatedEvent get() = Reducer<State?, Event.TrainCreated> { _, event ->
         event.state
+    }
+    val handleDeletedEvent get() = Reducer<State?, Event.TrainDeleted> { state, event ->
+        state?.copy(deleted = true)
     }
 
     val handleCreate get() = CommandMonad.Do<Command.CreateTrain, State?, Event, Output> { exit ->
@@ -95,11 +109,26 @@ object Train {
         Ok
     }
 
+    val handleDelete get() = CommandMonad.Do<Command.DeleteTrain, State?, Event, Output> { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.InvalidCommand("Train does not exist"))
+            !exit(Failure("Train does not exist"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.InvalidCommand("Train already deleted"))
+            !exit(Failure("Train already deleted"))
+        }
+        !emitEvents(Event.TrainDeleted(command.deletedBy, command.deletedAt))
+        Ok
+    }
+
     val commandStateMachine get() =
         CommandMonad.Do<Command, State?, Event, Output> { exit ->
             val command = !getCommand
             !when (command) {
                 is Command.CreateTrain -> handleCreate
+                is Command.DeleteTrain -> handleDelete
             }
         }
 
@@ -107,6 +136,7 @@ object Train {
         get() =
             reducerOf(
                 Event.TrainCreated::class to handleCreatedEvent,
+                Event.TrainDeleted::class to handleDeletedEvent
             )
 
 }

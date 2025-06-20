@@ -68,6 +68,14 @@ object TrainApiRest {
                         call.respond(HttpStatusCode.OK, devices)
                     }
 
+                    post("delete") {
+                        val id = UUID.fromString(call.parameters["id"] ?: throw ApiException("Missing id"))
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            TrainApi.Command.delete(id)
+                        )
+                        call.respond(HttpStatusCode.OK, result)
+                    }
+
                 }
 
 

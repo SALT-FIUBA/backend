@@ -7,6 +7,7 @@ import io.kauth.monad.apicall.runApiCall
 import io.kauth.monad.stack.AppStack
 import io.kauth.serializer.UUIDSerializer
 import io.kauth.service.publisher.PublisherApi
+import io.kauth.service.train.TrainApi
 import io.kauth.util.not
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -33,7 +34,7 @@ object DeviceApiRest {
     data class MqttCommandRequest(
         @Serializable(UUIDSerializer::class)
         val messageId: UUID,
-        val action: Device.Mqtt.SaltAction
+        val cmd: Device.Mqtt.SaltCmd
     )
 
     val api = AppStack.Do {
@@ -68,7 +69,7 @@ object DeviceApiRest {
                         val result = !DeviceApi.sendCommand(
                             UUID.fromString(id),
                             command.messageId,
-                            command.action
+                            command.cmd
                         )
                         call.respond(HttpStatusCode.Created, result)
                     }
@@ -95,6 +96,16 @@ object DeviceApiRest {
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val messages = !DeviceApi.Query.commands(UUID.fromString(id))
                         call.respond(HttpStatusCode.OK, messages)
+                    }
+
+                    post("delete") {
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            DeviceApi.delete(
+                                UUID.fromString(id),
+                            )
+                        )
+                        call.respond(HttpStatusCode.OK, result)
                     }
                 }
 
