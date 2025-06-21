@@ -31,7 +31,7 @@ object DeviceProjection {
         val command_topic = text("command_topic").nullable()
         val status_topic = text("status_topic").nullable()
         val state_topic = text("state_topic").nullable()
-        val deviceState = json<Device.Mqtt.SaltState>("device_state", Json).nullable()
+        val deviceState = json<Device.Mqtt.SaltState>("device_state", Json{ignoreUnknownKeys=true}).nullable()
         val deleted = bool("deleted").default(false)
     }
 

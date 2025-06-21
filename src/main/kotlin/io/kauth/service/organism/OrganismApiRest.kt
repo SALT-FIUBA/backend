@@ -36,6 +36,13 @@ object OrganismApiRest {
         val roles: List<Organism.Role>
     )
 
+    @Serializable
+    data class EditRequest(
+        val tag: String? = null,
+        val name: String? = null,
+        val description: String? = null
+    )
+
     val api = AppStack.Do {
 
         val log = !authStackLog
@@ -100,6 +107,20 @@ object OrganismApiRest {
                             AuthApi.Query.list(
                                 role =
                                     Organism.Role.entries.map { Organism.OrganismRole(it, UUID.fromString(id)).string }
+                            )
+                        )
+                        call.respond(HttpStatusCode.OK, result)
+                    }
+
+                    put("/edit") {
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val req = call.receive<EditRequest>()
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            OrganismApi.Command.edit(
+                                UUID.fromString(id),
+                                tag = req.tag,
+                                name = req.name,
+                                description = req.description
                             )
                         )
                         call.respond(HttpStatusCode.OK, result)

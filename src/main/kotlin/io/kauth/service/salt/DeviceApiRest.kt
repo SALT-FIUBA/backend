@@ -37,6 +37,19 @@ object DeviceApiRest {
         val cmd: Device.Mqtt.SaltCmd
     )
 
+    @Serializable
+    data class EditTrainIdRequest(
+        @Serializable(UUIDSerializer::class)
+        val trainId: UUID
+    )
+
+    @Serializable
+    data class EditRequest(
+        @Serializable(UUIDSerializer::class)
+        val trainId: UUID? = null,
+        val ports: List<String>? = null
+    )
+
     val api = AppStack.Do {
 
         ktor.routing {
@@ -96,6 +109,31 @@ object DeviceApiRest {
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val messages = !DeviceApi.Query.commands(UUID.fromString(id))
                         call.respond(HttpStatusCode.OK, messages)
+                    }
+
+                    put("/edit-train") {
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val req = call.receive<EditTrainIdRequest>()
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            DeviceApi.editTrainId(
+                                UUID.fromString(id),
+                                req.trainId
+                            )
+                        )
+                        call.respond(HttpStatusCode.OK, result)
+                    }
+
+                    put("/edit") {
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val req = call.receive<EditRequest>()
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            DeviceApi.edit(
+                                UUID.fromString(id),
+                                trainId = req.trainId,
+                                ports = req.ports
+                            )
+                        )
+                        call.respond(HttpStatusCode.OK, result)
                     }
 
                     post("delete") {

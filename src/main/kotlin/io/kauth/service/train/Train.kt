@@ -42,6 +42,14 @@ object Train {
             val deletedBy: String?,
             val deletedAt: Instant
         ): Command
+        @Serializable
+        data class EditTrain(
+            val seriesNumber: String? = null,
+            val name: String? = null,
+            val description: String? = null,
+            val editedBy: String?,
+            val editedAt: Instant
+        ): Command
     }
 
     @Serializable
@@ -54,6 +62,14 @@ object Train {
         data class TrainDeleted(
             val deletedBy: String?,
             val deletedAt: Instant
+        ): Event
+        @Serializable
+        data class TrainEdited(
+            val seriesNumber: String,
+            val name: String,
+            val description: String,
+            val editedBy: String?,
+            val editedAt: Instant
         ): Event
     }
 
@@ -72,6 +88,13 @@ object Train {
     }
     val handleDeletedEvent get() = Reducer<State?, Event.TrainDeleted> { state, event ->
         state?.copy(deleted = true)
+    }
+    val handleEditedEvent get() = Reducer<State?, Event.TrainEdited> { state, event ->
+        state?.copy(
+            seriesNumber = event.seriesNumber,
+            name = event.name,
+            description = event.description
+        )
     }
 
     val handleCreate get() = CommandMonad.Do<Command.CreateTrain, State?, Event, Output> { exit ->
@@ -109,7 +132,7 @@ object Train {
         Ok
     }
 
-    val handleDelete get() = CommandMonad.Do<Command.DeleteTrain, State?, Event, Output> { exit ->
+    val handleDeleteTrain get() = CommandMonad.Do<Command.DeleteTrain, State?, Event, Output> { exit ->
         val state = !getState
         if (state == null) {
             !emitEvents(Error.InvalidCommand("Train does not exist"))
@@ -123,12 +146,54 @@ object Train {
         Ok
     }
 
+    val handleEditTrain get() = CommandMonad.Do<Command.EditTrain, State?, Event, Output> { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.InvalidCommand("Train does not exist"))
+            !exit(Failure("Train does not exist"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.InvalidCommand("Train is deleted"))
+            !exit(Failure("Train is deleted"))
+        }
+        val newSeriesNumber = command.seriesNumber ?: state.seriesNumber
+        val newName = command.name ?: state.name
+        val newDescription = command.description ?: state.description
+        if (newSeriesNumber.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid seriesNumber"))
+            !exit(Failure("Invalid empty seriesNumber"))
+        }
+        if (newName.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid name"))
+            !exit(Failure("Invalid empty name"))
+        }
+        if (newDescription.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid description"))
+            !exit(Failure("Invalid empty description"))
+        }
+        if (newSeriesNumber == state.seriesNumber && newName == state.name && newDescription == state.description) {
+            !emitEvents(Error.InvalidCommand("No changes provided"))
+            !exit(Failure("No changes provided"))
+        }
+        !emitEvents(
+            Event.TrainEdited(
+                seriesNumber = newSeriesNumber,
+                name = newName,
+                description = newDescription,
+                editedBy = command.editedBy,
+                editedAt = command.editedAt
+            )
+        )
+        Ok
+    }
+
     val commandStateMachine get() =
         CommandMonad.Do<Command, State?, Event, Output> { exit ->
             val command = !getCommand
             !when (command) {
                 is Command.CreateTrain -> handleCreate
-                is Command.DeleteTrain -> handleDelete
+                is Command.DeleteTrain -> handleDeleteTrain
+                is Command.EditTrain -> handleEditTrain
             }
         }
 
@@ -136,7 +201,8 @@ object Train {
         get() =
             reducerOf(
                 Event.TrainCreated::class to handleCreatedEvent,
-                Event.TrainDeleted::class to handleDeletedEvent
+                Event.TrainDeleted::class to handleDeletedEvent,
+                Event.TrainEdited::class to handleEditedEvent
             )
 
 }

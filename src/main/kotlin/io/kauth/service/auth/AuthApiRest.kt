@@ -8,6 +8,7 @@ import io.kauth.exception.not
 import io.kauth.monad.apicall.KtorCall
 import io.kauth.monad.apicall.runApiCall
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.authStackLog
 import io.kauth.monad.stack.findConfig
 import io.kauth.monad.stack.getService
 import io.kauth.service.auth.AuthService.name
@@ -42,6 +43,7 @@ object AuthApiRest {
 
     val api = AppStack.Do {
 
+        val log = !authStackLog
 
         ktor.routing {
 
@@ -166,11 +168,21 @@ object AuthApiRest {
                             command.password,
                         )
                     )
-                    call.response.cookies.append(Cookie(name = "token", value = result.access, httpOnly = true, secure = false, path = "/"))
+                    call.response.cookies.append(Cookie(
+                        name = "token",
+                        value = result.access,
+                        httpOnly = true,
+                        secure = true,
+                        path = "/",
+                        extensions = mapOf(
+                            "SameSite" to "None"
+                        )
+                    ))
                     call.respond(HttpStatusCode.OK, result)
                 }
 
                 post(path = "/logout") {
+                    log.info("Logout request received")
                     call.response.cookies.append(Cookie(name = "token", value = "", httpOnly = true, secure = false, path = "/"))
                     call.respond(HttpStatusCode.OK)
                 }

@@ -81,6 +81,7 @@ val installKtorPlugins =
                 anyHost()
                 allowMethod(HttpMethod.Get)
                 allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Put)
                 allowMethod(HttpMethod.Options)
                 allowHeader(HttpHeaders.ContentType)
                 allowHeader(HttpHeaders.Authorization)

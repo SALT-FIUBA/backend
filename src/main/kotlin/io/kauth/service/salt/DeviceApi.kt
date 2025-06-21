@@ -121,6 +121,48 @@ object DeviceApi {
         deviceId
     }
 
+    fun editTrainId(
+        deviceId: UUID,
+        trainId: UUID
+    ) = ApiCall.Do {
+        val jwt = !apiCallJwt
+        val log = !apiCallLog
+        log.info("Edit device $deviceId trainId to $trainId")
+        val service = !apiCallGetService<DeviceService.Interface>()
+        !service.command
+            .handle(deviceId)
+            .throwOnFailureHandler(
+                Device.Command.EditDevice(
+                    trainId = trainId,
+                    editedBy = jwt.payload.id,
+                    editedAt = Clock.System.now()
+                ),
+            ).toApiCall()
+        deviceId
+    }
+
+    fun edit(
+        deviceId: UUID,
+        trainId: UUID? = null,
+        ports: List<String>? = null
+    ) = ApiCall.Do {
+        val jwt = !apiCallJwt
+        val log = !apiCallLog
+        log.info("Edit device $deviceId trainId=$trainId ports=$ports")
+        val service = !apiCallGetService<DeviceService.Interface>()
+        !service.command
+            .handle(deviceId)
+            .throwOnFailureHandler(
+                Device.Command.EditDevice(
+                    trainId = trainId,
+                    ports = ports,
+                    editedBy = jwt.payload.id,
+                    editedAt = Clock.System.now()
+                ),
+            ).toApiCall()
+        deviceId
+    }
+
     object Query {
 
         fun readState(id: UUID) = AppStack.Do {

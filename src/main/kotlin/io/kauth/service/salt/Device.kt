@@ -45,7 +45,7 @@ object Device {
 
         @Serializable
         data class SaltState(
-            val cmd_timeout: Long,
+            val cmd_timeout: Long? = null,
             val vel: Double? = null,
             val vel_source: String? = null,
             val al_mode: Boolean? = null,
@@ -118,6 +118,14 @@ object Device {
 
         @Serializable
         data class Delete(val deletedBy: String, val deletedAt: Instant): Command // <--- Added Delete command
+
+        @Serializable
+        data class EditDevice(
+            @Contextual val trainId: UUID? = null,
+            val ports: List<String>? = null,
+            val editedBy: String,
+            val editedAt: Instant
+        ): Command
     }
 
     @Serializable
@@ -140,6 +148,14 @@ object Device {
 
         @Serializable
         data class Deleted(val deletedBy: String, val deletedAt: Instant): Event // <--- Added Deleted event
+
+        @Serializable
+        data class DeviceEdited(
+            @Contextual val trainId: UUID?,
+            val ports: List<String>?,
+            val editedBy: String,
+            val editedAt: Instant
+        ): Event
     }
 
     @Serializable
@@ -150,20 +166,29 @@ object Device {
         object DeviceDoesNotExists: Error
     }
 
-    val createdEventHandler get() = Reducer<State?, Event.Created> { state, event ->
-        event.device
-    }
-
-    val statusSetEventHandler get() = Reducer<State?, Event.StatusSet> { state, event ->
-        state?.copy(status = event.status)
-    }
-
-    val stateSetEventHandler get() = Reducer<State?, Event.StateSet> { state, event ->
-        state?.copy(deviceState = event.state)
-    }
-
-    val deletedEventHandler get() = Reducer<State?, Event.Deleted> { state, event ->
-        state?.copy(deleted = true)
+    val editDeviceHandler get() = CommandMonad.Do<Command.EditDevice, State?, Event, Output> { exit ->
+        val state = !getState
+        val command = !getCommand
+        if (state == null) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device does not exist"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device already deleted"))
+        }
+        val newTrainId = command.trainId ?: state.trainId
+        val newPorts = command.ports ?: state.ports
+        if (newPorts.isEmpty()) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Ports cannot be empty"))
+        }
+        if (newTrainId == state.trainId && newPorts == state.ports) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("No change in trainId or ports"))
+        }
+        !emitEvents(Event.DeviceEdited(newTrainId, newPorts, command.editedBy, command.editedAt))
+        Ok
     }
 
     val setStatusHandler get() = CommandMonad.Do<Command.SetStatus, State?, Event, Output> { exit ->
@@ -229,22 +254,46 @@ object Device {
         Ok
     }
 
-    val commandStateMachine get() =
-        CommandMonad.Do<Command, State?, Event, Output> {
-            val command = !getCommand
-            when(command) {
-                is Command.Create -> !createCommandHandler
-                is Command.SetStatus -> !setStatusHandler
-                is Command.SetState -> !setStateHandler
-                is Command.Delete -> !deleteCommandHandler // <--- Register delete handler
-            }
+    val commandStateMachine get() = CommandMonad.Do<Command, State?, Event, Output> { exit ->
+        val command = !getCommand
+        !when (command) {
+            is Command.Create -> createCommandHandler
+            is Command.SetStatus -> setStatusHandler
+            is Command.SetState -> setStateHandler
+            is Command.Delete -> deleteCommandHandler
+            is Command.EditDevice -> editDeviceHandler
         }
+    }
 
-    val eventReducer get() =
-        reducerOf(
-            Event.Created::class to createdEventHandler,
-            Event.StatusSet::class to statusSetEventHandler,
-            Event.StateSet::class to stateSetEventHandler,
-            Event.Deleted::class to deletedEventHandler // <--- Register deleted event reducer
+    val createdEventHandler get() = Reducer<State?, Event.Created> { state, event ->
+        event.device
+    }
+
+    val statusSetEventHandler get() = Reducer<State?, Event.StatusSet> { state, event ->
+        state?.copy(status = event.status)
+    }
+
+    val stateSetEventHandler get() = Reducer<State?, Event.StateSet> { state, event ->
+        state?.copy(deviceState = event.state)
+    }
+
+
+    val deletedEventHandler get() = Reducer<State?, Event.Deleted> { state, event ->
+        state?.copy(deleted = true)
+    }
+
+    val deviceEditedEventHandler get() = Reducer<State?, Event.DeviceEdited> { state, event ->
+        state?.copy(
+            trainId = event.trainId,
+            ports = event.ports ?: state.ports
         )
+    }
+
+    val eventReducer: Reducer<State?, Event> = reducerOf(
+        Event.Created::class to createdEventHandler,
+        Event.StatusSet::class to statusSetEventHandler,
+        Event.StateSet::class to stateSetEventHandler,
+        Event.Deleted::class to deletedEventHandler,
+        Event.DeviceEdited::class to deviceEditedEventHandler
+    )
 }

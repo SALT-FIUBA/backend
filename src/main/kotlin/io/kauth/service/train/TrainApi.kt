@@ -84,6 +84,30 @@ object TrainApi {
                 ).toApiCall()
         }
 
+        fun edit(
+            id: UUID,
+            seriesNumber: String? = null,
+            name: String? = null,
+            description: String? = null
+        ) = ApiCall.Do {
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
+            // Add authorization as needed
+            val service = !apiCallGetService<TrainService.Interface>()
+            log.info("Edit train $id")
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Train.Command.EditTrain(
+                        seriesNumber = seriesNumber,
+                        name = name,
+                        description = description,
+                        editedBy = jwt.payload.id,
+                        editedAt = Clock.System.now()
+                    ),
+                ).toApiCall()
+        }
+
     }
 
     object Query {

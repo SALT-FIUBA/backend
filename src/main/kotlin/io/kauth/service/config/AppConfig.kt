@@ -19,7 +19,7 @@ data class Infra(
 @Serializable
 data class Db(
     val postgres: Postgres,
-    val neon: Postgres?,
+    val neon: Postgres? = null,
     val eventstore: Eventstore
 )
 

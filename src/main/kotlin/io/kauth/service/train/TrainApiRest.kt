@@ -30,6 +30,13 @@ object TrainApiRest {
         val organism: UUID
     )
 
+    @Serializable
+    data class EditRequest(
+        val seriesNumber: String? = null,
+        val name: String? = null,
+        val description: String? = null
+    )
+
     val api = AppStack.Do {
 
         ktor.routing {
@@ -66,6 +73,20 @@ object TrainApiRest {
                         val id = call.parameters["id"] ?: !ApiException("Id Not found")
                         val devices = !DeviceApi.Query.list(trainId = id)
                         call.respond(HttpStatusCode.OK, devices)
+                    }
+
+                    put("/edit") {
+                        val id = call.parameters["id"] ?: !ApiException("Id Not found")
+                        val req = call.receive<EditRequest>()
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            TrainApi.Command.edit(
+                                UUID.fromString(id),
+                                seriesNumber = req.seriesNumber,
+                                name = req.name,
+                                description = req.description
+                            )
+                        )
+                        call.respond(HttpStatusCode.OK, result)
                     }
 
                     post("delete") {

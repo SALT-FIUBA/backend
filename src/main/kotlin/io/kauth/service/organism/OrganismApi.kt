@@ -104,6 +104,30 @@ object OrganismApi {
                 ).toApiCall()
         }
 
+        fun edit(
+            id: UUID,
+            tag: String? = null,
+            name: String? = null,
+            description: String? = null
+        ) = ApiCall.Do {
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
+            allowIf("admin" in jwt.payload.roles) { "Not authorized" }
+            val service = !apiCallGetService<OrganismService.Interface>()
+            log.info("Edit organism $id")
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Organism.Command.EditOrganism(
+                        tag = tag,
+                        name = name,
+                        description = description,
+                        editedBy = jwt.payload.id,
+                        editedAt = Clock.System.now()
+                    ),
+                ).toApiCall()
+        }
+
     }
 
     object Query {
