@@ -1,183 +1,85 @@
-TODO
-====
-
-
-+ Set up pulsar client
-+ Pulsar service parecido a mqtt, subscription service?
-+ Enable message service on tuya
-
-
-
-
-
-
-kauth
-=====
-
-MVP of auth service with eventsorurcing using eventsoredb an open source event sotre
-
-
-Optimistic updates
-
-
-Snapshoting
-===========
-
-+ Setup secure EventStore to have users and ACL
-  https://developers.eventstore.com/server/v22.10/installation.html#use-docker-compose
-
-
-https://www.eventstore.com/blog/snapshots-in-event-sourcing
-https://www.eventstore.com/blog/snapshotting-strategies
-
-
-Metrics
-=======
-
-https://ktor.io/docs/micrometer-metrics.html#prometheus_endpoint
-https://medium.com/@math21/how-to-monitor-a-ktor-server-using-grafana-bab54a9ac0dc
-https://docs.micrometer.io/micrometer/reference/implementations/prometheus.html
-https://github.com/mathias21/KtorEasy/blob/feature/monitoring/KtorEasyGrafanaDashboard.json
-
-Domains FREE
-============
-
-https://freedns.afraid.org/
-Domain -> saltautomation.chickenkiller.com
-
-SSL Certbot 
-===========
-
-https://pentacent.medium.com/nginx-and-lets-encrypt-with-docker-in-less-than-5-minutes-b4b8a60d3a71
-https://leangaurav.medium.com/simplest-https-setup-nginx-reverse-proxy-letsencrypt-ssl-certificate-aws-cloud-docker-4b74569b3c61
-
-Docker 
-======
-
-Exportar imagen docker a un tar:
-
-> docker save -o ./salt-server.tar salt-server:0.0.1-preview
-
-Port Knocking
-=============
-
-TODO
-
-Installations
-=============
-
-Docker->https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-20-04
-Docker-compose -> https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-compose-on-ubuntu-20-04
-
-Type classes & context receivers
-================================
-
-https://blog.rockthejvm.com/kotlin-type-classes/
-
-Mqtt integration
-================
-[Arquitectura](https://excalidraw.com/#room=3a9874700d8b76e32c61,l_QWfLG-qK3TJQ-p5h42Sg)
-
-References
-==========
-
-https://github.com/EventStore/EventStoreDB-Client-Java
-
-https://developers.eventstore.com/server/v23.10/installation.html#use-docker-compose
-
-https://ktor.io/
-
-https://github.com/eugene-khyst/eventstoredb-event-sourcing
-https://github.com/eugene-khyst/ksqldb-event-souring
-https://github.com/eugene-khyst/postgresql-event-sourcing/tree/main/postgresql-event-sourcing-core/src/main/java/eventsourcing/postgresql
-
-https://cqrs.wordpress.com/documents/building-event-storage/
-
-
-https://www.zilverline.com/blog/simple-event-sourcing-users-authentication-authorization-part-6
-https://discuss.eventstore.com/t/how-to-deal-with-unicity-constraints-over-repository/1900/4
-
-https://www.zilverline.com/blog/simple-event-sourcing-users-authentication-authorization-part-6
-
-Mosquitto Broker  --------------> https://github.com/sukesh-ak/setup-mosquitto-with-docker?tab=readme-ov-file
-
-
-SalT
-====
-
-Stauts (Birth, LastWill) -> ONLINE | OFFLINE
-
-Commando -> https://github.com/nahueespinosa/salt-firmware/blob/master/salt/parser/saltCmd/saltCmd.h#L90
-
-
-Estado -> https://github.com/nahueespinosa/salt-firmware/blob/master/salt/logic/logic.h#L128
-
-type SaltConfg = {
-    velCtOn: Double?
-    velCtOff: Double?
-    velFeOn: Double?
-    velFeHold: Double?
-    timeBlinkEnable Boolean?
-    timeBlinkDisable: Boolen?
-    blinkPeriod Boolean?
-}
-
-type SaltCmd = 
-    SALT_CMD_ORDER_STOP      |
-    SALT_CMD_ORDER_DRIFT     |
-    SALT_CMD_ORDER_ISOLATED  |
-    SALT_CMD_ORDER_AUTOMATIC |
-    SALT_CMD_ORDER_COUNT     |
-    SALT_CMD_ORDER_NULL    
-
-type SaltCmd = {
-   cmd: SaltCmd?
-   config: SaltConfig?
-}
-
-type SaltState = {
-    config: SaltConfig
-    currentCommand: SaltCmd
-    speed: {
-        source: string
-        value: Double
-    }
-}
-
-
-
-Superbase
-=========
-
-Base de datos admnistrada con plan gratiuto. El plan es bastante lento
-+ https://supabase.com/dashboard/project/lhntbqmcduobfsewofbf/editor/17327?schema=public
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# KAuth Event Sourcing Service
+
+## Overview
+KAuth is an MVP authentication and device management service built with event sourcing principles. It uses EventStoreDB as the event store and supports optimistic updates, snapshotting, and CQRS-style projections. The system is designed for extensibility, supporting domains like Organism, Train, Device, and more.
+
+## Architecture
+- **Event Sourcing:** All state changes are captured as events. State is rebuilt by replaying events.
+- **CQRS:** Commands mutate state via command handlers; queries use projections for fast reads.
+- **Kotlin + Ktor:** The backend is written in Kotlin using the Ktor framework for HTTP APIs.
+- **EventStoreDB:** Used as the event store for all domain events.
+- **PostgreSQL:** Used for projections and read models.
+- **Docker:** All services can be run in containers for easy local development and deployment.
+
+## Domains
+- **Organism:** Represents an organization or logical group. Supports creation, editing, soft deletion, and user role management.
+- **Train:** Represents a train entity, linked to an organism. Supports creation, editing, and soft deletion.
+- **Device:** Represents a device, linked to a train. Supports creation, editing (trainId and ports), and soft deletion.
+
+## Getting Started
+### Prerequisites
+- Docker & Docker Compose
+- Java 17+
+- Gradle (or use the provided wrapper)
+
+### Running Locally
+1. **Clone the repository:**
+   ```sh
+   git clone <repo-url>
+   cd kauth-event-sourcing
+   ```
+2. **Start dependencies:**
+   ```sh
+   docker-compose up -d
+   ```
+3. **Build the project:**
+   ```sh
+   ./gradlew build
+   ```
+4. **Run the service:**
+   ```sh
+   ./gradlew run
+   ```
+
+### Running Tests
+```sh
+./gradlew test
+```
+
+## API Overview
+- REST endpoints are exposed via Ktor (see `OrganismApiRest.kt`, `TrainApiRest.kt`, `DeviceApiRest.kt`).
+- Main endpoints:
+  - `POST /organism/create` — Create an organism
+  - `PUT /organism/{id}/edit` — Edit organism (partial updates supported)
+  - `POST /train/create` — Create a train
+  - `PUT /train/{id}/edit` — Edit train (partial updates supported)
+  - `POST /device/create` — Create a device
+  - `PUT /device/{id}/edit` — Edit device (partial updates for trainId and ports)
+- See the source files for full endpoint details and request/response formats.
+
+## Development Guide
+- **Adding a Command/Event:**
+  1. Add to the sealed interface in the domain object.
+  2. Implement the handler and reducer.
+  3. Register in the command state machine and event reducer.
+  4. Add tests (see `src/test/kotlin/io/kauth/service/<domain>/<DomainTest>.kt`).
+  5. Expose in API and REST if needed.
+  6. Update projections and migrations if state shape changes.
+- **Projections:**
+  - Each domain has a projection object and SQL table.
+  - Update the projection and add a migration if you change the state shape.
+- **Migrations:**
+  - Place migration SQL files in the `migrations/` directory.
+  - Name them with a version and description (e.g., `V20250620__add_deleted_column_to_organims.sql`).
+
+## References & Further Reading
+- [EventStoreDB Docs](https://developers.eventstore.com/server/v23.10/installation.html#use-docker-compose)
+- [Ktor](https://ktor.io/)
+- [Event Sourcing Patterns](https://cqrs.wordpress.com/documents/building-event-storage/)
+- [Simple Event Sourcing Auth Example](https://www.zilverline.com/blog/simple-event-sourcing-users-authentication-authorization-part-6)
+- [Snapshotting Strategies](https://www.eventstore.com/blog/snapshotting-strategies)
+- [Monitoring Ktor with Grafana](https://medium.com/@math21/how-to-monitor-a-ktor-server-using-grafana-bab54a9ac0dc)
+
+---
+
+For more details, see the `.rules/` directory for project conventions and best practices.
