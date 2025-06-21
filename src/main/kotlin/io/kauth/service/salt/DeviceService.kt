@@ -16,6 +16,9 @@ import java.util.*
 object DeviceService : AppService {
 
     val STREAM_NAME = "device"
+
+    override val name = STREAM_NAME
+
     val STREAM_PREFIX = "$STREAM_NAME-"
     val SNAPSHOT_STREAM_PREFIX = "device_snapshot-"
     val UUID.streamName get() = STREAM_PREFIX + this.toString()

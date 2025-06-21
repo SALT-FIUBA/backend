@@ -33,7 +33,7 @@ data class Property(
     val dp_id: Int,
     val time: Long,
     val type: String,
-    val value: JsonPrimitive
+    val value: JsonPrimitive? = null
 )
 
 @Serializable
@@ -138,6 +138,7 @@ data class DeviceModel(
             enum class AccessMode {
                 rw,
                 ro,
+                wr
             }
 
             @Serializable
@@ -167,12 +168,18 @@ data class DeviceModel(
                     val min: Int,
                     val scale: Int,
                     val step: Int,
-                    val unit: String
+                    val unit: String = ""
                 ): TypeSpecification()
 
                 @Serializable
                 @SerialName("string")
                 data class StringValue(
+                    val maxlen: Int
+                ): TypeSpecification()
+
+                @Serializable
+                @SerialName("raw")
+                data class RawValue(
                     val maxlen: Int
                 ): TypeSpecification()
 

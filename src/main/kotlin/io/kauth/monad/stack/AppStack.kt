@@ -1,5 +1,6 @@
 package io.kauth.monad.stack
 
+import io.kauth.abstractions.forever
 import io.kauth.client.eventStore.EventStoreClientPersistenceSubs
 import io.kauth.client.eventStore.model.Event
 import io.kauth.client.eventStore.subscribeToStream
@@ -47,6 +48,13 @@ data class AppStack<T>(
             )
     }
 }
+
+fun <T> AppStack<T>.appStackForever(): AppStack<T> =
+    AppStack.Do {
+        !forever {
+            !this@appStackForever
+        }
+    }
 
 fun <T> AppStack<T>.catching(): AppStack<Result<T>> =
     AppStack.Do {
@@ -110,6 +118,17 @@ fun <T> appStackDbQuery(block: Async<T>): AppStack<T> =
         newSuspendedTransaction(Dispatchers.IO, db = db) { !block }
     }
 
+fun <T> appStackDbQueryNeon(block: Async<T>): AppStack<T> =
+    AppStack.Do {
+        newSuspendedTransaction(Dispatchers.IO, db = neonDb ?: db) { !block }
+    }
+
+fun <T> appStackDbQueryAll(block: Async<T>): AppStack<T> =
+    AppStack.Do {
+        !appStackDbQuery(block)
+        !appStackDbQueryNeon(block)
+    }
+
 inline fun <reified T> appStackSqlProjector(
     streamName: String,
     consumerGroup: String,
@@ -117,6 +136,39 @@ inline fun <reified T> appStackSqlProjector(
     crossinline onEvent: (Event<T>) -> AppStack<Unit>
 ) = AppStack.Do {
     !appStackDbQuery {
+        tables.forEach {
+            SchemaUtils.create(it)
+        }
+    }
+    !appStackEventHandler<T>(streamName, consumerGroup, onEvent)
+}
+
+inline fun <reified T> appStackSqlProjectorNeon(
+    streamName: String,
+    consumerGroup: String,
+    tables: List<Table>,
+    crossinline onEvent: (Event<T>) -> AppStack<Unit>
+) = AppStack.Do {
+    !appStackDbQueryNeon {
+        tables.forEach {
+            SchemaUtils.create(it)
+        }
+    }
+    !appStackEventHandler<T>(streamName, consumerGroup, onEvent)
+}
+
+inline fun <reified T> appStackSqlProjectorAll(
+    streamName: String,
+    consumerGroup: String,
+    tables: List<Table>,
+    crossinline onEvent: (Event<T>) -> AppStack<Unit>
+) = AppStack.Do {
+    !appStackDbQuery {
+        tables.forEach {
+            SchemaUtils.create(it)
+        }
+    }
+    !appStackDbQueryNeon {
         tables.forEach {
             SchemaUtils.create(it)
         }
@@ -155,7 +207,9 @@ fun Application.runAppStack(stack: AppStack<*>) {
         }
     }
 
-    val config = json.decodeFromString<AppConfig>(readFromResources("config/config.json"))
+    val env = System.getenv("environment") ?: "local"
+
+    val config = json.decodeFromString<AppConfig>(readFromResources("config/${env}/config.json"))
 
     val dbConfig = config.infra.db.postgres
 
@@ -167,11 +221,24 @@ fun Application.runAppStack(stack: AppStack<*>) {
         password = dbConfig.password,
     )
 
+    val neonConfig = config.infra.db.neon
+
+    val neonDb =
+        if (neonConfig != null)
+            Database.connect(
+                url = neonConfig.host,
+                driver = neonConfig.driver,
+                user = neonConfig.user,
+                password = neonConfig.password,
+            )
+        else null
+
     val context = AppContext(
         ktor = this,
         serialization = json,
         services = !MutableClassMap.new,
         db = db,
+        neonDb = neonDb,
         appConfig = config
     )
 

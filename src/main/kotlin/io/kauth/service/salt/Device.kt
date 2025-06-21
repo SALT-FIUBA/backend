@@ -8,43 +8,56 @@ import io.kauth.abstractions.result.Output
 import io.kauth.monad.state.CommandMonad
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Contextual
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
 import java.util.UUID
 
 object Device {
 
     object Mqtt {
+
+        //https://github.com/nahueespinosa/salt-firmware/blob/master/data
         @Serializable
-        data class SaltConfig(
-            val velCtOn: Double?,
-            val velCtOff: Double?,
-            val velFeOn: Double?,
-            val velFeHold: Double?,
-            val timeBlinkEnable: Boolean?,
-            val timeBlinkDisable: Boolean?,
-            val blinkPeriod: Boolean?
-        )
+        sealed interface SaltCmd {}
 
         @Serializable
-        enum class SaltAction {
-            STOP,
-            DRIFT,
-            ISOLATED,
-            AUTOMATIC,
-            COUNT
+        @SerialName("cmd")
+        data class SaltActionCmd(
+            val cmd: SaltCommand
+        ) : SaltCmd
+
+        @Serializable
+        @SerialName("config")
+        data class SaltConfigCmd(
+            val parameter: String,
+            val value: JsonPrimitive
+        ) : SaltCmd
+
+        @Serializable
+        enum class SaltCommand {
+            total_stop,
+            drift,
+            automatic,
+            total_isolated,
+            isolated
         }
 
         @Serializable
-        data class SaltCmd(
-            val action: SaltAction?,
-            val config: SaltConfig?
-        )
-
-        @Serializable
         data class SaltState(
-            val config: SaltConfig,
-            val currentAction: SaltAction,
-            val speed: Double
+            val cmd_timeout: Long? = null,
+            val vel: Double? = null,
+            val vel_source: String? = null,
+            val al_mode: Boolean? = null,
+            val publish_period: Int? = null,
+            val cmd: SaltCommand? = null,
+            val vel_ct_on: Double? = null,
+            val vel_ct_off: Double? = null,
+            val vel_fe_on: Double? = null,
+            val time_fe_hold: Long? = null,
+            val time_blink_enable: Long? = null,
+            val time_blink_disable: Long? = null,
+            val period_blink: Int? = null
         )
     }
 
@@ -58,14 +71,17 @@ object Device {
     @Serializable
     data class State(
         @Contextual
-        val organismId: UUID,
+        val organismId: UUID? = null,
+        @Contextual
+        val trainId: UUID? = null,
         val seriesNumber: String,
         val ports: List<String>,
         val status: String?,
         val createdBy: String,
         val createdAt: Instant,
         val topics: Topics? = null,
-        val deviceState: Mqtt.SaltState? = null
+        val deviceState: Mqtt.SaltState? = null,
+        val deleted: Boolean = false // <--- Added deleted flag
     )
 
     //Metadatos del tren en el que se configuró este device
@@ -80,7 +96,9 @@ object Device {
         @Serializable
         data class Create(
             @Contextual
-            val organismId: UUID,
+            val organismId: UUID? = null,
+            @Contextual
+            val trainId: UUID? = null,
             val seriesNumber: String,
             val ports: List<String>,
             val createdBy: String,
@@ -93,6 +111,21 @@ object Device {
             val status: String
         ): Command
 
+        @Serializable
+        data class SetState(
+            val state: Mqtt.SaltState
+        ): Command
+
+        @Serializable
+        data class Delete(val deletedBy: String, val deletedAt: Instant): Command // <--- Added Delete command
+
+        @Serializable
+        data class EditDevice(
+            @Contextual val trainId: UUID? = null,
+            val ports: List<String>? = null,
+            val editedBy: String,
+            val editedAt: Instant
+        ): Command
     }
 
     @Serializable
@@ -108,6 +141,21 @@ object Device {
             val status: String
         ): Event
 
+        @Serializable
+        data class StateSet(
+            val state: Mqtt.SaltState
+        ): Event
+
+        @Serializable
+        data class Deleted(val deletedBy: String, val deletedAt: Instant): Event // <--- Added Deleted event
+
+        @Serializable
+        data class DeviceEdited(
+            @Contextual val trainId: UUID?,
+            val ports: List<String>?,
+            val editedBy: String,
+            val editedAt: Instant
+        ): Event
     }
 
     @Serializable
@@ -118,12 +166,29 @@ object Device {
         object DeviceDoesNotExists: Error
     }
 
-    val createdEventHandler get() = Reducer<State?, Event.Created> { state, event ->
-        event.device
-    }
-
-    val statusSetEventHandler get() = Reducer<State?, Event.StatusSet> { state, event ->
-        state?.copy(status = event.status)
+    val editDeviceHandler get() = CommandMonad.Do<Command.EditDevice, State?, Event, Output> { exit ->
+        val state = !getState
+        val command = !getCommand
+        if (state == null) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device does not exist"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device already deleted"))
+        }
+        val newTrainId = command.trainId ?: state.trainId
+        val newPorts = command.ports ?: state.ports
+        if (newPorts.isEmpty()) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Ports cannot be empty"))
+        }
+        if (newTrainId == state.trainId && newPorts == state.ports) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("No change in trainId or ports"))
+        }
+        !emitEvents(Event.DeviceEdited(newTrainId, newPorts, command.editedBy, command.editedAt))
+        Ok
     }
 
     val setStatusHandler get() = CommandMonad.Do<Command.SetStatus, State?, Event, Output> { exit ->
@@ -134,6 +199,32 @@ object Device {
             !exit(Failure("Device already exists"))
         }
         !emitEvents(Event.StatusSet(command.status))
+        Ok
+    }
+
+    val setStateHandler get() = CommandMonad.Do<Command.SetState, State?, Event, Output> { exit ->
+        val state = !getState
+        val command = !getCommand
+        if (state == null) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device does not exist"))
+        }
+        !emitEvents(Event.StateSet(command.state))
+        Ok
+    }
+
+    val deleteCommandHandler get() = CommandMonad.Do<Command.Delete, State?, Event, Output> { exit ->
+        val state = !getState
+        val command = !getCommand
+        if (state == null) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device does not exist"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.DeviceDoesNotExists)
+            !exit(Failure("Device already deleted"))
+        }
+        !emitEvents(Event.Deleted(command.deletedBy, command.deletedAt))
         Ok
     }
 
@@ -148,6 +239,7 @@ object Device {
 
         val data =
             State(
+                trainId = command.trainId,
                 organismId = command.organismId,
                 seriesNumber = command.seriesNumber,
                 ports = command.ports,
@@ -162,19 +254,46 @@ object Device {
         Ok
     }
 
-    val commandStateMachine get() =
-        CommandMonad.Do<Command, State?, Event, Output> {
-            val command = !getCommand
-            when(command) {
-                is Command.Create -> !createCommandHandler
-                is Command.SetStatus -> !setStatusHandler
-            }
+    val commandStateMachine get() = CommandMonad.Do<Command, State?, Event, Output> { exit ->
+        val command = !getCommand
+        !when (command) {
+            is Command.Create -> createCommandHandler
+            is Command.SetStatus -> setStatusHandler
+            is Command.SetState -> setStateHandler
+            is Command.Delete -> deleteCommandHandler
+            is Command.EditDevice -> editDeviceHandler
         }
+    }
 
-    val eventReducer get() =
-        reducerOf(
-            Event.Created::class to createdEventHandler,
-            Event.StatusSet::class to statusSetEventHandler
+    val createdEventHandler get() = Reducer<State?, Event.Created> { state, event ->
+        event.device
+    }
+
+    val statusSetEventHandler get() = Reducer<State?, Event.StatusSet> { state, event ->
+        state?.copy(status = event.status)
+    }
+
+    val stateSetEventHandler get() = Reducer<State?, Event.StateSet> { state, event ->
+        state?.copy(deviceState = event.state)
+    }
+
+
+    val deletedEventHandler get() = Reducer<State?, Event.Deleted> { state, event ->
+        state?.copy(deleted = true)
+    }
+
+    val deviceEditedEventHandler get() = Reducer<State?, Event.DeviceEdited> { state, event ->
+        state?.copy(
+            trainId = event.trainId,
+            ports = event.ports ?: state.ports
         )
+    }
 
+    val eventReducer: Reducer<State?, Event> = reducerOf(
+        Event.Created::class to createdEventHandler,
+        Event.StatusSet::class to statusSetEventHandler,
+        Event.StateSet::class to stateSetEventHandler,
+        Event.Deleted::class to deletedEventHandler,
+        Event.DeviceEdited::class to deviceEditedEventHandler
+    )
 }

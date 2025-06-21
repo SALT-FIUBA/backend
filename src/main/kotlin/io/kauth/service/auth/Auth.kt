@@ -18,11 +18,11 @@ import javax.crypto.spec.PBEKeySpec
 
 object Auth {
 
-
     @Serializable
     data class User(
         val email: String,
-        val credentials: Credentials,
+        val credentials: Credentials?,
+        val credentialSource: CredentialSource? = null,
         val personalData: PersonalData,
         val loginCount: Int? = null,
         val roles: List<String> = emptyList(),
@@ -88,13 +88,21 @@ object Auth {
     }
 
     @Serializable
-    data class Credentials(
+    sealed interface CredentialSource
+
+    @Serializable
+    data class Credentials( //TODO: Sealed class, Google, Password, etc!
         @Serializable(ByteStringBase64Serializer::class)
         val passwordHash: ByteString,
         @Serializable(ByteStringBase64Serializer::class)
         val salt: ByteString,
         val algorithm: HashAlgorithm
-    )
+    ) : CredentialSource
+
+    @Serializable
+    data class Google(
+        val googleId: String
+    ) : CredentialSource
 
     //Esto lo queremos logear en el eventStore ?
     @Serializable
@@ -103,7 +111,8 @@ object Auth {
         @Serializable
         data class CreateUser(
             val email: String,
-            val credentials: Credentials,
+            val credentials: Credentials?,
+            val credentialSource: CredentialSource? = null,
             val personalData: User.PersonalData,
             val roles: List<String> = emptyList(),
             @Contextual
@@ -118,9 +127,13 @@ object Auth {
         @Serializable
         data class UserLogin(
             @Serializable(ByteStringBase64Serializer::class)
-            val passwordHash: ByteString
+            val passwordHash: ByteString?
         ): Command
 
+        @Serializable
+        data class AddRoles(
+            val roles: List<String>,
+        ): Command
 
     }
 
@@ -140,11 +153,14 @@ object Auth {
         @Serializable
         data class UserLoggedIn(
             @Serializable(ByteStringBase64Serializer::class)
-            val passwordHash: ByteString,
+            val passwordHash: ByteString?,
             val success: Boolean
         ) : UserEvent
 
-
+        @Serializable
+        data class RolesAdded(
+            val roles: List<String>
+        ) : UserEvent
     }
 
     @Serializable
@@ -159,7 +175,6 @@ object Auth {
         val refresh: String?
     )
 
-
     val handleUserLoggedIn get() = Reducer<User?, UserEvent.UserLoggedIn> { state, event ->
         state?.copy(loginCount = state.loginCount?.let { it + 1 } ?: 0)
     }
@@ -168,16 +183,28 @@ object Auth {
         state?.copy(personalData = event.personalData)
     }
 
+    val handleRolesAdded get() = Reducer<User?, UserEvent.RolesAdded> { state, event ->
+        state?.copy(roles = (state.roles) + event.roles)
+    }
+
     val handleCreatedUser get() = Reducer<User?, UserEvent.UserCreated> { state, event ->
         event.user
     }
 
+    val handleAddRoles get() = CommandMonad.Do<Command.AddRoles, User?, UserEvent, Output> { exit ->
+        !getState ?: !exit(Failure("User does not exists"))
+        !emitEvents(UserEvent.RolesAdded(command.roles))
+        Ok
+    }
+
     val handleUserLogin get() = CommandMonad.Do<Command.UserLogin, User?, UserEvent, Output> { exit ->
         val state = !getState ?: !exit(Failure("User does not exists"))
-        if(state.credentials.passwordHash != command.passwordHash) {
+
+        if((state.credentials?: state.credentialSource as? Credentials)?.passwordHash != command.passwordHash) {
             !emitEvents(UserEvent.UserLoggedIn(passwordHash = command.passwordHash, success = false))
             !exit(Failure("Invalid credentials"))
         }
+
         !emitEvents(UserEvent.UserLoggedIn(passwordHash = command.passwordHash, success = true))
         Ok
     }
@@ -201,10 +228,11 @@ object Auth {
             User(
                 email = command.email,
                 personalData = command.personalData,
-                credentials = command.credentials,
+                credentials = null,
                 loginCount = 0,
                 roles = command.roles,
-                createdBy = command.createdBy
+                createdBy = command.createdBy,
+                credentialSource = command.credentialSource
             )
 
         !emitEvents(
@@ -222,6 +250,7 @@ object Auth {
                 is Command.CreateUser -> handleCreateUser
                 is Command.UpdatePersonalData -> handleUpdatePersonalData
                 is Command.UserLogin -> handleUserLogin
+                is Command.AddRoles -> handleAddRoles
             }
         }
 
@@ -229,7 +258,8 @@ object Auth {
         reducerOf(
             UserEvent.UserCreated::class to handleCreatedUser,
             UserEvent.UserLoggedIn::class to handleUserLoggedIn,
-            UserEvent.PersonalDataUpdated::class to handleUpdatedPersonalData
+            UserEvent.PersonalDataUpdated::class to handleUpdatedPersonalData,
+            UserEvent.RolesAdded::class to handleRolesAdded
         )
 
 }

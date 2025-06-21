@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="dataSourceStorageLocal" created-in="IU-243.21565.193">
+  <component name="dataSourceStorageLocal" created-in="IU-243.26053.27">
     <data-source name="salt@localhost" uuid="c3e7e5f5-2e1d-4669-ac64-fef0ea1756da">
       <database-info product="PostgreSQL" version="14.11" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.6.0" dbms="POSTGRES" exact-version="14.11" exact-driver-version="42.6">
         <identifier-quote-string>&quot;</identifier-quote-string>
@@ -12,6 +12,38 @@
         <introspection-scope>
           <node kind="database" qname="@">
             <node kind="schema" qname="@" />
+          </node>
+        </introspection-scope>
+      </schema-mapping>
+    </data-source>
+    <data-source name="@localhost" uuid="8aae3377-d97f-4a18-a842-c809e5c860b5">
+      <database-info product="MySQL" version="8.0.42" jdbc-version="4.2" driver-name="MySQL Connector/J" driver-version="mysql-connector-j-8.2.0 (Revision: 06a1f724497fd81c6a659131fda822c9e5085b6c)" dbms="MYSQL" exact-version="8.0.42" exact-driver-version="8.2">
+        <extra-name-characters>#@</extra-name-characters>
+        <identifier-quote-string>`</identifier-quote-string>
+      </database-info>
+      <case-sensitivity plain-identifiers="exact" quoted-identifiers="exact" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>c1421556_demo</user-name>
+      <schema-mapping>
+        <introspection-scope>
+          <node kind="schema" negative="1" />
+        </introspection-scope>
+      </schema-mapping>
+    </data-source>
+    <data-source name="neondb@ep-jolly-block-acof675a.sa-east-1.aws.neon.tech" uuid="cb945285-0b5f-4ebf-84ea-4944540ff6d6">
+      <database-info product="PostgreSQL" version="15.13" jdbc-version="4.2" driver-name="PostgreSQL JDBC Driver" driver-version="42.6.0" dbms="POSTGRES" exact-version="15.13" exact-driver-version="42.6">
+        <identifier-quote-string>&quot;</identifier-quote-string>
+      </database-info>
+      <case-sensitivity plain-identifiers="lower" quoted-identifiers="exact" />
+      <secret-storage>master_key</secret-storage>
+      <user-name>neondb_owner</user-name>
+      <schema-mapping>
+        <introspection-scope>
+          <node negative="1">
+            <node kind="database" qname="@">
+              <node kind="schema" qname="@" />
+            </node>
+            <node kind="database" qname="postgres" />
           </node>
         </introspection-scope>
       </schema-mapping>

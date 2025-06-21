@@ -43,7 +43,7 @@ object Reservation {
     }
 
     val handleTakenEvent get() = Reducer<Reservation?, ResourceEvent.ResourceTaken> { state, event ->
-        state?.copy(taken = true) ?: Reservation(taken = true, ownerId = event.ownerId)
+        state?.copy(taken = true, ownerId = event.ownerId) ?: Reservation(taken = true, ownerId = event.ownerId)
     }
 
     val handleReleasedEvent get() = Reducer<Reservation?, ResourceEvent.ResourceReleased> { state, event ->

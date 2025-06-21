@@ -1,10 +1,17 @@
 package io.kauth.service.auth
 
+import io.kauth.client.google.Google
+import io.kauth.client.google.exchangeCodeForToken
+import io.kauth.client.google.fetchUserData
 import io.kauth.exception.ApiException
 import io.kauth.exception.not
 import io.kauth.monad.apicall.KtorCall
 import io.kauth.monad.apicall.runApiCall
 import io.kauth.monad.stack.AppStack
+import io.kauth.monad.stack.authStackLog
+import io.kauth.monad.stack.findConfig
+import io.kauth.monad.stack.getService
+import io.kauth.service.auth.AuthService.name
 import io.kauth.util.not
 import io.ktor.http.*
 import io.ktor.server.request.*
@@ -23,6 +30,12 @@ object AuthApiRest {
     )
 
     @Serializable
+    data class AddRolesRequest(
+        val email: String,
+        val roles: List<String>
+    )
+
+    @Serializable
     data class LoginRequest(
         val email: String,
         val password: String,
@@ -30,9 +43,64 @@ object AuthApiRest {
 
     val api = AppStack.Do {
 
+        val log = !authStackLog
+
         ktor.routing {
 
             route("auth") {
+
+                route("google") {
+
+                    get {
+                        val google = !getService<Google.Client>()
+                        val scope = "openid%20email%20profile"
+                        val redirectParam = call.request.queryParameters["redirect"]
+                        // Encode the redirect param in the state parameter (URL-safe base64)
+                        val state = if (redirectParam != null) java.util.Base64.getUrlEncoder().encodeToString(redirectParam.toByteArray()) else ""
+                        val authUrl = "https://accounts.google.com/o/oauth2/v2/auth" +
+                                "?client_id=${google.clientId}" +
+                                "&redirect_uri=${google.redirectUri}" +
+                                "&response_type=code" +
+                                "&scope=$scope" +
+                                "&access_type=offline" +
+                                (if (state.isNotEmpty()) "&state=$state" else "")
+                        call.respondRedirect(authUrl)
+                    }
+
+                    get("/callback") {
+                        val authConfig = !findConfig<AuthConfig>(name)
+                        try {
+                            val code = call.parameters["code"] ?: return@get call.respondText("No code", status = HttpStatusCode.BadRequest)
+                            val state = call.parameters["state"]
+                            val redirectFromState = state?.let {
+                                try {
+                                    String(java.util.Base64.getUrlDecoder().decode(it))
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }
+                            val result = !KtorCall(this@Do.ctx, call).runApiCall(AuthApi.googleLogin(code = code))
+                            call.response.cookies.append(
+                                Cookie(
+                                    name = "token",
+                                    value = result.access,
+                                    httpOnly = true,
+                                    secure = true,
+                                    path = "/",
+                                    extensions = mapOf("SameSite" to "None")
+                                )
+                            )
+                            val frontendBase = authConfig?.frontend ?: "http://localhost:5173/"
+                            val redirectUrl = if (!redirectFromState.isNullOrBlank()) {
+                                if (redirectFromState.startsWith("/")) frontendBase.trimEnd('/') + redirectFromState else redirectFromState
+                            } else frontendBase
+                            call.respondRedirect(redirectUrl)
+                        } catch (e: Throwable) {
+                            call.respondRedirect((authConfig?.frontend ?: "http://localhost:5173/") + "login")
+                        }
+                    }
+
+                }
 
                 route("internal") {
 
@@ -66,6 +134,17 @@ object AuthApiRest {
 
                     }
 
+                    post(path = "roles") {
+                        val command = call.receive<AddRolesRequest>()
+                        val result = !KtorCall(this@Do.ctx, call).runApiCall(
+                            AuthApi.addRoles(
+                                command.email,
+                                command.roles
+                            )
+                        )
+                        call.respond(HttpStatusCode.Created, result)
+                    }
+
                 }
 
                 post(path = "/register") {
@@ -89,7 +168,23 @@ object AuthApiRest {
                             command.password,
                         )
                     )
+                    call.response.cookies.append(Cookie(
+                        name = "token",
+                        value = result.access,
+                        httpOnly = true,
+                        secure = true,
+                        path = "/",
+                        extensions = mapOf(
+                            "SameSite" to "None"
+                        )
+                    ))
                     call.respond(HttpStatusCode.OK, result)
+                }
+
+                post(path = "/logout") {
+                    log.info("Logout request received")
+                    call.response.cookies.append(Cookie(name = "token", value = "", httpOnly = true, secure = false, path = "/"))
+                    call.respond(HttpStatusCode.OK)
                 }
 
                 route("user") {
@@ -120,7 +215,7 @@ object AuthApiRest {
                     }
 
                     get(path = "/list") {
-                        val role = call.request.queryParameters["role"]
+                        val role = call.request.queryParameters["role"]?.split(",")
                         val user = !KtorCall(this@Do.ctx, call).runApiCall(AuthApi.Query.list(role))
                         call.respond(HttpStatusCode.OK, user)
                     }
@@ -137,3 +232,4 @@ object AuthApiRest {
 
 
 }
+

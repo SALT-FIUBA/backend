@@ -5,10 +5,12 @@ import io.kauth.exception.ApiException
 import io.kauth.exception.allowIf
 import io.kauth.exception.not
 import io.kauth.monad.apicall.ApiCall
+import io.kauth.monad.apicall.apiCallGetService
+import io.kauth.monad.apicall.apiCallLog
+import io.kauth.monad.apicall.toApiCall
 import io.kauth.monad.stack.*
 import io.kauth.service.auth.Auth
 import io.kauth.service.auth.AuthApi
-import io.kauth.service.auth.AuthService
 import io.kauth.service.organism.OrganismProjection.OrganismTable
 import io.kauth.service.organism.OrganismProjection.toOrganismProjection
 import io.kauth.service.organism.OrganismProjection.toOrganismUserInfoProjection
@@ -17,6 +19,7 @@ import io.kauth.service.salt.DeviceProjection
 import io.kauth.service.salt.DeviceProjection.toDeviceProjection
 import io.kauth.util.not
 import kotlinx.datetime.Clock
+import org.jetbrains.exposed.sql.Op
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.selectAll
 import java.util.*
@@ -25,79 +28,33 @@ object OrganismApi {
 
     object Command {
 
-        fun createUser(
-            organism: UUID,
-            role: Organism.Role,
+        fun addUser(
             email: String,
-            password: String,
-            personalData: Auth.User.PersonalData,
+            organism: UUID,
+            role: List<Organism.Role>,
         ) = ApiCall.Do {
-
-            val jwt = jwt ?: !ApiException("UnAuth")
-
-            val orgRole = Organism.OrganismRole(role, organism)
-            val supervisorRole = Organism.OrganismRole(Organism.Role.supervisor, organism)
-
-            !allowIf(
-                "admin" in jwt.payload.roles ||
-                        (supervisorRole.string in jwt.payload.roles && role != Organism.Role.supervisor)
-            ) {
+            //val jwt = jwt ?: !ApiException("UnAuth")
+            val roles = role.map { Organism.OrganismRole(it, organism).string }
+            val writeRole = Organism.OrganismRole(Organism.Role.write, organism)
+            /*
+            !allowIf("admin" in jwt.payload.roles || (writeRole.string in jwt.payload.roles)) {
                 "Not Allowed"
             }
-
-            !AuthApi.register(
+             */
+            !AuthApi.addRoles(
                 email,
-                password,
-                personalData,
-                listOf(orgRole.string)
+                roles
             )
-
-        }
-
-        //Esto se tiene que ejecutar cada vez que se crea un usuario!!
-        fun addUser(
-            organism: UUID,
-            role: Organism.Role,
-            user: UUID,
-            createdBy: UUID?
-        ) = AppStack.Do {
-
-            val orgRole = Organism.OrganismRole(role, organism)
-
-            val service = !getService<OrganismService.Interface>()
-            val auth = !getService<AuthService.Interface>()
-
-            val userData = !auth.query.readState(user) ?: !ApiException("User does not exists")
-
-            !allowIf(orgRole.string in userData.roles) {
-                "Invalid role for user"
-            }
-
-            val userInfo = Organism.UserInfo(
-                id = user,
-                addedBy = createdBy,
-                addedAt = Clock.System.now()
-            )
-
-            !service.command
-                .handle(organism)
-                .throwOnFailureHandler(
-                    when(role) {
-                        Organism.Role.operators -> Organism.Command.AddOperator(userInfo)
-                        Organism.Role.supervisor -> Organism.Command.AddSupervisor(userInfo)
-                    }
-                )
-            userInfo
         }
 
         fun create(
             tag: String,
             name: String,
             description: String,
-        ) = AppStack.Do {
+        ) = ApiCall.Do {
 
-            val log = !authStackLog
-            val jwt = !authStackJwt
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
 
             if (name.isBlank()) {
                 !ApiException("Invalid name")
@@ -107,9 +64,9 @@ object OrganismApi {
                 "Not authorized"
             }
 
-            val service = !getService<OrganismService.Interface>()
+            val service = !apiCallGetService<OrganismService.Interface>()
 
-            val id = !ReservationApi.takeIfNotTaken("organism-${name}") { UUID.randomUUID().toString() }
+            val id = !ReservationApi.takeIfNotTaken("organism-${name}") { UUID.randomUUID().toString() }.toApiCall()
 
             log.info("Create organism $name")
 
@@ -123,10 +80,52 @@ object OrganismApi {
                         createdBy = jwt.payload.id,
                         createdAt = Clock.System.now()
                     ),
-                )
+                ).toApiCall()
 
             id
 
+        }
+
+        fun delete(
+            id: UUID
+        ) = ApiCall.Do {
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
+            allowIf("admin" in jwt.payload.roles) { "Not authorized" }
+            val service = !apiCallGetService<OrganismService.Interface>()
+            log.info("Delete organism $id")
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Organism.Command.DeleteOrganism(
+                        deletedBy = jwt.payload.id,
+                        deletedAt = Clock.System.now()
+                    ),
+                ).toApiCall()
+        }
+
+        fun edit(
+            id: UUID,
+            tag: String? = null,
+            name: String? = null,
+            description: String? = null
+        ) = ApiCall.Do {
+            val log = !apiCallLog
+            val jwt = jwt ?: !ApiException("UnAuth")
+            allowIf("admin" in jwt.payload.roles) { "Not authorized" }
+            val service = !apiCallGetService<OrganismService.Interface>()
+            log.info("Edit organism $id")
+            !service.command
+                .handle(id)
+                .throwOnFailureHandler(
+                    Organism.Command.EditOrganism(
+                        tag = tag,
+                        name = name,
+                        description = description,
+                        editedBy = jwt.payload.id,
+                        editedAt = Clock.System.now()
+                    ),
+                ).toApiCall()
         }
 
     }
@@ -139,9 +138,9 @@ object OrganismApi {
         }
 
         fun organism(id: UUID) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 val data = OrganismTable.selectAll()
-                    .where { OrganismTable.id eq id.toString() }
+                    .where { (OrganismTable.id eq id.toString()) and (OrganismTable.deleted eq false) }
                     .map { it.toOrganismProjection }
                     .firstOrNull()
                 data?.let { it ->
@@ -180,14 +179,15 @@ object OrganismApi {
         }
 
         fun organismsList() = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 OrganismTable.selectAll()
+                    .where { OrganismTable.deleted eq false }
                     .map { it.toOrganismProjection }
             }
         }
 
         fun supervisorList(organism: UUID) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {
                         (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
@@ -198,7 +198,7 @@ object OrganismApi {
         }
 
         fun operatorList(organism: UUID) = AppStack.Do {
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 OrganismProjection.OrganismUserInfoTable.selectAll()
                     .where {
                         (OrganismProjection.OrganismUserInfoTable.organismId eq organism.toString()) and
@@ -211,4 +211,3 @@ object OrganismApi {
     }
 
 }
-

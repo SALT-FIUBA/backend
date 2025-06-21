@@ -1,22 +1,26 @@
 package io.kauth
 
+import io.kauth.client.brevo.Brevo
 import io.kauth.client.eventStore.eventStoreClientNew
 import io.kauth.client.eventStore.eventStoreClientPersistenceSubsNew
-import io.kauth.client.tuya.Tuya
 import io.kauth.exception.ApiException
 import io.kauth.monad.stack.*
+import io.kauth.service.accessrequest.AccessRequestService
 import io.kauth.service.auth.AuthService
 import io.kauth.service.deviceproject.DeviceProjectService
+import io.kauth.service.fanpage.FanPageService
 import io.kauth.service.salt.DeviceService
 import io.kauth.service.mqtt.MqttConnectorService
 import io.kauth.service.iotdevice.IoTDeviceService
+import io.kauth.service.notification.NotificationService
+import io.kauth.service.occasion.OccasionService
 import io.kauth.service.organism.OrganismService
+import io.kauth.service.organism.TrainService
 import io.kauth.service.ping.PingService
 import io.kauth.service.publisher.PublisherService
 import io.kauth.service.reservation.ReservationService
 import io.kauth.service.runServices
 import io.kauth.util.AppLogger
-import io.kauth.util.LoggerLevel
 import io.kauth.util.not
 import io.kauth.util.setLogbackLevel
 import io.ktor.http.*
@@ -49,7 +53,12 @@ val runServices get() =
         MqttConnectorService,
         PublisherService,
         IoTDeviceService,
-        DeviceProjectService
+        DeviceProjectService,
+        TrainService,
+        OccasionService,
+        AccessRequestService,
+        FanPageService,
+        NotificationService
     )
 
 val installKtorPlugins =
@@ -72,6 +81,7 @@ val installKtorPlugins =
                 anyHost()
                 allowMethod(HttpMethod.Get)
                 allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Put)
                 allowMethod(HttpMethod.Options)
                 allowHeader(HttpHeaders.ContentType)
                 allowHeader(HttpHeaders.Authorization)
@@ -139,6 +149,7 @@ fun Application.kauthApp() {
             !registerService(!eventStoreClientPersistenceSubsNew(eventstoreDbHost, serialization))
             !registerService(PrometheusMeterRegistry(PrometheusConfig.DEFAULT))
             !registerService(AppLogger(log))
+
 
             !installKtorPlugins
 

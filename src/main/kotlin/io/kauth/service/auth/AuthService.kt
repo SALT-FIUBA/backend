@@ -7,8 +7,10 @@ import io.kauth.monad.stack.registerService
 import io.kauth.service.AppService
 import io.kauth.util.Async
 import io.kauth.abstractions.result.Output
+import io.kauth.client.google.Google
 import io.kauth.monad.stack.AppStack
 import io.kauth.monad.stack.findConfig
+import io.kauth.util.not
 import kotlinx.serialization.json.decodeFromJsonElement
 import java.util.*
 
@@ -41,6 +43,12 @@ object AuthService : AppService {
         AppStack.Do {
 
             val authConfig = !findConfig<AuthConfig>(name) ?: return@Do
+
+            !registerService(!Google.newClient(
+                authConfig.google.clientId,
+                authConfig.google.secret,
+                authConfig.google.redirectUri,
+            ))
 
             val client = !getService<EventStoreClient>()
 

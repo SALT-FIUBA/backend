@@ -1,5 +1,7 @@
 package io.kauth.service.iotdevice
 
+import io.kauth.abstractions.forever
+import io.kauth.abstractions.repeatForever
 import io.kauth.client.eventStore.model.retrieveId
 import io.kauth.client.pulsar.auth.MqAuth
 import io.kauth.client.tuya.Tuya
@@ -28,6 +30,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 import org.apache.pulsar.client.api.PulsarClient
 import org.apache.pulsar.client.api.SubscriptionType
 import java.util.*
+import io.kauth.util.Async
 
 
 object IoTDeviceEventHandler {
@@ -64,13 +67,14 @@ object IoTDeviceEventHandler {
             .await()
 
         ktor.launch {
+            //TODO: Error handling
             while (isActive) {
                 logger.info("Waiting for tuya events!")
-
                 val message = consumer.receiveAsync().await()
                 val encryptModel = message.getProperty("em")
-                val tuyaMessage = json.decodeFromString<TuyaPulsarMessage>(message.data.toString(charset = Charsets.UTF_8))
-                val model = EncryptModel.fromString(encryptModel) ?: break
+                val tuyaMessage =
+                    json.decodeFromString<TuyaPulsarMessage>(message.data.toString(charset = Charsets.UTF_8))
+                val model = EncryptModel.fromString(encryptModel) ?: continue
                 val data = model.decrypt(tuyaMessage.data, config.tuya.clientSecret.substring(8, 24))
 
                 val tuyaEvent = json.decodeFromString<TuyaEvent>(data)
@@ -83,20 +87,21 @@ object IoTDeviceEventHandler {
 
                 val iotDevice = !ReservationApi.readIfTaken("device-${devId}")
 
-                if (iotDevice == null) {
-                    logger.error(status.toString())
-                    return@launch
+                if (iotDevice != null) {
+                    //FIX THIS
+                    try {
+                        !IoTDeviceApi.setCapValues(
+                            UUID.fromString(iotDevice),
+                            status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
+                        )
+                    } catch (error: Throwable) {
+                        logger.error("Error updating value !! $iotDevice, $status, ${error}")
+                    }
+                } else {
+                    logger.error("IoT device id not found for device-${devId} ${iotDevice}")
                 }
-
-                !IoTDeviceApi.setCapValues(
-                    UUID.fromString(iotDevice),
-                    status.result?.properties?.map { it.code to json.encodeToString(it.value) } ?: emptyList()
-                )
-
                 consumer.acknowledgeAsync(message).await()
-
             }
-
             logger.info("DONE LISTENING")
         }
 
@@ -147,6 +152,7 @@ object IoTDeviceEventHandler {
             val state = !IoTDeviceApi.Query.readState(id) ?: return@Do
 
             if (state.integration is Integration.Tuya) {
+                //TODO usar publisher para tener idempotencia
                 val tuyaClient = !getService<Tuya.Client>()
                 val deviceId = state.integration.deviceId
                 if (event.value is IoTDevice.Event.SendCommand) {

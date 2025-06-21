@@ -16,6 +16,8 @@ import java.util.*
 
 object OrganismService : AppService {
 
+    override val name = "organism"
+
     val STREAM_PREFIX = "organism-"
     val SNAPSHOT_STREAM_PREFIX = "organism_snapshot-"
     val UUID.streamName get() = STREAM_PREFIX + this.toString()
@@ -62,10 +64,7 @@ object OrganismService : AppService {
 
             !OrganismProjection.sqlEventHandler
 
-            !OrganismEventHandler.eventHandler
-
             !OrganismApiRest.api
-
 
         }
 

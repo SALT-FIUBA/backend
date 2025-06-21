@@ -2,10 +2,7 @@ package io.kauth.service.publisher
 
 import io.kauth.abstractions.command.throwOnFailureHandler
 import io.kauth.abstractions.result.AppResult
-import io.kauth.monad.stack.AppStack
-import io.kauth.monad.stack.appStackDbQuery
-import io.kauth.monad.stack.authStackLog
-import io.kauth.monad.stack.getService
+import io.kauth.monad.stack.*
 import io.kauth.service.publisher.PublisherProjection.toPublisherProjection
 import io.kauth.util.not
 import kotlinx.serialization.json.encodeToJsonElement
@@ -22,7 +19,7 @@ object PublisherApi {
 
     fun getByResource(resource: String) = AppStack.Do {
         //!appStackAuthValidateAdmin
-        !appStackDbQuery {
+        !appStackDbQueryNeon {
             PublisherProjection.Publisher
                 .selectAll()
                 .where { PublisherProjection.Publisher.resource eq resource }

@@ -16,6 +16,9 @@ import java.util.*
 
 object PublisherService : AppService {
 
+    override val name: String
+        get() = "publisher"
+
     val STREAM_PREFIX = "publisher-"
     val UUID.streamName get() = STREAM_PREFIX + this.toString()
 

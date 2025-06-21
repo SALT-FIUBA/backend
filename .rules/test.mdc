@@ -1,0 +1,71 @@
+# Project Test Rules for Agentic AI Assistant
+
+## 1. Test Location
+- All tests are located in the `src/test/kotlin` directory, mirroring the main source structure.
+- Each domain or service (e.g., Occasion, AccessRequest) has its own test file (e.g., `OccasionTest.kt`, `AccessRequestTest.kt`).
+
+## 2. Test Structure
+- Each test class is named after the domain/service it tests, suffixed with `Test` (e.g., `OccasionTest`).
+- Tests use JUnit 5 (`@Test` annotation) and standard assertion methods (e.g., `assertEquals`, `assertTrue`, `assertNotNull`).
+- Use MockK for mocking dependencies and verifying interactions.
+- Use `runBlocking` for coroutine-based tests.
+- Use a helper function named `initMocks()` to initialize mocks and test context for each test. This function should support parameterization for edge cases and reduce boilerplate in test setup. All new tests should use `initMocks()` for context and dependency setup.
+
+## 3. Command Handler Tests
+- For each command handler, create at least one test covering the happy path and relevant edge cases.
+- Steps:
+  1. Prepare the initial state (or null for creation commands).
+  2. Create the command instance.
+  3. Run the handler via the domain's command state machine (e.g., `Occasion.commandStateMachine.run(cmd, state)`).
+  4. Assert on the output (should be `Ok` or `isFailure`) and emitted events.
+  5. Check that business rules are enforced (e.g., cannot create if already exists).
+  6. Use MockK's `verify` to ensure command handlers are called with the correct arguments.
+  7. For API/service layer tests, verify that service.command.handle is called with the expected command object.
+  8. **Order of Results:** When using `.run(cmd, state)`, always destructure as `(events, output)` (not `(output, events)`).
+
+## 4. Reducer/Event Tests
+- For each event, create a test that applies the event to a state using the reducer (e.g., `Occasion.eventReducer.run(state, event)`).
+- Assert that the new state is as expected (fields updated, status changed, etc.).
+- Include tests for error events to ensure state is unchanged.
+
+## 5. Coverage
+- Ensure all command handlers and reducers are covered by tests.
+- Edge cases and invalid transitions must be tested (e.g., trying to cancel a completed occasion).
+- Aim for 100% branch coverage for business logic.
+
+## 6. Naming
+- Test names should describe the scenario and expected outcome (e.g., `cannot create occasion if already exists`).
+- Use backticks for descriptive test names in Kotlin.
+
+## 7. Patterns
+- Use real domain objects and values (UUIDs, timestamps, etc.) in tests.
+- Prefer explicit assertions over generic ones.
+- Group related assertions in a single test when they are part of the same scenario.
+- Use parameterized setup (e.g., `initMocks`) to easily test different edge cases.
+- Use MockK's `withArg` and `ofType` to verify correct command types and argument values.
+
+## 8. Extending Tests
+- When adding a new command or event:
+  1. Add tests for the handler (happy path and errors).
+  2. Add tests for the reducer/event application.
+  3. Ensure coverage for all new logic and edge cases.
+  4. For service/API layer, verify correct service/command handler invocation and argument values.
+
+## 9. Mocking and Verification
+- Use MockK for all mocking and verification.
+- Always verify that command handlers are called with the correct command type and argument values.
+- Use `every { ... } returns ...` to stub dependencies.
+- Use `verify { ... }` to check interactions and argument correctness.
+- For commands with multiple possible outcomes, test both success and failure paths.
+
+## 10. Coroutines
+- Use `runBlocking` for coroutine-based tests to ensure proper execution and assertions.
+
+## 11. General Best Practices
+- Keep tests isolated and independent.
+- Use clear, descriptive names for test methods and scenarios.
+- Refactor common setup into helper functions or `initMocks` to reduce duplication and improve clarity.
+- All new tests should use the `initMocks()` helper for context and dependency setup.
+
+## 12. Kotlin Import Rule
+- Never use `import x.y.z.ObjectName.*` (wildcard import from an object). Always use explicit imports for each member (e.g., `import x.y.z.ObjectName.Member`). This avoids the 'Cannot import on demand from object' compilation error.

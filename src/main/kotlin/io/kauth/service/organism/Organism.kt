@@ -17,13 +17,13 @@ object Organism {
         val role: Role,
         val organismId: UUID
     ) {
-        val string: String = "${organismId}_$role"
+        val string: String = "role:${role}:organism:${organismId}"
         companion object {
             fun formString(organismRole: String) =
                 kotlin.runCatching {
-                    val (organismId, role) = organismRole.split("_")
+                    val (role, roleId, organism, organismId) = organismRole.split(":")
                     OrganismRole(
-                        Role.fromString(role) ?: error("Invalid role"),
+                        Role.fromString(roleId) ?: error("Invalid role"),
                         UUID.fromString(organismId))
                 }.getOrNull()
         }
@@ -33,7 +33,9 @@ object Organism {
     @Serializable
     enum class Role {
         supervisor,
-        operators;
+        operators,
+        write,
+        read;
 
         companion object {
             fun fromString(value: String) =
@@ -54,7 +56,8 @@ object Organism {
         val createdBy: String?,
         val createdAt: Instant,
         val supervisors: List<UserInfo> = emptyList(),
-        val operators: List<UserInfo> = emptyList()
+        val operators: List<UserInfo> = emptyList(),
+        val deleted: Boolean = false // Soft delete flag
     )
 
     @Serializable
@@ -88,6 +91,20 @@ object Organism {
             val user: UserInfo
         ): Command
 
+        @Serializable
+        data class DeleteOrganism(
+            val deletedBy: String?,
+            val deletedAt: Instant
+        ): Command
+
+        @Serializable
+        data class EditOrganism(
+            val tag: String? = null,
+            val name: String? = null,
+            val description: String? = null,
+            val editedBy: String?,
+            val editedAt: Instant
+        ): Command
     }
 
     @Serializable
@@ -108,6 +125,20 @@ object Organism {
             val user: UserInfo
         ): Event
 
+        @Serializable
+        data class OrganismDeleted(
+            val deletedBy: String?,
+            val deletedAt: Instant
+        ): Event
+
+        @Serializable
+        data class OrganismEdited(
+            val tag: String,
+            val name: String,
+            val description: String,
+            val editedBy: String?,
+            val editedAt: Instant
+        ): Event
     }
 
     @Serializable
@@ -133,6 +164,18 @@ object Organism {
 
     val handleSupervisorEvent get() = Reducer<State?, Event.SupervisorAdded> { state, event ->
         state?.copy(supervisors = state.supervisors + event.user)
+    }
+
+    val handleDeletedEvent get() = Reducer<State?, Event.OrganismDeleted> { state, event ->
+        state?.copy(deleted = true)
+    }
+
+    val handleEditedEvent get() = Reducer<State?, Event.OrganismEdited> { state, event ->
+        state?.copy(
+            tag = event.tag,
+            name = event.name,
+            description = event.description
+        )
     }
 
     //event generators
@@ -211,6 +254,61 @@ object Organism {
         Ok
     }
 
+    val handleDeleteOrganism get() = CommandMonad.Do<Command.DeleteOrganism, State?, Event, Output> { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.OrganismDoesNotExists)
+            !exit(Failure("Organism does not exists"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.InvalidCommand("Organism already deleted"))
+            !exit(Failure("Organism already deleted"))
+        }
+        !emitEvents(Event.OrganismDeleted(command.deletedBy, command.deletedAt))
+        Ok
+    }
+
+    val handleEditOrganism get() = CommandMonad.Do<Command.EditOrganism, State?, Event, Output> { exit ->
+        val state = !getState
+        if (state == null) {
+            !emitEvents(Error.OrganismDoesNotExists)
+            !exit(Failure("Organism does not exists"))
+        }
+        if (state.deleted) {
+            !emitEvents(Error.InvalidCommand("Organism is deleted"))
+            !exit(Failure("Organism is deleted"))
+        }
+        val newTag = command.tag ?: state.tag
+        val newName = command.name ?: state.name
+        val newDescription = command.description ?: state.description
+        if (newTag.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid tag"))
+            !exit(Failure("Invalid empty tag"))
+        }
+        if (newName.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid name"))
+            !exit(Failure("Invalid empty name"))
+        }
+        if (newDescription.isEmpty()) {
+            !emitEvents(Error.InvalidCommand("Invalid description"))
+            !exit(Failure("Invalid empty description"))
+        }
+        if (newTag == state.tag && newName == state.name && newDescription == state.description) {
+            !emitEvents(Error.InvalidCommand("No changes provided"))
+            !exit(Failure("No changes provided"))
+        }
+        !emitEvents(
+            Event.OrganismEdited(
+                tag = newTag,
+                name = newName,
+                description = newDescription,
+                editedBy = command.editedBy,
+                editedAt = command.editedAt
+            )
+        )
+        Ok
+    }
+
     val commandStateMachine get() =
         CommandMonad.Do<Command, State?, Event, Output> { exit ->
             val command = !getCommand
@@ -218,6 +316,8 @@ object Organism {
                 is Command.CreateOrganism -> handleCreate
                 is Command.AddSupervisor -> handleAddSupervisor
                 is Command.AddOperator -> handleAddOperator
+                is Command.DeleteOrganism -> handleDeleteOrganism
+                is Command.EditOrganism -> handleEditOrganism
             }
         }
 
@@ -226,7 +326,9 @@ object Organism {
             reducerOf(
                 Event.OrganismCreated::class to handleCreatedEvent,
                 Event.SupervisorAdded::class to handleSupervisorEvent,
-                Event.OperatorAdded::class to handleOperatorEvent
+                Event.OperatorAdded::class to handleOperatorEvent,
+                Event.OrganismDeleted::class to handleDeletedEvent,
+                Event.OrganismEdited::class to handleEditedEvent
             )
 
 }

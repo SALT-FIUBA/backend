@@ -1,3 +1,4 @@
+.kiot.tar
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
@@ -9,6 +10,15 @@ build/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea/dataSources/
+.idea/dataSources.ids
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml
+.idea/httpRequests
+.idea/inspectionProfiles
+.idea/runConfigurations/
 *.iws
 *.iml
 *.ipr
@@ -45,3 +55,4 @@ mqtt/data
 mqtt/log
 monitoring/grafana
 db
+./src/main/resources/config/prod/config.json

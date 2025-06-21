@@ -42,7 +42,7 @@ object SubscriptionEventHandler {
             val mqtt = !getService<MqttConnectorService.Interface>()
             when(event.value) {
                 is Subscription.Event.Added -> {
-                    val subscribedTopics = !mqtt.mqtt.subscribe(event.value.data.map { it.topic })
+                    val subscribedTopics = !mqtt.mqtt.subscribe(  event.value.data.map { it.topic })
                     !event.value.data
                         .filter { it.topic in subscribedTopics }
                         .map { SubscriptionApi.subscribedToTopic(it.topic) }

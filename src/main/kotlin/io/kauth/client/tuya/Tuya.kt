@@ -1,6 +1,7 @@
 package io.kauth.client.tuya
 
 import io.kauth.abstractions.forever
+import io.kauth.abstractions.repeatForever
 import io.kauth.abstractions.state.varNew
 import io.kauth.util.Async
 import io.kauth.util.IO
@@ -31,9 +32,10 @@ object Tuya {
         scope: CoroutineScope,
         clientId: String,
         clientSecret: String
-    ): IO<Client> = IO {
+    ): Async<Client> = Async {
 
         val state = !varNew<Credentials?>(null)
+        val tokenDeferred = CompletableDeferred<Unit>()
 
         val http = HttpClient(CIO)
         val json = Json {
@@ -51,7 +53,7 @@ object Tuya {
         )
 
         val job = scope.launch {
-            !forever {
+            !repeatForever {
                 val actual = !state.get
                 val token = if (actual != null) {
                     !client.refreshToken(actual.refresh)
@@ -59,15 +61,20 @@ object Tuya {
                     !client.getToken()
                 }
                 if (!token.success) {
+                    println("Error getting tuya token")
                     throw RuntimeException("Token Error")
                 }
                 if (token.result != null) {
                     !state.set(Credentials(token.result.accessToken, token.result.refreshToken))
-                    println("WAITING!")
-                    delay((token.result.expireTime / 2).seconds)
+                    tokenDeferred.complete(Unit)
+                    val waitFor = (token.result.expireTime / 10).seconds
+                    println("WAITING! ${waitFor}")
+                    delay(waitFor)
                 }
             }
         }
+
+        tokenDeferred.await()
 
         Client(
             http = http,

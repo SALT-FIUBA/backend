@@ -21,7 +21,8 @@ object IoTDevice {
         val resource: String,
         val enabled: Boolean,
         val integration: Integration,
-        val capabilitiesValues: Map<String, StateData<String>>
+        val capabilitiesValues: Map<String, StateData<String>>,
+        //deviceType!
     )
 
     @Serializable
@@ -82,6 +83,12 @@ object IoTDevice {
         ): Event
 
         @Serializable
+        data class CapabilitiesSet(
+            val caps: List<Pair<String, String>>,
+            val at: Instant
+        ): Event
+
+        @Serializable
         data class SendCommand(
             val commands: List<DeviceCommand>
         ): Event
@@ -110,7 +117,16 @@ object IoTDevice {
     val capabilityValueEventHandler get() = Reducer<State?, Event.CapabilitySet> { state, event ->
         val oldValues = state?.capabilitiesValues ?: emptyMap()
         state?.copy(capabilitiesValues = oldValues.plus(event.key to StateData(value = event.value, updatedAt = event.at)))
+    }
 
+    val capabilitiesValueEventHandler get() = Reducer<State?, Event.CapabilitiesSet> { state, event ->
+        val oldValues = state?.capabilitiesValues ?: emptyMap()
+        state?.copy(capabilitiesValues = oldValues.plus(event.caps.map { it ->
+            it.first to StateData(
+                value = it.second,
+                updatedAt = event.at
+            )
+        }))
     }
 
     val sendCommandHandler get() = CommandMonad.Do<Command.SendCommand, State?, Event, Output> { exit ->
@@ -140,10 +156,9 @@ object IoTDevice {
         val command = !getCommand
         if (state == null) {
             !emitEvents(Error.UnknownError("Device does not exists!"))
-            !exit(Failure("Device already exists"))
+            !exit(Failure("Device does not exists!!"))
         }
-
-        !emitEvents(*command.caps.map { Event.CapabilitySet(it.first, it.second, command.at) }.toTypedArray())
+        !emitEvents(Event.CapabilitiesSet(caps = command.caps, at = command.at))
         Ok
     }
 
@@ -198,6 +213,7 @@ object IoTDevice {
             Event.Registered::class to createdEventHandler,
             Event.EnabledSet::class to enabledSetEventHandler,
             Event.CapabilitySet::class to capabilityValueEventHandler,
+            Event.CapabilitiesSet::class to capabilitiesValueEventHandler
         )
 
 }

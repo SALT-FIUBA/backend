@@ -1,8 +1,6 @@
 package io.kauth.service.publisher
 
-import io.kauth.monad.stack.AppStack
-import io.kauth.monad.stack.appStackDbQuery
-import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.monad.stack.*
 import kotlinx.serialization.encodeToString
 import org.jetbrains.exposed.sql.Table
 import java.util.*
@@ -47,7 +45,7 @@ object PublisherProjection {
             this[Publisher.resultError],
         )
 
-    val sqlEventHandler = appStackSqlProjector<Event>(
+    val sqlEventHandler = appStackSqlProjectorNeon<Event>(
         streamName = "\$ce-publisher",
         consumerGroup = "publisher-sql-projection",
         tables = listOf(Publisher)
@@ -55,7 +53,7 @@ object PublisherProjection {
         AppStack.Do {
             val publishId = UUID.fromString(event.retrieveId("publisher"))
             val state = !PublisherApi.readState(publishId) ?: return@Do
-            !appStackDbQuery {
+            !appStackDbQueryNeon {
                 Publisher.upsert() {
                     it[id] = publishId.toString()
                     it[data] = serialization.encodeToString(state.data)

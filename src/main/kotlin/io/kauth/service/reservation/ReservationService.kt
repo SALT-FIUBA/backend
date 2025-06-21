@@ -57,6 +57,8 @@ object ReservationService : AppService {
                 )
             )
 
+            !ReservationApiRest.api
+
         }
 
     //readConfig

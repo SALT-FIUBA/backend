@@ -144,6 +144,12 @@ inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandH
     eventStateMachine: Reducer<S?,E>,
 ): CommandHandler<C, O> = commandHandlerIdempotent(commandStateMachine,eventStateMachine) { UUID.randomUUID() }
 
+inline fun <C, reified S, reified E, O>  EventStoreStreamSnapshot<E, S>.commandHandler(
+    commandStateMachine: CommandMonad<C,S?,E,O>,
+    eventStateMachine: Reducer<S?,E>,
+    crossinline idempotenceId: (E) -> UUID,
+): CommandHandler<C, O> = commandHandlerIdempotent(commandStateMachine,eventStateMachine, idempotenceId)
+
 inline fun <reified E, reified S> EventStoreStreamSnapshot<E, S>.computeState(
     eventReducer: Reducer<S?,E>,
 ) = Async {

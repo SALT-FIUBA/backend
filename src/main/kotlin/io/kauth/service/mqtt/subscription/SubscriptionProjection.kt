@@ -1,8 +1,6 @@
 package io.kauth.service.mqtt.subscription
 
-import io.kauth.monad.stack.AppStack
-import io.kauth.monad.stack.appStackDbQuery
-import io.kauth.monad.stack.appStackSqlProjector
+import io.kauth.monad.stack.*
 import io.kauth.service.mqtt.subscription.SubscriptionService.TOPIC_STREAM_NAME
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.Table
@@ -20,14 +18,14 @@ object SubscriptionProjection {
         val lastSubscriberAt = timestamp("last_subscribed_at").nullable()
     }
 
-    val sqlEventHandler = appStackSqlProjector<SubscriptionTopic.Event>(
+    val sqlEventHandler = appStackSqlProjectorNeon<SubscriptionTopic.Event>(
         streamName = "\$ce-${TOPIC_STREAM_NAME}",
         consumerGroup = "subscription-topic-sql-projection-consumer",
         tables = listOf(MqttSubscriptions)
     ) { event ->
         AppStack.Do {
-            !appStackDbQuery {
-                val mqttTopic = event.retrieveId(TOPIC_STREAM_NAME) ?: return@appStackDbQuery
+            !appStackDbQueryNeon {
+                val mqttTopic = event.retrieveId(TOPIC_STREAM_NAME) ?: return@appStackDbQueryNeon
                 val state = !SubscriptionApi.readState(mqttTopic)
 
                 if(state == null) {

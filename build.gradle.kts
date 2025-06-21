@@ -29,17 +29,17 @@ ktor {
     }
 }
 
-val ktorVersion = "3.0.0"
-val logbackVersion = "1.4.14"
-val eventStoreClientVersion = "5.2.0"
+val ktorVersion = "3.1.2"
+val logbackVersion = "1.5.18"
+val eventStoreClientVersion = "5.4.5"
 val serializationVersion = "1.7.3"
-val dateTimeVersion = "0.4.1"
+val dateTimeVersion = "0.6.2"
 val micrometer = "1.12.2"
-val mqttClient = "0.4.6"
-val exposedVersion = "0.50.1"
+val exposedVersion = "0.60.0"
 val hikaricpVersion = "5.0.1"
-val hivemqMQTT = "1.3.3"
-val pulsarVersion = "4.0.0"
+val hivemqMQTT = "1.3.5"
+val pulsarVersion = "4.0.3"
+val mockkVersion = "1.14.2"
 
 dependencies {
 
@@ -54,6 +54,7 @@ dependencies {
     implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
     implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
 
     implementation("org.apache.pulsar:pulsar-client:$pulsarVersion")
 
@@ -82,10 +83,18 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.2")
 
     testImplementation(kotlin("test"))
+
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
+
+    testImplementation("io.mockk:mockk:${mockkVersion}")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.2.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.2.0")
 }
 
-tasks.test {
-    useJUnitPlatform()
+tasks.withType<Test>().configureEach {
+   useJUnitPlatform()
 }
 
 tasks.jar {
@@ -96,7 +105,7 @@ tasks.jar {
 }
 
 kotlin {
-    jvmToolchain(8)
+    jvmToolchain(11)
     compilerOptions {
         freeCompilerArgs.add("-Xcontext-receivers")
     }

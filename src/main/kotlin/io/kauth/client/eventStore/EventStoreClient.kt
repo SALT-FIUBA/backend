@@ -3,6 +3,9 @@ package io.kauth.client.eventStore
 import com.eventstore.dbclient.*
 import io.kauth.client.eventStore.model.*
 import io.kauth.client.eventStore.model.ReadResult
+import io.kauth.service.AppService
+import io.kauth.service.EventStoreService
+import io.kauth.service.allStreamsName
 import io.kauth.util.Async
 import io.kauth.util.IO
 import io.kauth.util.not
@@ -131,6 +134,21 @@ inline fun <reified T> EventStoreClient.appendToStream(
         revision
     )
 }
+
+inline fun <reified T, S : EventStoreService> EventStoreClientPersistenceSubs.subscribeToAllStream(
+    stream: S,
+    consumerGroup: String,
+    crossinline onEvent: (Event<T>, id: UUID) -> Async<Unit>
+): Async<Unit> {
+    return subscribeToStream(
+        stream = allStreamsName(stream),
+        consumerGroup = consumerGroup,
+        onEvent = { event: Event<T> ->
+            onEvent(event, UUID.fromString(event.retrieveId(stream)))
+        }
+    )
+}
+
 
 //TODO: Esto no mantiene el orden por lo que entiendo, hay que usar el otro type de subscription
 inline fun <reified T> EventStoreClientPersistenceSubs.subscribeToStream(

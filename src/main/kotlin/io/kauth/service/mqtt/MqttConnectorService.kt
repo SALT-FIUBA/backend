@@ -19,6 +19,9 @@ import java.util.*
 
 object MqttConnectorService : AppService {
 
+    override val name: String
+        get() = "mqtt"
+
     val STREAM_NAME = "mqtt"
 
     //pensar esto
@@ -66,7 +69,8 @@ object MqttConnectorService : AppService {
                 config.brokerAddress,
                 config.brokerPort,
                 json,
-                ctx
+                ctx,
+                consumerGroup = "mqtt-consumer-${config.clientId}",
             ) { message ->
                 Async {
                     try {
